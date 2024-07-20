@@ -76,7 +76,7 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
 
 ## Contribuciones
 
-¡Las contribuciones son bienvenidas! Si tienes ideas para mejorar Ressy Bot, no dudes en abrir un issue o enviar un pull request.
+¡Las contribuciones son bienvenidas! Si tienes ideas para mejorar Ressy Bot, no dudes en abrir un issue.
 
 ---
 
