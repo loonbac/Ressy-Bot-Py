@@ -51,7 +51,7 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
 2. **/xd**:
     - Muestra la cantidad de veces que se ha enviado "xD".
   
-3. **/github**
+3. **/github**:
     - Muestra información sobre el repositorio de Ressy en GitHub.
 
 ## Instalación y Configuración
