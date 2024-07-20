@@ -175,4 +175,23 @@ async def xd(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed2)
 
+@bot.tree.command(name="github", description="Muestro información sobre mi Repositorio uwu.")
+async def github(interaction: discord.Interaction):
+    embed3 = discord.Embed(
+        title="Mi Repo!! :3",
+        description=(
+            "¡Hola! Soy Ressy, la bot principal del servidor 'Estelar', creada por LoonBac21. (◕‿◕✿)\n\n"
+            "Tienes el link de mi repositorio en GitHub dandole click al titulo. ¡Espero que te sea útil y disfrutes explorándolo! 💫"
+        ),
+        color=0xF5AB0C,
+        url="https://github.com/loonbac/Ressy-Bot-Py"
+    )
+    
+    embed3.set_thumbnail(
+        url="https://cdn.discordapp.com/attachments/942197633504661577/1264140008441385030/5d745dce-df43-4534-ace5-0f773b040c7a.gif?ex=669cc9a0&is=669b7820&hm=7bd5295a53a9d1df2bee8175a4db29b6364620b9d5e3067ea8dfb1504b40e043&"
+    )
+    
+    await interaction.response.send_message(embed=embed3)
+
+
 bot.run(token)
