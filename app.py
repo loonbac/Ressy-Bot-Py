@@ -54,7 +54,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"Conectado como {bot.user}\n"
       f"Cambiando Estados de Bot\n"
-      f"Preparando Mensajes troll"
+      f"Preparando Mensajes troll\n"
       f"Llamando a Loon\n"
       f"Generando Mundo nwn\n"
       f"Preparando Mensajes Utiles\n")
@@ -105,9 +105,41 @@ async def on_message(message):
         await message.channel.send("Y-yo tambien te quiero mucho nwn.")
         return
     
-    if "xd" in content:
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["hola", "hi", "hey", "holi"]):
+        await message.channel.send("¡Hola! ¿Cómo estás? (≧ω≦)/")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["adiós", "bye", "chao", "chau", "ya me voy"]):
+        await message.channel.send("¡Adiós! ¡Cuídate mucho! ( ˘︹˘ )")
+        return
+    
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["gracias", "thanks", "thank you", "thx"]):
+        await message.channel.send("¡De nada! Estoy aquí para ayudarte. (◕‿◕✿)")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["cómo estás", "que tal", "como vas"]):
+        await message.channel.send("¡Estoy genial! ¿Y tú? (◠‿◠✿)")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["ayuda", "help"]):
+        await message.channel.send("¡Estoy aquí para ayudarte! ¿Qué necesitas? (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["broma", "joke"]):
+        await message.channel.send("¿Sabías que los computadores nunca se cansan? ¡Porque tienen mucho 'megaherz'! (≧∇≦)")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["feliz", "happy", "alegre"]):
+        await message.channel.send("¡Me alegra que estés feliz! (＾▽＾)")
+        return
+
+    if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["triste", "sad", "deprimido", "desanimado"]):
+        await message.channel.send("Oh no, ¡ánimo! ¡Todo va a estar bien! (◕︿◕✿)")
+        return
+
+    if "xd" in content.lower():
         current_count = read_counter()
-        new_count = current_count + content.count("xd")
+        new_count = current_count + content.lower().count("xd")
         write_counter(new_count)
         await message.channel.send(f"El xD ha sido enviado {new_count} veces hasta ahora.")
         return
