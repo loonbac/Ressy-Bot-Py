@@ -74,6 +74,12 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
     python app.py
     ```
 
+## Relacionado
+
+Este bot esta basado en otro que desarrolle con funciones similares.
+
+[Kema-Bot](https://github.com/loonbac/Kema-Bot)
+
 ## Contribuciones
 
 ¡Las contribuciones son bienvenidas! Si tienes ideas para mejorar Ressy Bot, no dudes en abrir un issue.
