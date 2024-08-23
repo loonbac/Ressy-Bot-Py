@@ -101,6 +101,11 @@ async def on_message(message):
         await message.channel.send(response)
         return
     
+    if content.lower() == "real":
+        response = "real real real"
+        await message.channel.send(response)
+        return
+    
     if bot.user.mentioned_in(message) and any(word in message.content.lower() for word in ["te amo", "te quiero", "cariño"]):
         await message.channel.send("Y-yo tambien te quiero mucho nwn.")
         return
