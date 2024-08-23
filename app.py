@@ -149,13 +149,14 @@ async def on_message(message):
 
 @bot.tree.command(name="info", description="Información básica sobre mí y mi funcionamiento nwn.")
 async def info(interaction: discord.Interaction):
+    server_name = interaction.guild.name  # Obtener el nombre del servidor
     embed = discord.Embed(
         title="¡Sobre Mi! (≧ω≦)/ ♡",
         description=(
-            "Soy Ressy, la mejor Bot en el servidor \"Estelar\". "
+            f"Soy Ressy, la mejor Bot en el servidor \"{server_name}\". "
             "Fui creada por LoonBac21 y estoy súper emocionada de estar aquí para ayudarte en todo lo que necesites. (◕‿◕✿)\n\n"
             "¿Qué puedo hacer por ti? Pues, un montón de cosas divertidas y útiles, claro está. ¡Puedo ayudarte a [REDACTED] y mucho más! ✧｡٩(ˊᗜˋ)و✧*｡\n\n"
-            "Me encanta hacer amigos y estaré aquí para ti a cualquier hora. Solo tienes que decirme qué necesitas y estaré lista para echarte una mano. ¡Juntos haremos Estelar el mejor lugar del universo! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧\n\n"
+            "Me encanta hacer amigos y estaré aquí para ti a cualquier hora. Solo tienes que decirme qué necesitas y estaré lista para echarte una mano. ¡Juntos haremos este servidor el mejor lugar del universo! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧\n\n"
             "¡Espero que podamos divertirnos mucho y crear recuerdos inolvidables! (★ω★)/"
         ),
         color=discord.Color(0x3D85C6)
