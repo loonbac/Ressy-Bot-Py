@@ -47,7 +47,7 @@ def setup_music_commands(bot: commands.Bot):
                     print(f'Error al reproducir el audio: {error}')
                     asyncio.run_coroutine_threadsafe(voice_client.disconnect(), bot.loop)
             
-            voice_client.play(discord.FFmpegPCMAudio(executable='F:\\Ressy-Bot-Py\\ffmpeg\\bin\\ffmpeg.exe', source=url2), after=after_playing)
+            voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2), after=after_playing)
 
             await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}")
 
