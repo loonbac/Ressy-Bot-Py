@@ -6,6 +6,7 @@ import asyncio
 import random
 from responses import setup_responses
 from slash_commands import setup_slash_commands
+from music_commands import setup_music_commands
 
 load_dotenv()
 token = os.getenv('token')
@@ -22,6 +23,7 @@ palabras_estado = [
     "A Llamar a LoonBac :>",
     "A Cuidar de Chetoss unu",
     "A ser una chica linda uwu",
+    "A escuchar todo de Youtube!!",
 ]
 
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -29,6 +31,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Aqui cargo los modulos del bot
 setup_responses(bot)
 setup_slash_commands(bot)
+setup_music_commands(bot)
 
 async def cambiar_estado():
     while True:
