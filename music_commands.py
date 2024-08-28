@@ -9,7 +9,7 @@ ydl_opts = {
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
-        'preferredquality': '320',
+        'preferredquality': '256',
     }],
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
     'restrictfilenames': True,
@@ -53,6 +53,7 @@ def setup_music_commands(bot: commands.Bot):
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
+
     @bot.tree.command(name="stop", description="Detengo la reproducción de música y me desconecto del canal de voz.")
     async def stop(interaction: discord.Interaction):
         voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
