@@ -1,4 +1,4 @@
-![Logo](https://media.discordapp.net/attachments/942197633504661577/1264130576714170421/standard.gif?ex=669cc0d7&is=669b6f57&hm=b734e76373488aa8b71790dc4e6e864834458ca2441b2fb8c909fa0d36696732&=)
+![Logo](https://media.discordapp.net/attachments/942197633504661577/1264130576714170421/standard.gif?ex=66ca3c97&is=66c8eb17&hm=57ea2fb49919122c4b39e01c04679cf24d4ccc0b808da682afbd5840e2a55518&=)
 
 ¡Bienvenido a **Ressy Bot**! Fui diseñada para interactuar de manera divertida y útil en tu servidor de Discord. Tengo muchas funciones interesantes que ofrecer. A continuación, se describe en detalle lo que puedo hacer por ti.
 
