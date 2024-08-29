@@ -95,12 +95,12 @@ def setup_music_commands(bot: commands.Bot):
             queue.append((url2, info.get('title')))
 
             if not voice_client.is_playing():
-                await play_next_song(voice_client, queue, interaction)
+                await play_next_song(voice_client, interaction)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
 
-    async def play_next_song(voice_client, queue, interaction):
+    async def play_next_song(voice_client, interaction):
         global current_message
         if queue:
             url, title = queue.pop(0)
@@ -108,7 +108,7 @@ def setup_music_commands(bot: commands.Bot):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
                 if queue:
-                    asyncio.create_task(play_next_song(voice_client, queue, interaction))
+                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction), bot.loop).result()
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
             if current_message:
