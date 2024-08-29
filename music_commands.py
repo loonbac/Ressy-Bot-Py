@@ -80,13 +80,14 @@ def setup_music_commands(bot: commands.Bot):
                 info = ydl.extract_info(url, download=False)
                 url2 = info['url']
 
-            # Reproduce la canción actual si no hay nada en cola
-            if not voice_client.is_playing() and not queue:
-                await play_next_song(voice_client, queue)
-                view = MusicControls(voice_client, bot)
-                await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
-            else:
+            if voice_client.is_playing() or voice_client.is_paused():
                 await interaction.followup.send("La música ya está en reproducción. Usa el comando `/queue` para añadir más canciones.")
+                return
+
+            queue.append((url2, info.get('title')))
+            await play_next_song(voice_client, queue)
+            view = MusicControls(voice_client, bot)
+            await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -103,14 +104,10 @@ def setup_music_commands(bot: commands.Bot):
                 url2 = info['url']
 
             queue.append((url2, info.get('title')))
-
             await interaction.response.send_message("Canción añadida a la cola.", delete_after=30)
 
-            if not any(vc.is_playing() for vc in bot.voice_clients if vc.guild == interaction.guild):
-                voice_channel = interaction.user.voice.channel
-                voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
-                if voice_client is None:
-                    voice_client = await voice_channel.connect()
+            voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
+            if voice_client and not voice_client.is_playing():
                 await play_next_song(voice_client, queue)
 
         except Exception as e:
