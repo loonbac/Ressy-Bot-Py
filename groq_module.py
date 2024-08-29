@@ -26,8 +26,9 @@ def get_system_prompt():
         "content": system_prompt,
     }
 
-async def generate_response(user_input):
-    messages = [get_system_prompt(), {"role": "user", "content": user_input}]
+async def generate_response(user_input, username):
+    personalized_input = f"{username} pregunta: {user_input}"
+    messages = [get_system_prompt(), {"role": "user", "content": personalized_input}]
     
     try:
         chat_completion = client.chat.completions.create(
@@ -42,8 +43,12 @@ async def generate_response(user_input):
 def setup_groq_module(bot):
     @bot.tree.command(name="ask", description="Pregunta algo al bot.")
     async def ask_command(interaction: discord.Interaction, user_input: str):
-        response_content = await generate_response(user_input)
+        # Obtener el nombre de usuario
+        username = interaction.user.name
+        
+        # Llamar a generate_response con el nombre de usuario
+        response_content = await generate_response(user_input, username)
         
         await interaction.response.send_message(
-            f"**Pregunta:** {user_input}\n**Respuesta:** {response_content}"
+            f"**{username} pregunta:** {user_input}\n**Respuesta:** {response_content}"
         )
