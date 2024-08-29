@@ -59,28 +59,9 @@ class MusicControls(discord.ui.View):
         if self.voice_client and self.voice_client.is_connected():
             await self.voice_client.disconnect()
 
-class MusicBot(commands.Bot):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.queue = []
-        self.voice_client = None
+def setup_music_commands(bot: commands.Bot):
+    queue = []
 
-    async def play_next(self):
-        if self.queue:
-            url = self.queue.pop(0)
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                url2 = info['url']
-
-            def after_playing(error):
-                if error:
-                    print(f'Error al reproducir el audio: {error}')
-                asyncio.run_coroutine_threadsafe(self.play_next(), self.loop)
-
-            if self.voice_client:
-                self.voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2, **ffmpeg_options), after=after_playing)
-
-def setup_music_commands(bot: MusicBot):
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
         try:
@@ -89,25 +70,37 @@ def setup_music_commands(bot: MusicBot):
                 return
 
             voice_channel = interaction.user.voice.channel
-            if bot.voice_client is None:
-                bot.voice_client = await voice_channel.connect()
+            voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
+            if voice_client is None:
+                voice_client = await voice_channel.connect()
 
             await interaction.response.defer()
 
-            if bot.voice_client.is_playing() or bot.voice_client.is_paused():
-                bot.queue.append(url)
-                await interaction.followup.send(f"Agregado a la cola: {url}")
-            else:
-                bot.queue.append(url)
-                await bot.play_next()
-                info = None
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-                view = MusicControls(bot.voice_client, bot)
-                await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}", view=view)
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                url2 = info['url']
+
+            queue.append((url2, info.get('title')))
+
+            if not voice_client.is_playing():
+                await play_next_song(voice_client, queue)
+
+            view = MusicControls(voice_client, bot)
+            await interaction.followup.send(f"nwn! En cola: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
+
+    async def play_next_song(voice_client, queue):
+        if queue:
+            url, title = queue.pop(0)
+            def after_playing(error):
+                if error:
+                    print(f'Error al reproducir el audio: {error}')
+                asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
+            
+            voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
+            print(f"Reproduciendo: {title}")
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
