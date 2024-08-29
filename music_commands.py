@@ -86,10 +86,6 @@ def setup_music_commands(bot: commands.Bot):
             if voice_client is None:
                 voice_client = await voice_channel.connect()
 
-            # Borra cualquier mensaje antiguo si ya está reproduciendo música
-            if current_message:
-                await current_message.delete()
-
             await interaction.response.defer()
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -98,6 +94,12 @@ def setup_music_commands(bot: commands.Bot):
 
             queue.append((url2, info.get('title')))
 
+            # Borra el mensaje anterior de control de música si existe
+            global current_message
+            if current_message:
+                await current_message.delete()
+
+            # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
 
