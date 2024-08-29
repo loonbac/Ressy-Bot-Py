@@ -76,6 +76,7 @@ def setup_music_commands(bot: commands.Bot):
 
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
+        global current_message
         try:
             if interaction.user.voice is None or interaction.user.voice.channel is None:
                 await interaction.response.send_message("Debes estar en un canal de voz para usar este comando D:.")
@@ -86,7 +87,7 @@ def setup_music_commands(bot: commands.Bot):
             if voice_client is None:
                 voice_client = await voice_channel.connect()
 
-            await interaction.response.defer()
+            await interaction.response.defer()  # Responder de inmediato para evitar el estado de "Pensando..."
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -96,15 +97,15 @@ def setup_music_commands(bot: commands.Bot):
                 else:
                     queue.append((info['url'], info.get('title')))
 
-            # Borra el mensaje anterior de control de música si existe
-            global current_message
-            if current_message:
-                await current_message.delete()
-                current_message = None
-
             # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
+
+            # Muestra los controles en el mensaje actual o crea uno nuevo si no existe
+            if current_message:
+                await current_message.edit(content=f"Reproduciendo: {queue[0][1]}", view=MusicControls(voice_client, bot))
+            else:
+                current_message = await interaction.followup.send(f"Reproduciendo: {queue[0][1]}", view=MusicControls(voice_client, bot))
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
