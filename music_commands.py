@@ -51,7 +51,9 @@ class MusicControls(discord.ui.View):
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.voice_client.is_playing() or self.voice_client.is_paused():
             self.voice_client.stop()
-            await interaction.response.edit_message(content="La reproducción ha sido detenida.", view=None)
+            await interaction.response.edit_message(content="La reproducción ha sido detenida", view=None)
+            await asyncio.sleep(60)
+            await interaction.message.delete() 
 
     async def on_timeout(self):
         if self.voice_client and self.voice_client.is_connected():
