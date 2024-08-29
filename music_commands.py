@@ -97,6 +97,11 @@ def setup_music_commands(bot: commands.Bot):
                 else:
                     queue.append((info['url'], info.get('title')))
 
+            # Elimina el mensaje anterior de control de música si existe
+            if current_message:
+                await current_message.delete()
+                current_message = None  # Reinicia el mensaje actual
+
             # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
@@ -118,11 +123,8 @@ def setup_music_commands(bot: commands.Bot):
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
-            # Muestra los controles en el mensaje actual o crea uno nuevo si no existe
-            if current_message:
-                await current_message.edit(content=f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
-            else:
-                current_message = await interaction.followup.send(f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
+            # Envía un nuevo mensaje con los controles de música
+            current_message = await interaction.followup.send(f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
