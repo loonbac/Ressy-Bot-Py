@@ -22,6 +22,11 @@ ydl_opts = {
     'source_address': '0.0.0.0'
 }
 
+ffmpeg_options = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn'
+}
+
 def setup_music_commands(bot: commands.Bot):
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
@@ -47,7 +52,7 @@ def setup_music_commands(bot: commands.Bot):
                     print(f'Error al reproducir el audio: {error}')
                     asyncio.run_coroutine_threadsafe(voice_client.disconnect(), bot.loop)
             
-            voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2), after=after_playing)
+            voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2, **ffmpeg_options), after=after_playing)
 
             await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}")
 
