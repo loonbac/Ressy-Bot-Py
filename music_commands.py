@@ -27,8 +27,6 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
-queue = []  # Cola global
-
 class MusicControls(discord.ui.View):
     def __init__(self, voice_client, bot, timeout=300):
         super().__init__(timeout=timeout)
@@ -61,6 +59,9 @@ class MusicControls(discord.ui.View):
         if self.voice_client and self.voice_client.is_connected():
             await self.voice_client.disconnect()
 
+# Cola global para manejar la lista de canciones
+queue = []
+
 def setup_music_commands(bot: commands.Bot):
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
@@ -81,9 +82,11 @@ def setup_music_commands(bot: commands.Bot):
                 url2 = info['url']
 
             if voice_client.is_playing() or voice_client.is_paused():
+                # Enviar mensaje de que la música ya está en reproducción
                 await interaction.followup.send("La música ya está en reproducción. Usa el comando `/queue` para añadir más canciones.")
                 return
 
+            # Reproducción inicial
             queue.append((url2, info.get('title')))
             await play_next_song(voice_client, queue)
             view = MusicControls(voice_client, bot)
