@@ -40,12 +40,11 @@ class MusicControls(discord.ui.View):
             self.voice_client.pause()
             self.paused = True
             button.label = "▶️"
-            await interaction.response.edit_message(view=self)
         elif self.voice_client.is_paused():
             self.voice_client.resume()
             self.paused = False
             button.label = "⏸️"
-            await interaction.response.edit_message(view=self)
+        await interaction.response.edit_message(view=self)
 
     @discord.ui.button(label="⏹️", style=discord.ButtonStyle.danger)
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -97,7 +96,8 @@ def setup_music_commands(bot: commands.Bot):
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
+                if queue:
+                    asyncio.create_task(play_next_song(voice_client, queue))
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
             print(f"Reproduciendo: {title}")
