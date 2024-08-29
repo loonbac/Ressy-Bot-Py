@@ -8,6 +8,7 @@ from responses import setup_responses
 from slash_commands import setup_slash_commands
 from music_commands import setup_music_commands
 from groq_module import setup_groq_module
+from acts_module import setup_acts_module
 
 load_dotenv()
 token = os.getenv('token')
@@ -34,6 +35,7 @@ setup_responses(bot)
 setup_slash_commands(bot)
 setup_music_commands(bot)
 setup_groq_module(bot)
+setup_acts_module(bot)
 
 async def cambiar_estado():
     while True:
