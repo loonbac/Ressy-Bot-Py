@@ -27,6 +27,25 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
+class MusicView(discord.ui.View):
+    def __init__(self, voice_client):
+        super().__init__()
+        self.voice_client = voice_client
+        self.is_playing = True  # Indica que la música se está reproduciendo inicialmente
+
+    @discord.ui.button(label="⏸️", style=discord.ButtonStyle.primary)
+    async def toggle_play_pause(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.is_playing:
+            self.voice_client.pause()
+            button.label = "▶️"
+            self.is_playing = False
+        else:
+            self.voice_client.resume()
+            button.label = "⏸️"
+            self.is_playing = True
+
+        await interaction.response.edit_message(view=self)
+
 def setup_music_commands(bot: commands.Bot):
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
@@ -54,7 +73,9 @@ def setup_music_commands(bot: commands.Bot):
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2, **ffmpeg_options), after=after_playing)
 
-            await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}")
+            # Crear la vista con el botón de pausa/play
+            view = MusicView(voice_client)
+            await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
