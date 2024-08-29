@@ -106,10 +106,11 @@ def setup_music_commands(bot: commands.Bot):
                 await play_next_song(voice_client, interaction)
 
             # Envía un nuevo mensaje con el título de la canción y los controles
-            current_message = await interaction.followup.send(
-                f"Reproduciendo: {queue[0][1]}",
-                view=MusicControls(voice_client, bot)
-            )
+            if queue:  # Asegúrate de que la cola no esté vacía
+                current_message = await interaction.followup.send(
+                    f"Reproduciendo: {queue[0][1]}",
+                    view=MusicControls(voice_client, bot)
+                )
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
