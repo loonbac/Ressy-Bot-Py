@@ -54,11 +54,22 @@ class MusicControls(discord.ui.View):
             await asyncio.sleep(60)  # Espera 1 minuto
             await interaction.message.delete()  # Borra el mensaje
 
+    @discord.ui.button(label="📋 Ver cola", style=discord.ButtonStyle.secondary)
+    async def queue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if queue:
+            queue_message = "Cola de canciones:\n"
+            for i, (_, title) in enumerate(queue, 1):
+                queue_message += f"{i}. {title}\n"
+            msg = await interaction.response.send_message(queue_message, delete_after=30)
+        else:
+            await interaction.response.send_message("La cola está vacía.", delete_after=30)
+
     async def on_timeout(self):
         if self.voice_client and self.voice_client.is_connected():
             await self.voice_client.disconnect()
 
 def setup_music_commands(bot: commands.Bot):
+    global queue
     queue = []
 
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
@@ -85,7 +96,7 @@ def setup_music_commands(bot: commands.Bot):
                 await play_next_song(voice_client, queue)
 
             view = MusicControls(voice_client, bot)
-            await interaction.followup.send(f"nwn! En cola: {info.get('title')}", view=view)
+            await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -100,7 +111,10 @@ def setup_music_commands(bot: commands.Bot):
                     asyncio.create_task(play_next_song(voice_client, queue))
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
-            print(f"Reproduciendo: {title}")
+            message = await voice_client.channel.send(f"Reproduciendo: {title}")
+            if hasattr(voice_client, 'now_playing_message'):
+                await voice_client.now_playing_message.delete()
+            voice_client.now_playing_message = message
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
