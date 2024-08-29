@@ -61,11 +61,9 @@ class MusicControls(discord.ui.View):
 
 def setup_music_commands(bot: commands.Bot):
     queue = []
-    current_message = None  # Inicializar current_message
 
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
-        nonlocal current_message  # Usar la variable del entorno exterior
         try:
             if interaction.user.voice is None or interaction.user.voice.channel is None:
                 await interaction.response.send_message("Debes estar en un canal de voz para usar este comando D:.")
@@ -87,19 +85,8 @@ def setup_music_commands(bot: commands.Bot):
             if not voice_client.is_playing():
                 await play_next_song(voice_client, queue)
 
-            if current_message:
-                try:
-                    await current_message.delete()
-                except discord.NotFound:
-                    pass  # El mensaje ya fue eliminado o no se encuentra
-
-            current_message = await interaction.followup.send("Canción agregada a la cola.")
-            await asyncio.sleep(30)
-            if current_message:
-                try:
-                    await current_message.delete()
-                except discord.NotFound:
-                    pass  # El mensaje ya fue eliminado o no se encuentra
+            view = MusicControls(voice_client, bot)
+            await interaction.followup.send(f"nwn! En cola: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -114,15 +101,6 @@ def setup_music_commands(bot: commands.Bot):
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
             print(f"Reproduciendo: {title}")
-
-            if current_message:
-                try:
-                    await current_message.delete()
-                except discord.NotFound:
-                    pass  # El mensaje ya fue eliminado o no se encuentra
-
-            view = MusicControls(voice_client, bot)
-            current_message = await voice_client.channel.send(f"Reproduciendo: {title}", view=view)
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
