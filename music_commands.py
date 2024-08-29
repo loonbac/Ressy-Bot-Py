@@ -94,8 +94,10 @@ def setup_music_commands(bot: commands.Bot):
                 if 'entries' in info:  # Si es una lista de reproducción
                     for entry in info['entries']:
                         queue.append((entry['url'], entry.get('title')))
+                        await interaction.followup.send(f"🎶 Canción agregada a la cola: {entry.get('title')}")
                 else:
                     queue.append((info['url'], info.get('title')))
+                    await interaction.followup.send(f"🎶 Canción agregada a la cola: {info.get('title')}")
 
             # Elimina el mensaje anterior de control de música si existe
             if current_message:
