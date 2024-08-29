@@ -97,8 +97,8 @@ def setup_music_commands(bot: commands.Bot):
                 if not vc.is_playing() and not vc.is_paused():
                     await vc.disconnect()
 
-    async def start_check_voice_timeout():
-        await bot.wait_until_ready()
-        check_voice_timeout.start()
+    bot.check_voice_timeout = check_voice_timeout
 
-    bot.loop.create_task(start_check_voice_timeout())
+    @bot.event
+    async def on_ready():
+        bot.check_voice_timeout.start()
