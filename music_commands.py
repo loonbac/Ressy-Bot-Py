@@ -80,7 +80,8 @@ def setup_music_commands(bot: commands.Bot):
                 info = ydl.extract_info(url, download=False)
                 url2 = info['url']
 
-            if not voice_client.is_playing():
+            # Reproduce la canción actual si no hay nada en cola
+            if not voice_client.is_playing() and not queue:
                 await play_next_song(voice_client, queue)
                 view = MusicControls(voice_client, bot)
                 await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
@@ -105,7 +106,7 @@ def setup_music_commands(bot: commands.Bot):
 
             await interaction.response.send_message("Canción añadida a la cola.", delete_after=30)
 
-            if not any([vc.is_playing() for vc in bot.voice_clients if vc.guild == interaction.guild]):
+            if not any(vc.is_playing() for vc in bot.voice_clients if vc.guild == interaction.guild):
                 voice_channel = interaction.user.voice.channel
                 voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
                 if voice_client is None:
@@ -122,7 +123,7 @@ def setup_music_commands(bot: commands.Bot):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
                 asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
-            
+
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
             # Actualiza el mensaje con los controles de música
