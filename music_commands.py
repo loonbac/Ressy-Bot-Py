@@ -101,12 +101,6 @@ def setup_music_commands(bot: commands.Bot):
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
 
-            # Muestra los controles en el mensaje actual o crea uno nuevo si no existe
-            if current_message:
-                await current_message.edit(content=f"Reproduciendo: {queue[0][1]}", view=MusicControls(voice_client, bot))
-            else:
-                current_message = await interaction.followup.send(f"Reproduciendo: {queue[0][1]}", view=MusicControls(voice_client, bot))
-
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
 
@@ -119,6 +113,8 @@ def setup_music_commands(bot: commands.Bot):
                     print(f'Error al reproducir el audio: {error}')
                 if queue:
                     asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction), bot.loop).result()
+                else:
+                    current_message = None  # Reinicia el mensaje actual si la cola está vacía
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
