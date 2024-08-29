@@ -27,6 +27,8 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
+queue = []  # Cola global
+
 class MusicControls(discord.ui.View):
     def __init__(self, voice_client, bot, timeout=300):
         super().__init__(timeout=timeout)
@@ -60,8 +62,6 @@ class MusicControls(discord.ui.View):
             await self.voice_client.disconnect()
 
 def setup_music_commands(bot: commands.Bot):
-    queue = []
-
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
         try:
@@ -119,7 +119,8 @@ def setup_music_commands(bot: commands.Bot):
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
+                if queue:
+                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
 
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
