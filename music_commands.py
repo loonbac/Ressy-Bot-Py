@@ -88,11 +88,18 @@ def setup_music_commands(bot: commands.Bot):
                 await play_next_song(voice_client, queue)
 
             if current_message:
-                await current_message.delete()
+                try:
+                    await current_message.delete()
+                except discord.NotFound:
+                    pass  # El mensaje ya fue eliminado o no se encuentra
 
             current_message = await interaction.followup.send("Canción agregada a la cola.")
             await asyncio.sleep(30)
-            await current_message.delete()
+            if current_message:
+                try:
+                    await current_message.delete()
+                except discord.NotFound:
+                    pass  # El mensaje ya fue eliminado o no se encuentra
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -109,7 +116,10 @@ def setup_music_commands(bot: commands.Bot):
             print(f"Reproduciendo: {title}")
 
             if current_message:
-                await current_message.delete()
+                try:
+                    await current_message.delete()
+                except discord.NotFound:
+                    pass  # El mensaje ya fue eliminado o no se encuentra
             view = MusicControls(voice_client, bot)
             current_message = await voice_client.channel.send(f"Reproduciendo: {title}", view=view)
 
