@@ -52,8 +52,8 @@ class MusicControls(discord.ui.View):
         if self.voice_client.is_playing() or self.voice_client.is_paused():
             self.voice_client.stop()
             await interaction.response.edit_message(content="La reproducción ha sido detenida", view=None)
-            await asyncio.sleep(60)
-            await interaction.message.delete() 
+            await asyncio.sleep(60)  # Espera 1 minuto
+            await interaction.message.delete()  # Borra el mensaje
 
     async def on_timeout(self):
         if self.voice_client and self.voice_client.is_connected():
@@ -81,8 +81,8 @@ def setup_music_commands(bot: commands.Bot):
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                asyncio.run_coroutine_threadsafe(voice_client.disconnect(), bot.loop)
-            
+
+            voice_client.stop()  # Detener cualquier reproducción anterior
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2, **ffmpeg_options), after=after_playing)
 
             view = MusicControls(voice_client, bot)
