@@ -71,6 +71,8 @@ class MusicControls(discord.ui.View):
 def setup_music_commands(bot: commands.Bot):
     global queue
     queue = []
+    global current_message
+    current_message = None
 
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
@@ -93,28 +95,26 @@ def setup_music_commands(bot: commands.Bot):
             queue.append((url2, info.get('title')))
 
             if not voice_client.is_playing():
-                await play_next_song(voice_client, queue)
-
-            view = MusicControls(voice_client, bot)
-            await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
+                await play_next_song(voice_client, queue, interaction)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
 
-    async def play_next_song(voice_client, queue):
+    async def play_next_song(voice_client, queue, interaction):
+        global current_message
         if queue:
             url, title = queue.pop(0)
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
                 if queue:
-                    asyncio.create_task(play_next_song(voice_client, queue))
+                    asyncio.create_task(play_next_song(voice_client, queue, interaction))
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
-            message = await voice_client.channel.send(f"Reproduciendo: {title}")
-            if hasattr(voice_client, 'now_playing_message'):
-                await voice_client.now_playing_message.delete()
-            voice_client.now_playing_message = message
+            if current_message:
+                await current_message.edit(content=f"Reproduciendo: {title}")
+            else:
+                current_message = await interaction.followup.send(f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
