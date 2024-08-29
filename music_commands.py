@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import yt_dlp as youtube_dl
 import asyncio
 
@@ -27,24 +27,35 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
-class MusicView(discord.ui.View):
-    def __init__(self, voice_client):
-        super().__init__()
+class MusicControls(discord.ui.View):
+    def __init__(self, voice_client, bot, timeout=300):
+        super().__init__(timeout=timeout)
         self.voice_client = voice_client
-        self.is_playing = True  # Indica que la música se está reproduciendo inicialmente
+        self.bot = bot
+        self.paused = False
 
     @discord.ui.button(label="⏸️", style=discord.ButtonStyle.primary)
-    async def toggle_play_pause(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.is_playing:
+    async def pause_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.voice_client.is_playing():
             self.voice_client.pause()
+            self.paused = True
             button.label = "▶️"
-            self.is_playing = False
-        else:
+            await interaction.response.edit_message(view=self)
+        elif self.voice_client.is_paused():
             self.voice_client.resume()
+            self.paused = False
             button.label = "⏸️"
-            self.is_playing = True
+            await interaction.response.edit_message(view=self)
 
-        await interaction.response.edit_message(view=self)
+    @discord.ui.button(label="⏹️", style=discord.ButtonStyle.danger)
+    async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.voice_client.is_playing() or self.voice_client.is_paused():
+            self.voice_client.stop()
+            await interaction.response.edit_message(content="La reproducción ha sido detenida.", view=None)
+
+    async def on_timeout(self):
+        if self.voice_client and self.voice_client.is_connected():
+            await self.voice_client.disconnect()
 
 def setup_music_commands(bot: commands.Bot):
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
@@ -65,26 +76,25 @@ def setup_music_commands(bot: commands.Bot):
                 info = ydl.extract_info(url, download=False)
                 url2 = info['url']
 
-            # Función de manejo de errores para la reproducción
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                    asyncio.run_coroutine_threadsafe(voice_client.disconnect(), bot.loop)
+                asyncio.run_coroutine_threadsafe(voice_client.disconnect(), bot.loop)
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url2, **ffmpeg_options), after=after_playing)
 
-            # Crear la vista con el botón de pausa/play
-            view = MusicView(voice_client)
+            view = MusicControls(voice_client, bot)
             await interaction.followup.send(f"nwn! Reproduciendo: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
 
-    @bot.tree.command(name="stop", description="Detengo la reproducción de música y me desconecto del canal de voz.")
-    async def stop(interaction: discord.Interaction):
-        voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
-        if voice_client and voice_client.is_connected():
-            await voice_client.disconnect()
-            await interaction.response.send_message("Desconectada del canal de voz.")
-        else:
-            await interaction.response.send_message("No estoy conectada a ningún canal de voz.")
+    @tasks.loop(minutes=1.0)
+    async def check_voice_timeout():
+        for vc in bot.voice_clients:
+            if not vc.is_playing() and not vc.is_paused():
+                await asyncio.sleep(300)  # Espera 5 minutos
+                if not vc.is_playing() and not vc.is_paused():
+                    await vc.disconnect()
+
+    check_voice_timeout.start()
