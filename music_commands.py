@@ -100,17 +100,11 @@ def setup_music_commands(bot: commands.Bot):
             # Elimina el mensaje anterior de control de música si existe
             if current_message:
                 await current_message.delete()
+                current_message = None  # Reinicia el mensaje actual
 
             # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
-
-            # Envía un nuevo mensaje con el título de la canción y los controles
-            if queue:  # Asegúrate de que la cola no esté vacía
-                current_message = await interaction.followup.send(
-                    f"Reproduciendo: {queue[0][1]}",
-                    view=MusicControls(voice_client, bot)
-                )
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -119,19 +113,27 @@ def setup_music_commands(bot: commands.Bot):
         global current_message
         if queue:
             url, title = queue.pop(0)
+
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
+                    asyncio.run_coroutine_threadsafe(interaction.followup.send("Ocurrió un error al reproducir la canción."), bot.loop)
                 if queue:
                     asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction), bot.loop).result()
                 else:
                     current_message = None  # Reinicia el mensaje actual si la cola está vacía
+
+            # Elimina el mensaje anterior de control de música si existe
+            if current_message:
+                asyncio.run_coroutine_threadsafe(current_message.delete(), bot.loop)
             
+            # Reproduce la canción
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
-            # Actualiza el mensaje actual con el nuevo título
-            if current_message:
-                await current_message.edit(content=f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
+            # Envía un nuevo mensaje con los controles de música
+            current_message = await interaction.followup.send(f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
+        else:
+            current_message = None  # Reinicia el mensaje actual si la cola está vacía
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
