@@ -59,10 +59,9 @@ class MusicControls(discord.ui.View):
         if self.voice_client and self.voice_client.is_connected():
             await self.voice_client.disconnect()
 
-# Cola global para manejar la lista de canciones
-queue = []
-
 def setup_music_commands(bot: commands.Bot):
+    queue = []
+
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
         try:
@@ -81,40 +80,16 @@ def setup_music_commands(bot: commands.Bot):
                 info = ydl.extract_info(url, download=False)
                 url2 = info['url']
 
-            if voice_client.is_playing() or voice_client.is_paused():
-                # Enviar mensaje de que la música ya está en reproducción
-                await interaction.followup.send("La música ya está en reproducción. Usa el comando `/queue` para añadir más canciones.")
-                return
-
-            # Reproducción inicial
             queue.append((url2, info.get('title')))
-            await play_next_song(voice_client, queue)
+
+            if not voice_client.is_playing():
+                await play_next_song(voice_client, queue)
+
             view = MusicControls(voice_client, bot)
-            await interaction.followup.send(f"Reproduciendo: {info.get('title')}", view=view)
+            await interaction.followup.send(f"nwn! En cola: {info.get('title')}", view=view)
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
-
-    @bot.tree.command(name="queue", description="Añade una canción a la cola.")
-    async def queue(interaction: discord.Interaction, url: str):
-        try:
-            if interaction.user.voice is None or interaction.user.voice.channel is None:
-                await interaction.response.send_message("Debes estar en un canal de voz para usar este comando D:.")
-                return
-
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                url2 = info['url']
-
-            queue.append((url2, info.get('title')))
-            msg = await interaction.response.send_message("Canción añadida a la cola.", delete_after=30)
-
-            voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
-            if voice_client and not voice_client.is_playing():
-                await play_next_song(voice_client, queue)
-
-        except Exception as e:
-            await interaction.response.send_message(f"T-T Ha ocurrido un error: {str(e)}")
 
     async def play_next_song(voice_client, queue):
         if queue:
@@ -122,15 +97,10 @@ def setup_music_commands(bot: commands.Bot):
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                if queue:
-                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
-
+                asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
+            
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
-
-            # Actualiza el mensaje con los controles de música
-            for message in await voice_client.channel.history(limit=100).flatten():
-                if message.author == bot.user:
-                    await message.edit(content=f"Reproduciendo: {title}")
+            print(f"Reproduciendo: {title}")
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
