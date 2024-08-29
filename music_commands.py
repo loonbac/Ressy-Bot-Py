@@ -51,8 +51,8 @@ class MusicControls(discord.ui.View):
         if self.voice_client.is_playing() or self.voice_client.is_paused():
             self.voice_client.stop()
             await interaction.response.edit_message(content="La reproducción ha sido detenida.", view=None)
-            await asyncio.sleep(60)  # Espera 1 minuto
-            await interaction.message.delete()  # Borra el mensaje
+            await asyncio.sleep(60)
+            await interaction.message.delete()
 
     @discord.ui.button(label="📋 Ver cola", style=discord.ButtonStyle.secondary)
     async def queue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -87,11 +87,11 @@ def setup_music_commands(bot: commands.Bot):
             if voice_client is None:
                 voice_client = await voice_channel.connect()
 
-            await interaction.response.defer()  # Responder de inmediato para evitar el estado de "Pensando..."
+            await interaction.response.defer() 
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                if 'entries' in info:  # Si es una lista de reproducción
+                if 'entries' in info:
                     for entry in info['entries']:
                         queue.append((entry['url'], entry.get('title')))
                         await interaction.followup.send(f"🎶 Canción agregada a la cola: {entry.get('title')}")
@@ -99,7 +99,6 @@ def setup_music_commands(bot: commands.Bot):
                     queue.append((info['url'], info.get('title')))
                     await interaction.followup.send(f"🎶 Canción agregada a la cola: {info.get('title')}")
 
-            # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
 
@@ -118,25 +117,22 @@ def setup_music_commands(bot: commands.Bot):
                 if queue:
                     asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction), bot.loop).result()
                 else:
-                    current_message = None  # Reinicia el mensaje actual si la cola está vacía
+                    current_message = None
 
-            # Elimina el mensaje anterior de control de música si existe
             if current_message:
                 asyncio.run_coroutine_threadsafe(current_message.delete(), bot.loop)
             
-            # Reproduce la canción
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
-            # Envía un nuevo mensaje con los controles de música
             current_message = await interaction.followup.send(f"Reproduciendo: {title}", view=MusicControls(voice_client, bot))
         else:
-            current_message = None  # Reinicia el mensaje actual si la cola está vacía
+            current_message = None
 
     @tasks.loop(minutes=1.0)
     async def check_voice_timeout():
         for vc in bot.voice_clients:
             if not vc.is_playing() and not vc.is_paused():
-                await asyncio.sleep(300)  # Espera 5 minutos
+                await asyncio.sleep(300)
                 if not vc.is_playing() and not vc.is_paused():
                     await vc.disconnect()
 

@@ -18,7 +18,7 @@ def setup_slash_commands(bot: commands.Bot):
     
     @bot.tree.command(name="info", description="Información básica sobre mí y mi funcionamiento nwn.")
     async def info(interaction: discord.Interaction):
-        server_name = interaction.guild.name  # Obtener el nombre del servidor
+        server_name = interaction.guild.name
         embed = discord.Embed(
             title="¡Sobre Mi! (≧ω≦)/ ♡",
             description=(

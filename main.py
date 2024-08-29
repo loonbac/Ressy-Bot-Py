@@ -7,6 +7,7 @@ import random
 from responses import setup_responses
 from slash_commands import setup_slash_commands
 from music_commands import setup_music_commands
+from groq_module import setup_groq_module
 
 load_dotenv()
 token = os.getenv('token')
@@ -32,6 +33,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 setup_responses(bot)
 setup_slash_commands(bot)
 setup_music_commands(bot)
+setup_groq_module(bot)
 
 async def cambiar_estado():
     while True:
