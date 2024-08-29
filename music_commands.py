@@ -99,11 +99,6 @@ def setup_music_commands(bot: commands.Bot):
                     queue.append((info['url'], info.get('title')))
                     await interaction.followup.send(f"🎶 Canción agregada a la cola: {info.get('title')}")
 
-            # Elimina el mensaje anterior de control de música si existe
-            if current_message:
-                await current_message.delete()
-                current_message = None  # Reinicia el mensaje actual
-
             # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
                 await play_next_song(voice_client, interaction)
