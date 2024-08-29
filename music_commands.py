@@ -107,7 +107,7 @@ def setup_music_commands(bot: commands.Bot):
                 url2 = info['url']
 
             queue.append((url2, info.get('title')))
-            await interaction.response.send_message("Canción añadida a la cola.", delete_after=30)
+            msg = await interaction.response.send_message("Canción añadida a la cola.", delete_after=30)
 
             voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
             if voice_client and not voice_client.is_playing():
