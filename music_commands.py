@@ -79,14 +79,17 @@ def setup_music_commands(bot: commands.Bot):
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 url2 = info['url']
+                title = info.get('title')
 
-            queue.append((url2, info.get('title')))
+            queue.append((url2, title))
 
             if not voice_client.is_playing():
                 await play_next_song(voice_client, queue)
 
-            view = MusicControls(voice_client, bot)
-            await interaction.followup.send(f"nwn! En cola: {info.get('title')}", view=view)
+            # Enviar mensaje indicando que la canción ha sido agregada a la cola
+            message = await interaction.followup.send("Canción agregada a la cola.")
+            await asyncio.sleep(30)
+            await message.delete()
 
         except Exception as e:
             await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
@@ -97,7 +100,8 @@ def setup_music_commands(bot: commands.Bot):
             def after_playing(error):
                 if error:
                     print(f'Error al reproducir el audio: {error}')
-                asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
+                if queue:
+                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, queue), bot.loop)
             
             voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
             print(f"Reproduciendo: {title}")
