@@ -90,15 +90,17 @@ def setup_music_commands(bot: commands.Bot):
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                url2 = info['url']
-
-            queue.append((url2, info.get('title')))
+                if 'entries' in info:  # Si es una lista de reproducción
+                    for entry in info['entries']:
+                        queue.append((entry['url'], entry.get('title')))
+                else:
+                    queue.append((info['url'], info.get('title')))
 
             # Borra el mensaje anterior de control de música si existe
             global current_message
             if current_message:
                 await current_message.delete()
-                current_message = None  # Asegúrate de que current_message esté en None después de eliminarlo
+                current_message = None
 
             # Reproduce la siguiente canción en la cola si no hay ninguna en reproducción
             if not voice_client.is_playing():
