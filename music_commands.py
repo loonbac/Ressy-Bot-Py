@@ -61,11 +61,11 @@ class MusicControls(discord.ui.View):
 
 def setup_music_commands(bot: commands.Bot):
     queue = []
-    current_message = None
+    current_message = None  # Inicializar current_message
 
     @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
     async def play(interaction: discord.Interaction, url: str):
-        nonlocal current_message
+        nonlocal current_message  # Usar la variable del entorno exterior
         try:
             if interaction.user.voice is None or interaction.user.voice.channel is None:
                 await interaction.response.send_message("Debes estar en un canal de voz para usar este comando D:.")
@@ -120,6 +120,7 @@ def setup_music_commands(bot: commands.Bot):
                     await current_message.delete()
                 except discord.NotFound:
                     pass  # El mensaje ya fue eliminado o no se encuentra
+
             view = MusicControls(voice_client, bot)
             current_message = await voice_client.channel.send(f"Reproduciendo: {title}", view=view)
 
