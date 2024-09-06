@@ -4,25 +4,33 @@ import aiohttp
 
 async def get_gif(action):
     url = f'https://nekos.best/api/v2/{action}?amount=1'
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if 'results' in data and len(data['results']) > 0:
-                        result = data['results'][0]
-                        gif_url = result.get('url')
-                        anime_name = result.get('anime_name', 'Desconocido')
-                        if gif_url:
-                            return gif_url, anime_name
-                    return None, None
-                else:
-                    content = await response.text()
-                    print(f"Error {response.status}: {content}")
-                    return None, None
-    except Exception as e:
-        print(f"Exception: {e}")
-        return None, None
+    max_attempts = 10
+    attempt = 0
+
+    while attempt < max_attempts:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if 'results' in data and len(data['results']) > 0:
+                            result = data['results'][0]
+                            gif_url = result.get('url')
+                            anime_name = result.get('anime_name', 'Desconocido')
+                            if gif_url:
+                                return gif_url, anime_name
+                        return None, None
+                    else:
+                        content = await response.text()
+                        print(f"Error {response.status}: {content}")
+                        attempt += 1
+                        print(f"Intento {attempt} fallido. Reintentando...")
+        except Exception as e:
+            print(f"Exception: {e}")
+            attempt += 1
+            print(f"Intento {attempt} fallido. Reintentando...")
+
+    return None, None
 
 def setup_acts_module(bot):
     @bot.tree.command(name="act", description="Realizo algo por ti.")
