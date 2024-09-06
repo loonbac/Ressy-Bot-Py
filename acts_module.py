@@ -1,123 +1,98 @@
 import discord
 from discord import app_commands
 import aiohttp
-import os
-import json
-import random
-from dotenv import load_dotenv
 
-# Carga las variables de entorno
-load_dotenv()
-TENOR_API_KEY = os.getenv('TENOR_API_KEY')
-
-async def get_gif(query):
-    url = 'https://tenor.googleapis.com/v2/search'
-    params = {
-        'key': TENOR_API_KEY,
-        'q': query,
-        'limit': 10
-    }
+async def get_gif(action):
+    url = f'https://nekos.best/api/v2/{action}?amount=1'
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
+            async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
                     if 'results' in data and len(data['results']) > 0:
-                        results = data['results']
-                        random_result = random.choice(results)
-                        media_formats = random_result.get('media_formats', {})
-                        gif_url = media_formats.get('gif', {}).get('url')
+                        result = data['results'][0]
+                        gif_url = result.get('url')
+                        anime_name = result.get('anime_name', 'Desconocido')
                         if gif_url:
-                            return gif_url
-                    return None
+                            return gif_url, anime_name
+                    return None, None
                 else:
                     content = await response.text()
                     print(f"Error {response.status}: {content}")
-                    return None
+                    return None, None
     except Exception as e:
         print(f"Exception: {e}")
-        return None
+        return None, None
 
 def setup_acts_module(bot):
     @bot.tree.command(name="act", description="Realizo algo por ti.")
     @app_commands.describe(action="Qué acción quieres realizar")
     @app_commands.choices(action=[
-        app_commands.Choice(name='eat', value='eat'),
-        app_commands.Choice(name='sleep', value='sleep'),
-        app_commands.Choice(name='boom', value='boom'),
-        app_commands.Choice(name='cook', value='cook'),
-        app_commands.Choice(name='claps', value='claps'),
-        app_commands.Choice(name='cry', value='cry'),
-        app_commands.Choice(name='dance', value='dance'),
-        app_commands.Choice(name='fly', value='fly'),
-        app_commands.Choice(name='glare', value='glare'),
-        app_commands.Choice(name='laugh', value='laugh'),
-        app_commands.Choice(name='run', value='run'),
-        app_commands.Choice(name='sing', value='sing'),
-        app_commands.Choice(name='pout', value='pout'),
-        app_commands.Choice(name='like', value='like'),
-        app_commands.Choice(name='play', value='play'),
+        app_commands.Choice(name='tonto', value='baka'),
+        app_commands.Choice(name='morder', value='bite'),
+        app_commands.Choice(name='sonrojarse', value='blush'),
+        app_commands.Choice(name='llorar', value='cry'),
+        app_commands.Choice(name='acurrucarse', value='cuddle'),
+        app_commands.Choice(name='bailar', value='dance'),
+        app_commands.Choice(name='facepalm', value='facepalm'),
+        app_commands.Choice(name='alimentar', value='feed'),
+        app_commands.Choice(name='feliz', value='happy'),
+        app_commands.Choice(name='abrazo', value='hug'),
+        app_commands.Choice(name='reír', value='laugh'),
+        app_commands.Choice(name='asentir', value='nod'),
+        app_commands.Choice(name='comer', value='nom'),
+        app_commands.Choice(name='no', value='nope'),
+        app_commands.Choice(name='puchero', value='pout'),
+        app_commands.Choice(name='dormir', value='sleep'),
+        app_commands.Choice(name='sonreír', value='smile'),
+        app_commands.Choice(name='mirar fijamente', value='stare'),
+        app_commands.Choice(name='pensar', value='think'),
+        app_commands.Choice(name='pulgar arriba', value='thumbsup'),
+        app_commands.Choice(name='saludar', value='wave'),
+        app_commands.Choice(name='guiñar', value='wink'),
+        app_commands.Choice(name='bostezar', value='yawn'),
+        app_commands.Choice(name='¡yeet!', value='yeet'),
+        app_commands.Choice(name='chocar las manos', value='highfive'),
     ])
     async def act_command(interaction: discord.Interaction, action: str):
         user_display_name = interaction.user.display_name
 
-        actions = {
-            'eat': 'eat anime',
-            'sleep': 'sleep anime',
-            'boom': 'boom anime',
-            'cook': 'cook anime',
-            'claps': 'claps anime',
-            'cry': 'cry anime',
-            'dance': 'dance anime',
-            'fly': 'fly anime',
-            'glare': 'glare anime',
-            'laugh': 'laugh anime',
-            'run': 'run anime',
-            'sing': 'sing anime',
-            'pout': 'pout anime',
-            'like': 'like anime',
-            'play': 'play anime'
+        gif_url, anime_name = await get_gif(action)
+
+        action_names = {
+            'baka': 'siendo tonto',
+            'bite': 'mordiendo',
+            'blush': 'sonrojandose',
+            'cry': 'llorando',
+            'cuddle': 'acurrucandose',
+            'dance': 'bailando',
+            'facepalm': 'pegando la mano en la frente',
+            'feed': 'alimentando',
+            'happy': 'feliz',
+            'hug': 'abrazando',
+            'laugh': 'riendo',
+            'nod': 'asintiendo',
+            'nom': 'comiendo',
+            'nope': 'negando',
+            'pout': 'haciendo un puchero',
+            'sleep': 'durmiendo',
+            'smile': 'sonriendo',
+            'stare': 'mirando fijamente',
+            'think': 'pensando',
+            'thumbsup': 'dando Like',
+            'wave': 'saludando',
+            'wink': 'guiñando',
+            'yawn': 'bostezando',
+            'yeet': 'lanzando >:D',
+            'highfive': 'chocando los cinco',
         }
 
-        if action in actions:
-            gif_url = await get_gif(actions[action])
-            description = f'{user_display_name} está {action}'
-            if action == 'sleep':
-                description = f'{user_display_name} está durmiendo'
-            elif action == 'eat':
-                description = f'{user_display_name} está comiendo'
-            elif action == 'cry':
-                description = f'{user_display_name} está llorando'
-            elif action == 'dance':
-                description = f'{user_display_name} está bailando'
-            elif action == 'fly':
-                description = f'{user_display_name} está volando'
-            elif action == 'glare':
-                description = f'{user_display_name} está mirando fijamente'
-            elif action == 'laugh':
-                description = f'{user_display_name} está riendo'
-            elif action == 'run':
-                description = f'{user_display_name} está corriendo'
-            elif action == 'sing':
-                description = f'{user_display_name} está cantando'
-            elif action == 'pout':
-                description = f'{user_display_name} está haciendo puchero'
-            elif action == 'like':
-                description = f'{user_display_name} está dando un me gusta'
-            elif action == 'play':
-                description = f'{user_display_name} está jugando'
-            elif action == 'cook':
-                description = f'{user_display_name} está cocinando'
-            elif action == 'claps':
-                description = f'{user_display_name} está aplaudiendo'
-            elif action == 'boom':
-                description = f'{user_display_name} está causando una explosión'
+        action_name = action_names.get(action, action)
 
-            if gif_url:
-                embed = discord.Embed(description=description)
-                embed.set_image(url=gif_url)
-                await interaction.response.send_message(embed=embed)
-            else:
-                await interaction.response.send_message("No se encontró un GIF para esta acción.")
+        if gif_url:
+            embed = discord.Embed(description=f'{user_display_name} está {action_name}.')
+            embed.set_image(url=gif_url)
+            embed.set_footer(text=anime_name)
+            await interaction.response.send_message(embed=embed)
         else:
-            await interaction.response.send_message("Acción no válida")
+            await interaction.response.send_message("No se encontró un GIF para esta acción.")
