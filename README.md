@@ -67,9 +67,12 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
     ```
 
 3. **Configura el archivo `.env`**:
-    - Crea un archivo `.env` en la raíz del proyecto y agrega tu token de Discord:
+    - Crea un archivo `.env` en la raíz del proyecto y agrega los datos necesarios donde token es el Token del Bot, Decryption_Key es la llave de encriptacion del las cookies y GROQ_API_KEY es el Token de GROQ para el ChatBot:
     ```env
-    token=TU_DISCORD_BOT_TOKEN
+    token = 
+    DECRYPTION_KEY = 
+    GROQ_API_KEY = 
+    GROQ_MODEL = llama3-8b-8192
     ```
 
 4. **Ejecuta el bot**:
