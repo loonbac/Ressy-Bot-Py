@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from checkin import HoyolabClient, decrypt_cookie, encrypt_cookie, get_encrypted_cookies
+from checkin import encrypt_cookie
 import os
 
 def read_counter(server_id: int):
