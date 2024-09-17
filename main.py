@@ -9,6 +9,8 @@ from slash_commands import setup_slash_commands
 from music_commands import setup_music_commands
 from groq_module import setup_groq_module
 from acts_module import setup_acts_module
+from checkin import HoyolabClient, decrypt_cookie, encrypt_cookie, get_encrypted_cookies
+from datetime import datetime, timedelta
 
 load_dotenv()
 token = os.getenv('token')
@@ -43,6 +45,84 @@ async def cambiar_estado():
         await bot.change_presence(activity=discord.Game(name=palabra), status=discord.Status.idle)
         await asyncio.sleep(120)
 
+async def check_in_daily(bot):
+    while True:
+        # Obtener la hora actual
+        now = datetime.now()
+        
+        # Establecer la hora de las 12 PM (mediodía) para el día actual o siguiente si ya ha pasado
+        next_run = datetime(now.year, now.month, now.day, 12, 0, 0)  # Fijar las 12:00:00 PM (hora de Perú)
+
+        # Si la hora actual ya pasó las 12 PM, programamos para el siguiente día
+        if now >= next_run:
+            next_run += timedelta(days=1)
+
+        # Calcular la diferencia en segundos hasta las 12 PM
+        wait_time = (next_run - now).total_seconds()
+
+        print(f"Esperando {wait_time / 3600:.2f} horas hasta el siguiente check-in diario.")
+        # Esperar hasta las 12 PM
+        await asyncio.sleep(wait_time)
+
+        # Obtener el canal donde se enviará el mensaje
+        channel = bot.get_channel(1221961478148587522)
+        if channel is None:
+            print("Error: No se encontró el canal con el ID proporcionado.")
+            continue
+
+        # Realizar el check-in diario en Hoyolab
+        print("Iniciando check-in diario de Hoyolab...")
+
+        key = os.environ.get("DECRYPTION_KEY")
+        if not key:
+            await channel.send("Error: La llave de desencriptación no está configurada en las variables de entorno.")
+            continue
+
+        encrypted_cookies = get_encrypted_cookies()
+        if not encrypted_cookies:
+            await channel.send("Error: No se encontraron cookies en el archivo.")
+            continue
+
+        messages = []
+        for encrypted_cookie in encrypted_cookies:
+            try:
+                cookie = decrypt_cookie(encrypted_cookie, key)
+            except Exception as e:
+                messages.append(f"Error al desencriptar la cookie: {e}")
+                continue
+
+            client = HoyolabClient(cookie)
+            accounts = client.get_game_accounts()
+            for account in accounts:
+                try:
+                    client.check_in(account)
+                    if account.get_claimed_reward():
+                        message = (
+                            f"Check-in exitoso para {account.get_nickname()}: "
+                            f"{account.get_claimed_reward()['name']} x {account.get_claimed_reward()['cnt']}"
+                        )
+                        messages.append(message)
+                    else:
+                        message = f"{account.get_nickname()} ya ha hecho check-in hoy."
+                        messages.append(message)
+                except Exception as e:
+                    # Filtrar el error específico "juego no soportado"
+                    error_message = str(e)
+                    if "juego no soportado" in error_message.lower():
+                        continue
+                    else:
+                        messages.append(f"Error en el check-in para {account.get_nickname()}: {e}")
+
+        # Crear el embed con los resultados del check-in
+        embed4 = discord.Embed(
+            title="Resultados del Check-in",
+            description="\n".join(messages),
+            color=discord.Color.blurple()
+        )
+
+        # Enviar el embed al canal
+        await channel.send(embed=embed4)
+        
 @bot.event
 async def on_ready():
     await bot.tree.sync()

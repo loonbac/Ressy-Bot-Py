@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands
+from checkin import HoyolabClient, decrypt_cookie, encrypt_cookie, get_encrypted_cookies
+import os
 
 def read_counter(server_id: int):
     counters = {}
@@ -25,7 +27,8 @@ def setup_slash_commands(bot: commands.Bot):
                 f"Soy Ressy, la mejor Bot en el servidor \"{server_name}\". "
                 "Fui creada por LoonBac21 y estoy súper emocionada de estar aquí para ayudarte en todo lo que necesites. (◕‿◕✿)\n\n"
                 "¿Qué puedo hacer por ti? Pues, un montón de cosas divertidas y útiles, claro está. ¡Puedo ayudarte a [REDACTED] y mucho más! ✧｡٩(ˊᗜˋ)و✧*｡\n\n"
-                "Me encanta hacer amigos y estaré aquí para ti a cualquier hora. Solo tienes que decirme qué necesitas y estaré lista para echarte una mano. ¡Juntos haremos este servidor el mejor lugar del universo! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧\n\n"
+                "Me encanta hacer amigos y estaré aquí para ti a cualquier hora. Solo tienes que decirme qué necesitas y estaré lista para echarte una mano. "
+                "¡Juntos haremos este servidor el mejor lugar del universo! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧\n\n"
                 "¡Espero que podamos divertirnos mucho y crear recuerdos inolvidables! (★ω★)/"
             ),
             color=discord.Color(0x3D85C6)
@@ -63,3 +66,89 @@ def setup_slash_commands(bot: commands.Bot):
         )
         
         await interaction.response.send_message(embed=embed3)
+
+    @bot.tree.command(name="cookie", description="Guardo y encripto tu cookie para tu check-in diario de Genshin Impact :D.")
+    async def save_cookie(interaction: discord.Interaction, cookie: str):
+        key = os.environ.get("DECRYPTION_KEY")
+        if not key:
+            await interaction.response.send_message("Error: La llave de desencriptación no está configurada en las variables de entorno.")
+            return
+
+        try:
+            encrypted_cookie = encrypt_cookie(cookie, key)
+        except Exception as e:
+            await interaction.response.send_message(f"Error al encriptar la cookie: {e}")
+            return
+
+        try:
+            if os.path.exists("cookies.txt"):
+                with open("cookies.txt", "r") as file:
+                    existing_cookies = file.read().strip()
+                    new_cookies = f"{existing_cookies}|{encrypted_cookie}" if existing_cookies else encrypted_cookie
+            else:
+                new_cookies = encrypted_cookie
+
+            with open("cookies.txt", "w") as file:
+                file.write(new_cookies)
+        except Exception as e:
+            await interaction.response.send_message(f"Error al guardar la cookie: {e}")
+            return
+
+        await interaction.response.send_message("Cookie guardada y encriptada exitosamente.")
+
+    @bot.tree.command(name="checkin", description="Realiza el check-in diario en Hoyolab.")
+    async def check_in(interaction: discord.Interaction):
+        print("Iniciando check-in diario de Hoyolab...")
+
+        key = os.environ.get("DECRYPTION_KEY")
+        if not key:
+            await interaction.response.send_message("Error: La llave de desencriptación no está configurada en las variables de entorno.")
+            return
+
+        encrypted_cookies = get_encrypted_cookies()
+        if not encrypted_cookies:
+            await interaction.response.send_message("Error: No se encontraron cookies en el archivo.")
+            return
+
+        await interaction.response.defer(thinking=True)
+
+        messages = []
+        for encrypted_cookie in encrypted_cookies:
+            try:
+                cookie = decrypt_cookie(encrypted_cookie, key)
+            except Exception as e:
+                messages.append(f"Error al desencriptar la cookie: {e}")
+                continue
+
+            client = HoyolabClient(cookie)
+            accounts = client.get_game_accounts()
+            for account in accounts:
+                try:
+                    client.check_in(account)
+                    if account.get_claimed_reward():
+                        message = (
+                            f"Check-in exitoso para {account.get_nickname()}: "
+                            f"{account.get_claimed_reward()['name']} x {account.get_claimed_reward()['cnt']}"
+                        )
+                        messages.append(message)
+                    else:
+                        message = f"{account.get_nickname()} ya ha hecho check-in hoy."
+                        messages.append(message)
+                except Exception as e:
+                    # Aquí se filtra el error específico que deseas omitir
+                    error_message = str(e)
+                    if "juego no soportado" in error_message.lower():
+                        # Omite el error "juego no soportado"
+                        continue
+                    else:
+                        # Agrega cualquier otro error al mensaje
+                        messages.append(f"Error en el check-in para {account.get_nickname()}: {e}")
+
+        # Envía el resultado al usuario en Discord
+        embed4 = discord.Embed(
+            title="Resultados del Check-in",
+            description="\n".join(messages),
+            color=discord.Color.blurple()
+        )
+        
+        await interaction.followup.send(embed=embed4)
