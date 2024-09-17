@@ -54,6 +54,18 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
 3. **/github**:
     - Muestra información sobre el repositorio de Ressy en GitHub.
 
+4. **/act**:
+    - Envia un GIF de anime con una accion en especifico.
+    
+5. **/ask**:
+    - Responde a cualquier pregunta usando la IA de Groq.
+
+6. **/play**:
+    - Reproduce videos de YouTube por un canal de voz.
+
+7. **/cookie**:
+    - Guarda tu Cookie de HoyoLab para hacer el check-in diario de la pagina web.
+
 ## Instalación y Configuración
 
 1. **Clona este repositorio**:
@@ -74,6 +86,9 @@ Ressy Bot puede responder a ciertos mensajes de los usuarios con respuestas pred
     GROQ_API_KEY = 
     GROQ_MODEL = llama3-8b-8192
     ```
+
+4. **Crea y configura el archivo `prompt.txt`**:
+    - Crea un archivo `prompt.txt` en la raíz del proyecto y describe como quieres que sea la personalidad de la IA, esta se enviara como Prompt inicial.
 
 4. **Ejecuta el bot**:
     ```bash
