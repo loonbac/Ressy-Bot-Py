@@ -2,7 +2,7 @@
 import { config } from 'dotenv';
 import { Client, GatewayIntentBits, ActivityType, PresenceUpdateStatus } from 'discord.js';
 import { setupResponses } from './modules/responses.js';
-import { setupSlashCommands } from './modules/commands.js';
+import { setupCommands } from './modules/commands.js';
 import { setupGroqModule } from './modules/groq.js';
 import { setupActsModule } from './modules/acts.js';
 
@@ -43,7 +43,7 @@ client.once('ready', () => {
     console.log(`Bot conectado como ${client.user.tag}`);
     client.user.setStatus(PresenceUpdateStatus.Idle);
     setupResponses(client);
-    setupSlashCommands(client);
+    setupCommands(client);
     setupGroqModule(client);
     setupActsModule(client);
     cambiarEstado();
