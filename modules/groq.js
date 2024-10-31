@@ -1,3 +1,4 @@
+// groq.js
 import { config } from 'dotenv';
 import { Groq } from 'groq-sdk';
 import fs from 'fs';
@@ -36,6 +37,20 @@ async function generateResponse(userInput, username) {
 function setupGroqModule(bot) {
     bot.on('ready', async () => {
         console.log('Módulo Groq listo.');
+        await bot.application.commands.set([
+            {
+                name: 'ask',
+                description: 'Pregunta algo y recibe una respuesta.',
+                options: [
+                    {
+                        type: 3, // STRING
+                        name: 'user_input',
+                        description: 'Tu pregunta aquí',
+                        required: true,
+                    },
+                ],
+            },
+        ]);
     });
 
     bot.on('interactionCreate', async (interaction) => {

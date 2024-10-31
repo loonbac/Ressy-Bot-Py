@@ -1,3 +1,4 @@
+// commands.js
 import { EmbedBuilder } from 'discord.js';
 import fs from 'fs';
 
@@ -6,7 +7,7 @@ function readCounter(serverId) {
     try {
         const data = fs.readFileSync('xd_counter.txt', 'utf-8');
         const lines = data.split('\n');
-        
+
         for (const line of lines) {
             if (line.includes(':')) {
                 const [serverIdFromFile, count] = line.split(':');
@@ -22,24 +23,21 @@ function readCounter(serverId) {
     return counters[serverId] || 0;
 }
 
-function setupSlashCommands(bot) {
+function setupCommands(bot) {
     bot.on('ready', async () => {
         await bot.application.commands.set([
             {
                 name: 'info',
                 description: 'Información básica sobre mí y mi funcionamiento nwn.',
-                type: 1
             },
             {
                 name: 'xd',
                 description: "Muestra la cantidad de veces que se ha enviado 'xD'.",
-                type: 1
             },
             {
                 name: 'github',
                 description: "Muestro información sobre mi Repositorio uwu.",
-                type: 1
-            }
+            },
         ]);
     });
 
@@ -63,9 +61,7 @@ function setupSlashCommands(bot) {
                 .setColor(0x3D85C6);
 
             await interaction.reply({ embeds: [embed] });
-        }
-
-        else if (commandName === 'xd') {
+        } else if (commandName === 'xd') {
             const serverId = interaction.guild.id;
             const currentCount = readCounter(serverId);
             
@@ -75,9 +71,7 @@ function setupSlashCommands(bot) {
                 .setColor(0x7289DA);
             
             await interaction.reply({ embeds: [embed2] });
-        }
-
-        else if (commandName === 'github') {
+        } else if (commandName === 'github') {
             const embed3 = new EmbedBuilder()
                 .setTitle("Mi Repo!! :3")
                 .setDescription(
@@ -93,4 +87,4 @@ function setupSlashCommands(bot) {
     });
 }
 
-export { setupSlashCommands };
+export { setupCommands };

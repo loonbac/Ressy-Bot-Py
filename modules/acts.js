@@ -1,3 +1,4 @@
+// acts.js
 import { EmbedBuilder } from 'discord.js';
 import { fetchRandom } from 'nekos-best.js';
 
@@ -25,24 +26,8 @@ async function getGif(action) {
     return [null, null];
 }
 
-function setupActsModule(bot) {
-    bot.on('ready', async () => {
-        console.log('Bot está listo!');
-    });
-
-    bot.on('interactionCreate', async (interaction) => {
-        if (!interaction.isCommand()) return;
-
-        if (interaction.commandName === 'act') {
-            const action = interaction.options.getString('action');
-            await act_command(interaction, action);
-        }
-    });
-}
-
 async function act_command(interaction, action) {
     const userDisplayName = interaction.user.username;
-
     const [gifUrl, animeName] = await getGif(action);
 
     const actionNames = {
@@ -84,6 +69,36 @@ async function act_command(interaction, action) {
     } else {
         await interaction.reply("No se encontró un GIF para esta acción.");
     }
+}
+
+function setupActsModule(bot) {
+    bot.on('ready', async () => {
+        await bot.application.commands.set([
+            {
+                name: 'act',
+                description: 'Realiza una acción animada',
+                options: [
+                    {
+                        type: 3, // STRING
+                        name: 'action',
+                        description: 'La acción que quieres realizar',
+                        required: true,
+                        choices: Object.keys(actionNames).map(action => ({ name: action, value: action })),
+                    },
+                ],
+            },
+        ]);
+    });
+
+    bot.on('interactionCreate', async (interaction) => {
+        if (!interaction.isCommand()) return;
+
+        const { commandName } = interaction;
+        if (commandName === 'act') {
+            const action = interaction.options.getString('action');
+            await act_command(interaction, action);
+        }
+    });
 }
 
 export { setupActsModule };
