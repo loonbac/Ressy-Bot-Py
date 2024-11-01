@@ -2,3 +2,7 @@
 /bot.js
 /modules
 *.js
+.env
+/__pycache__
+xd_counter.txt
+xd_counter.txt
