@@ -1,4 +1,4 @@
 
-/node_modules
-.env
-xd_counter.txt
+/bot.js
+/modules
+*.js
