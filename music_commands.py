@@ -132,7 +132,7 @@ async def play(interaction: discord.Interaction, url: str):
             return
 
         voice_channel = interaction.user.voice.channel
-        voice_client = discord.utils.get(interaction.guild.voice_clients)
+        voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
         
         if not voice_client:
             voice_client = await voice_channel.connect()
