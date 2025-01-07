@@ -1,0 +1,6 @@
+discord.py
+python-dotenv
+cffi
+yt-dlp
+groq
+PyNaCl
