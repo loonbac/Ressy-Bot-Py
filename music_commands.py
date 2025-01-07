@@ -132,7 +132,8 @@ async def play(interaction: discord.Interaction, url: str):
             return
 
         voice_channel = interaction.user.voice.channel
-        voice_client = discord.utils.get(interaction.guild.voice_clients, guild=interaction.guild)
+        voice_client = discord.utils.get(interaction.guild.voice_clients)
+        
         if not voice_client:
             voice_client = await voice_channel.connect()
 
@@ -152,10 +153,10 @@ async def play(interaction: discord.Interaction, url: str):
             await play_next_song(voice_client, guild_id)
 
     except youtube_dl.utils.DownloadError as e:
-        await interaction.followup.send(f"Error al descargar el video: {e}")
+        await interaction.response.send_message(f"Error al descargar el video: {e}")
     except Exception as e:
-        await interaction.followup.send(f"Error inesperado: {e}")
+        # Usamos send_message para evitar problemas con webhooks
+        await interaction.response.send_message(f"Error inesperado: {e}")
 
-# Cambiar el registro del comando
 async def setup(bot: commands.Bot):
-    bot.tree.add_command(play)  # Registramos el comando correctamente
+    bot.tree.add_command(play)
