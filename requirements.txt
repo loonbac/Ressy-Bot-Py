@@ -2,5 +2,7 @@ discord.py
 python-dotenv
 cffi
 yt-dlp
+langchain
+langchain-groq
 groq
 PyNaCl
