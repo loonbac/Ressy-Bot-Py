@@ -119,11 +119,11 @@ async def play_next_song(voice_client, guild_id):
     else:
         current_messages[guild_id] = await bot.get_channel(interaction.channel_id).send(embed=embed, view=MusicControls(voice_client, bot, guild_id))
 
-@commands.command(name="play", description="Reproduzco cualquier video/música de YouTube")
+@commands.hybrid_command(name="play", description="Reproduzco cualquier video/música de YouTube.")
 async def play(interaction: discord.Interaction, url: str):
     guild_id = interaction.guild.id
     if guild_id not in queues:
-        queues[guild_id] = default_queues()
+        queues[guild_id] = {'queue': [], 'loop': False}
 
     try:
         if not interaction.user.voice or not interaction.user.voice.channel:
@@ -131,7 +131,7 @@ async def play(interaction: discord.Interaction, url: str):
             return
 
         voice_channel = interaction.user.voice.channel
-        voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
+        voice_client = discord.utils.get(interaction.guild.voice_clients, guild=interaction.guild)
         if not voice_client:
             voice_client = await voice_channel.connect()
 
@@ -155,5 +155,5 @@ async def play(interaction: discord.Interaction, url: str):
     except Exception as e:
         await interaction.followup.send(f"Error inesperado: {e}")
 
-async def setup(bot):
-    bot.add_command(play)
+async def setup(bot: commands.Bot):
+    bot.tree.add_command(play)
