@@ -6,7 +6,7 @@ import asyncio
 import random
 from responses import setup_responses
 from slash_commands import setup_slash_commands
-from music_commands import setup_music_commands
+from music_commands import setup
 from groq_module import setup_groq_module
 from acts_module import setup_acts_module
 from checkin import HoyolabClient, decrypt_cookie, get_encrypted_cookies
@@ -35,7 +35,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Aqui cargo los modulos del bot
 setup_responses(bot)
 setup_slash_commands(bot)
-setup_music_commands(bot)
+setup(bot)
 setup_groq_module(bot)
 setup_acts_module(bot)
 
