@@ -1,8 +1,11 @@
+import re
 import discord
 from discord.ext import commands
 import yt_dlp as youtube_dl
 import asyncio
+import os
 
+# Configuración de yt_dlp
 youtube_dl.utils.bug_reports_message = lambda: ''
 ydl_opts = {
     'format': 'bestaudio/best',
@@ -11,7 +14,7 @@ ydl_opts = {
         'preferredcodec': 'mp3',
         'preferredquality': '256',
     }],
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'outtmpl': 'downloads/%(extractor)s-%(id)s-%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
@@ -27,10 +30,11 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
-# Diccionarios para almacenar colas y mensajes actuales por servidor
-queues = {}
+# Diccionarios para gestionar colas y recursos
+default_queues = lambda: {'queue': [], 'loop': False}
+queues = {}  # Estructura: {guild_id: {'queue': [(url, title)], 'loop': bool}}
 current_messages = {}
-queue_messages = {}  # Almacena mensajes de la cola
+queue_messages = {}
 
 class MusicControls(discord.ui.View):
     def __init__(self, voice_client, bot, guild_id, timeout=300):
@@ -56,134 +60,100 @@ class MusicControls(discord.ui.View):
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.voice_client.is_playing() or self.voice_client.is_paused():
             self.voice_client.stop()
+            queues[self.guild_id]['queue'].clear()
             await interaction.response.edit_message(content="La reproducción ha sido detenida.", view=None)
-            await asyncio.sleep(60)
-            await interaction.message.delete()
+            await self.voice_client.disconnect()
 
     @discord.ui.button(label="📋 Ver cola", style=discord.ButtonStyle.secondary)
     async def queue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        queue = queues.get(self.guild_id, [])
+        queue = queues.get(self.guild_id, {}).get('queue', [])
         if queue:
-            # Crear el mensaje de cola
-            queue_message = "Cola de canciones:\n"
-            for i, (_, title) in enumerate(queue, 1):
-                queue_message += f"{i}. {title}\n"
-
-            # Enviar o editar el mensaje de cola
+            queue_message = "Cola de canciones:\n" + '\n'.join([f"{i+1}. {title}" for i, (_, title) in enumerate(queue)])
             if self.guild_id in queue_messages:
-                await queue_messages[self.guild_id].edit(content=queue_message)  # Editar si ya existe
+                await queue_messages[self.guild_id].edit(content=queue_message)
             else:
-                queue_messages[self.guild_id] = await interaction.channel.send(queue_message)  # Guardar nuevo mensaje
-
-            # Cambiar el botón a "Ocultar cola"
+                queue_messages[self.guild_id] = await interaction.channel.send(queue_message)
             button.label = "❌ Ocultar cola"
             button.style = discord.ButtonStyle.danger
-            button.callback = self.hide_queue_button  # Cambiar la función de callback
-            await interaction.message.edit(view=self)  # Actualizar la vista
-
+            button.callback = self.hide_queue_button
+            await interaction.message.edit(view=self)
         else:
             await interaction.response.send_message("La cola está vacía.", ephemeral=True)
 
     async def hide_queue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Eliminar el mensaje de la cola si existe
         if self.guild_id in queue_messages:
-            await queue_messages[self.guild_id].delete()  # Eliminar el mensaje de cola
-            del queue_messages[self.guild_id]  # Limpiar referencia
-
-        # Volver a cambiar el botón a "Ver cola"
-        button.label = "📋 Ver cola"  # Volver al estado inicial
+            await queue_messages[self.guild_id].delete()
+            del queue_messages[self.guild_id]
+        button.label = "📋 Ver cola"
         button.style = discord.ButtonStyle.secondary
-        button.callback = self.queue_button  # Volver a la función original
-        await interaction.message.edit(view=self)  # Actualizar la vista
+        button.callback = self.queue_button
+        await interaction.message.edit(view=self)
 
     async def on_timeout(self):
-        if self.voice_client and self.voice_client.is_connected():
+        if self.voice_client.is_connected():
             await self.voice_client.disconnect()
-            if self.guild_id in queue_messages:  # Eliminar el mensaje de cola si está presente
+            if self.guild_id in queue_messages:
                 await queue_messages[self.guild_id].delete()
 
-def setup_music_commands(bot: commands.Bot):
-    global queues
-    global current_messages
-
-    @bot.tree.command(name="play", description="Reproduzco cualquier video/musica de YouTube nwn.")
-    async def play(interaction: discord.Interaction, url: str):
-        guild_id = interaction.guild.id
-        if guild_id not in queues:
-            queues[guild_id] = []
-
-        try:
-            if interaction.user.voice is None or interaction.user.voice.channel is None:
-                await interaction.response.send_message("Debes estar en un canal de voz para usar este comando D:.")
-                return
-
-            voice_channel = interaction.user.voice.channel
-            voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
-            if voice_client is None:
-                voice_client = await voice_channel.connect()
-
-            await interaction.response.defer()
-
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                if 'entries' in info:
-                    for entry in info['entries']:
-                        queues[guild_id].append((entry['url'], entry.get('title'), entry.get('webpage_url'), entry.get('thumbnail')))
-                    if voice_client.is_playing():
-                        await interaction.followup.send(f"🎶 Canción agregada a la cola: {info['entries'][0].get('title')}")
-                else:
-                    queues[guild_id].append((info['url'], info.get('title'), info.get('webpage_url'), info.get('thumbnail')))
-                    if voice_client.is_playing():
-                        await interaction.followup.send(f"🎶 Canción agregada a la cola: {info.get('title')}")
-
-            if not voice_client.is_playing():
-                await play_next_song(voice_client, interaction, guild_id, bot)
-
-        except Exception as e:
-            await interaction.followup.send(f"T-T Ha ocurrido un error: {str(e)}")
-
-async def play_next_song(voice_client, interaction, guild_id, bot, retry_count=0):
-    if guild_id not in queues:
+async def play_next_song(voice_client, guild_id):
+    if guild_id not in queues or not queues[guild_id]['queue']:
         return
 
-    if queues[guild_id]:
-        url, title, webpage_url, thumbnail = queues[guild_id].pop(0)
+    url, title = queues[guild_id]['queue'].pop(0)
 
-        def after_playing(error):
-            if error:
-                print(f'Error al reproducir el audio: {error}')
-                if retry_count < 3:
-                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction, guild_id, bot, retry_count + 1), bot.loop)
-                else:
-                    asyncio.run_coroutine_threadsafe(interaction.followup.send("Ocurrió un error al reproducir la canción después de varios intentos."), bot.loop)
-            else:
-                if queues[guild_id]:
-                    asyncio.run_coroutine_threadsafe(play_next_song(voice_client, interaction, guild_id, bot), bot.loop).result()
-                else:
-                    current_messages[guild_id] = None
+    def after_playing(error):
+        if error:
+            print(f"Error al reproducir el audio: {error}")
+        if queues[guild_id]['queue']:
+            asyncio.run_coroutine_threadsafe(play_next_song(voice_client, guild_id), voice_client.loop)
 
-        # Crear el embed para mostrar el título, enlace, y miniatura
-        embed = discord.Embed(
-            title=f"Reproduciendo: {title}",
-            url=webpage_url,
-            description="🎶 Disfruta de la música",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=thumbnail)
+    voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
 
-        if guild_id in current_messages and current_messages[guild_id]:
-            await current_messages[guild_id].edit(embed=embed, view=MusicControls(voice_client, bot, guild_id))
-        else:
-            current_messages[guild_id] = await interaction.followup.send(embed=embed, view=MusicControls(voice_client, bot, guild_id))
-
-        try:
-            voice_client.play(discord.FFmpegPCMAudio(executable='ffmpeg', source=url, **ffmpeg_options), after=after_playing)
-        except Exception as e:
-            print(f'Error al intentar reproducir la canción: {e}')
-            if retry_count < 3:
-                await asyncio.sleep(5)
-                await play_next_song(voice_client, interaction, guild_id, bot, retry_count + 1)
-            else:
-                await interaction.followup.send("Ocurrió un error al reproducir la canción después de varios intentos.")
+    embed = discord.Embed(
+        title=f"Reproduciendo: {title}",
+        description="🎶 Disfruta de la música",
+        color=discord.Color.blue()
+    )
+    if guild_id in current_messages:
+        await current_messages[guild_id].edit(embed=embed, view=MusicControls(voice_client, bot, guild_id))
     else:
-        current_messages[guild_id] = None
+        current_messages[guild_id] = await bot.get_channel(interaction.channel_id).send(embed=embed, view=MusicControls(voice_client, bot, guild_id))
+
+@commands.command(name="play", description="Reproduzco cualquier video/música de YouTube")
+async def play(interaction: discord.Interaction, url: str):
+    guild_id = interaction.guild.id
+    if guild_id not in queues:
+        queues[guild_id] = default_queues()
+
+    try:
+        if not interaction.user.voice or not interaction.user.voice.channel:
+            await interaction.response.send_message("Debes estar en un canal de voz para usar este comando.")
+            return
+
+        voice_channel = interaction.user.voice.channel
+        voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
+        if not voice_client:
+            voice_client = await voice_channel.connect()
+
+        await interaction.response.defer()
+
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if 'entries' in info:
+                for entry in info['entries']:
+                    queues[guild_id]['queue'].append((entry['url'], entry['title']))
+                await interaction.followup.send(f"🎶 Canción agregada a la cola: {info['entries'][0]['title']}")
+            else:
+                queues[guild_id]['queue'].append((info['url'], info['title']))
+                await interaction.followup.send(f"🎶 Canción agregada a la cola: {info['title']}")
+
+        if not voice_client.is_playing():
+            await play_next_song(voice_client, guild_id)
+
+    except youtube_dl.utils.DownloadError as e:
+        await interaction.followup.send(f"Error al descargar el video: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"Error inesperado: {e}")
+
+async def setup(bot):
+    bot.add_command(play)
