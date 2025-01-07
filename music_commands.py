@@ -1,6 +1,6 @@
 import re
 import discord
-from discord.ext import commands
+from discord import app_commands
 import yt_dlp as youtube_dl
 import asyncio
 import os
@@ -119,7 +119,7 @@ async def play_next_song(voice_client, guild_id):
     else:
         current_messages[guild_id] = await bot.get_channel(interaction.channel_id).send(embed=embed, view=MusicControls(voice_client, bot, guild_id))
 
-@commands.hybrid_command(name="play", description="Reproduzco cualquier video/música de YouTube.")
+@app_commands.command(name="play", description="Reproduzco cualquier video/música de YouTube.")
 async def play(interaction: discord.Interaction, url: str):
     guild_id = interaction.guild.id
     if guild_id not in queues:
@@ -155,5 +155,6 @@ async def play(interaction: discord.Interaction, url: str):
     except Exception as e:
         await interaction.followup.send(f"Error inesperado: {e}")
 
+# Cambiar el registro del comando
 async def setup(bot: commands.Bot):
-    bot.tree.add_command(play)
+    bot.tree.add_command(play)  # Registramos el comando correctamente
