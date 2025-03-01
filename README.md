@@ -193,6 +193,6 @@ Consulta el archivo `LICENSE` para más detalles.
 ## 📬 Contacto  
 
 Creado por **LoonBac21**.  
-Si tienes preguntas o ideas, ¡contáctame en Discord o abre un issue en el repositorio!  
+Si tienes preguntas o ideas, ¡abre un issue en el repositorio!  
 
 ¡Diviértete con Ressy! `:3`  
