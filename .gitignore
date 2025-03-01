@@ -4,3 +4,4 @@
 /modulos/__pycache__
 prompt.txt
 counter.json
+*.json
