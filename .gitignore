@@ -2,3 +2,4 @@
 .env
 /modulos/__pycache__
 *.pyc
+/modulos/__pycache__
