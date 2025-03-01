@@ -1,0 +1,12 @@
+# General
+discord.py==2.3.2
+python-dotenv==1.0.1
+
+# Groq and LangChain
+langchain==0.1.0
+langchain-groq==0.1.0
+
+# GIF Api
+aiohttp==3.11.13
+Pillow==10.4.0
+colorthief==0.2.1
