@@ -2,3 +2,4 @@
 .env
 *.pyc
 /modulos/__pycache__
+counter.json
