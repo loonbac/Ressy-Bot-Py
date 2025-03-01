@@ -40,12 +40,11 @@ Ressy tiene un conjunto de características únicas distribuidas en varios módu
 ### 2️⃣ Comandos de Barra (`slash_commands.py`)  
 
 - **`/info`**  
-  - Muestra una presentación de Ressy en un embed rosa pastel `#FFB6C1`.  
+  - Muestra una presentación de Ressy en un embed.  
   - Indica quién la creó y cómo puede ayudar.  
 
 - **`/xd`**  
   - Muestra el conteo de "xd" en el servidor actual.  
-  - Embed verde lima `#00FF00`.  
 
 - **`/github`**  
   - Devuelve un embed naranja `#F5AB0C` con el enlace al repositorio de GitHub.  
@@ -58,15 +57,13 @@ Ressy tiene un conjunto de características únicas distribuidas en varios módu
   - Usa la API de **Groq** (`llama3-8b-8192`) para responder preguntas.  
   - Personalidad juguetona definida en `prompt.txt`.  
   - Mantiene historial de conversación de 5 mensajes por usuario.  
-  - Embed rosa brillante `#FF69B4`.  
 
 ---
 
 ### 4️⃣ Acciones con GIFs (`acts_module.py`)  
 
 - **`/act <acción>`**  
-  - Muestra un GIF aleatorio de la API **nekos.best** con 25 opciones (limitadas por Discord).  
-  - Embed con color extraído del GIF.  
+  - Muestra un GIF aleatorio de la API **nekos.best** con 25 opciones.  
   - Footer con el nombre del anime (`Anime: KonoSuba`).  
 
 ---
@@ -98,7 +95,7 @@ Antes de ejecutar Ressy, necesitas:
 
 ```bash
 git clone https://github.com/loonbac/Ressy-Bot-Py.git
-cd Ressy-Bot
+cd Ressy-Bot-Py
 ```
 
 ---
