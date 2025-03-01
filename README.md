@@ -97,11 +97,9 @@ Antes de ejecutar Ressy, necesitas:
 ### 1️⃣ Clonar el repositorio  
 
 ```bash
-git clone https://github.com/tu-usuario/Ressy-Bot.git
+git clone https://github.com/loonbac/Ressy-Bot-Py.git
 cd Ressy-Bot
 ```
-
-*(Reemplaza `"tu-usuario"` con tu nombre de GitHub.)*  
 
 ---
 
