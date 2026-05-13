@@ -216,52 +216,56 @@ export default function YouTubeConfig() {
   }
 
   return (
-    <section className="-mx-margin-desktop px-margin-desktop pt-6 pb-10">
-      <div className="max-w-container-max mx-auto relative z-10 flex flex-col gap-5">
+    <section className="h-[calc(100vh-12rem)] -mx-margin-desktop px-margin-desktop overflow-hidden flex flex-col">
+      <div className="max-w-container-max mx-auto w-full flex flex-col flex-1 min-h-0 gap-3">
         <PageHeader />
 
         {error && (
-          <div className="p-3 bg-error-container/50 border border-error/20 rounded-lg flex items-center gap-3 text-error">
+          <div className="p-2.5 bg-error-container/50 border border-error/20 rounded-lg flex items-center gap-3 text-error flex-shrink-0">
             <span className="material-symbols-outlined text-[18px]">error</span>
             <span className="font-body-md text-sm">{error}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-12 gap-5 items-start">
-          <div className="col-span-12 lg:col-span-7">
-            <ChannelsListCard
-              subscriptions={subscriptions}
-              newChannelId={newChannelId}
-              deletingIds={deletingIds}
-              onToggleNotifications={handleToggleNotifications}
-              onDeleteChannel={handleDeleteChannel}
-              onAddChannel={handleAddChannel}
-            />
+        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+          {/* LEFT: channels list (flex-1) + filtros/conexion grid */}
+          <div className="col-span-12 lg:col-span-7 flex flex-col gap-4 min-h-0">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ChannelsListCard
+                subscriptions={subscriptions}
+                newChannelId={newChannelId}
+                deletingIds={deletingIds}
+                onToggleNotifications={handleToggleNotifications}
+                onDeleteChannel={handleDeleteChannel}
+                onAddChannel={handleAddChannel}
+              />
+            </div>
+            {config && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-shrink-0">
+                <FiltersCard
+                  config={config}
+                  onFilterShortsChange={(v) => updateField('filter_shorts', v)}
+                  onFilterPremieresChange={(v) => updateField('filter_premieres', v)}
+                  onFilterMinDurationChange={(v) => updateField('filter_min_duration', v)}
+                />
+                <ConnectionCard
+                  config={config}
+                  onCallbackUrlChange={(v) => updateField('callback_url', v)}
+                  onApiKeyChange={(v) => updateField('google_api_key', v)}
+                />
+              </div>
+            )}
           </div>
 
-          <aside className="col-span-12 lg:col-span-5 flex flex-col gap-5">
+          {/* RIGHT: ajustes de mensaje (full column height) */}
+          <aside className="col-span-12 lg:col-span-5 flex flex-col min-h-0">
             {config && (
-              <>
-                <MessageSettingsCard
-                  config={config}
-                  discordChannels={discordChannels}
-                  onMessageChange={(v) => updateField('announcement_message', v)}
-                  onChannelChange={handleChannelChange}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <FiltersCard
-                    config={config}
-                    onFilterShortsChange={(v) => updateField('filter_shorts', v)}
-                    onFilterPremieresChange={(v) => updateField('filter_premieres', v)}
-                    onFilterMinDurationChange={(v) => updateField('filter_min_duration', v)}
-                  />
-                  <ConnectionCard
-                    config={config}
-                    onCallbackUrlChange={(v) => updateField('callback_url', v)}
-                    onApiKeyChange={(v) => updateField('google_api_key', v)}
-                  />
-                </div>
-              </>
+              <MessageSettingsCard
+                config={config}
+                discordChannels={discordChannels}
+                onMessageChange={(v) => updateField('announcement_message', v)}
+                onChannelChange={handleChannelChange}
+              />
             )}
           </aside>
         </div>

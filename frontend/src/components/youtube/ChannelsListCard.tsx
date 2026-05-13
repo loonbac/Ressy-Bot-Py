@@ -20,8 +20,8 @@ export default function ChannelsListCard({
   onAddChannel,
 }: Props) {
   return (
-    <section className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl border border-white/40 shadow-sm flex flex-col">
-      <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-outline-variant/10">
+    <section className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl border border-white/40 shadow-sm flex flex-col min-h-0">
+      <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-outline-variant/10 flex-shrink-0">
         <h3 className="font-headline-md text-headline-md flex items-center gap-2">
           <span className="material-symbols-outlined text-secondary text-[22px]">subscriptions</span>
           Canales Sincronizados
@@ -31,7 +31,7 @@ export default function ChannelsListCard({
         </span>
       </div>
 
-      <div className="px-6 py-3 max-h-[55vh] min-h-[200px] overflow-y-auto">
+      <div className="px-6 py-3 flex-1 min-h-0 overflow-y-auto">
         {subscriptions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <span className="material-symbols-outlined text-4xl text-outline-variant mb-3">
@@ -64,7 +64,7 @@ export default function ChannelsListCard({
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-outline-variant/15">
+      <div className="px-6 py-3 border-t border-outline-variant/15 flex-shrink-0">
         <AddChannelSearch onSelect={onAddChannel} />
       </div>
     </section>
