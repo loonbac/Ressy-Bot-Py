@@ -1,0 +1,103 @@
+.welcome-banner-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1100 / 360;
+  border-radius: 6px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: #1a1c1a;
+  isolation: isolate;
+}
+
+.welcome-banner-preview__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    rgba(0, 0, 0, 0) 90%
+  );
+  z-index: 1;
+}
+
+.welcome-banner-preview__content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6%;
+  padding: 4% 4.5%;
+}
+
+.welcome-banner-preview__avatar-ring {
+  flex-shrink: 0;
+  width: 28%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-banner-preview__avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #2b2d31;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dbdee1;
+}
+
+.welcome-banner-preview__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.welcome-banner-preview__avatar .material-symbols-outlined {
+  font-size: 50%;
+}
+
+.welcome-banner-preview__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5%;
+  line-height: 1;
+}
+
+.welcome-banner-preview__title {
+  font-family: 'EB Garamond', 'Hanken Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: clamp(18px, 6.2cqw, 60px);
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+  margin: 0;
+}
+
+.welcome-banner-preview__name {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(13px, 4cqw, 40px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* Enable container queries so clamp can use cqw */
+.welcome-banner-preview {
+  container-type: inline-size;
+}

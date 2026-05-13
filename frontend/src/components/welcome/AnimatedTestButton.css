@@ -1,0 +1,25 @@
+.welcome-test-btn {
+  background: rgba(247, 207, 216, 0.4);
+  color: var(--color-primary);
+  border: 1px solid rgba(247, 207, 216, 0.5);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.welcome-test-btn:hover:not(:disabled) {
+  background: rgba(247, 207, 216, 0.6);
+  transform: translateY(-1px);
+}
+
+.welcome-test-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+html.dark .welcome-test-btn {
+  background: rgba(255, 217, 225, 0.12);
+  border-color: rgba(255, 217, 225, 0.18);
+  color: var(--color-primary);
+}
+
+html.dark .welcome-test-btn:hover:not(:disabled) {
+  background: rgba(255, 217, 225, 0.22);
+}

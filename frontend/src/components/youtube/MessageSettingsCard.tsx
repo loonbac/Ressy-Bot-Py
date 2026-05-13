@@ -5,6 +5,8 @@ import DiscordChannelSelect from './DiscordChannelSelect';
 interface Props {
   config: YouTubeConfig;
   discordChannels: DiscordChannel[];
+  botName?: string;
+  botAvatarUrl?: string;
   onMessageChange: (value: string) => void;
   onChannelChange: (id: string | null) => void;
 }
@@ -12,6 +14,8 @@ interface Props {
 export default function MessageSettingsCard({
   config,
   discordChannels,
+  botName,
+  botAvatarUrl,
   onMessageChange,
   onChannelChange,
 }: Props) {
@@ -42,7 +46,11 @@ export default function MessageSettingsCard({
           <label className="block text-label-sm text-primary font-bold uppercase mb-1.5">
             Vista Previa
           </label>
-          <EmbedPreview announcementMessage={config.announcement_message} />
+          <EmbedPreview
+            announcementMessage={config.announcement_message}
+            botName={botName}
+            botAvatarUrl={botAvatarUrl}
+          />
         </div>
         <div className="flex-shrink-0">
           <DiscordChannelSelect

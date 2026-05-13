@@ -1,4 +1,5 @@
 import asyncio
+import html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
@@ -344,7 +345,7 @@ class YouTubeMonitor:
                 continue
 
             video_id = video_id_elem.text or ""
-            title = title_elem.text or ""
+            title = html.unescape(title_elem.text or "")
             video_url = (
                 link_elem.get("href")
                 if link_elem is not None
@@ -555,9 +556,10 @@ class YouTubeMonitor:
             return False
         topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
         hub_url = "https://pubsubhubbub.appspot.com/subscribe"
+        base = callback_url.rstrip("/")
 
         data = {
-            "hub.callback": f"{callback_url}/api/plugins/youtube/callback",
+            "hub.callback": f"{base}/api/plugins/youtube/callback",
             "hub.topic": topic_url,
             "hub.mode": "subscribe",
             "hub.verify": "async",
@@ -576,9 +578,10 @@ class YouTubeMonitor:
             return False
         topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
         hub_url = "https://pubsubhubbub.appspot.com/subscribe"
+        base = callback_url.rstrip("/")
 
         data = {
-            "hub.callback": f"{callback_url}/api/plugins/youtube/callback",
+            "hub.callback": f"{base}/api/plugins/youtube/callback",
             "hub.topic": topic_url,
             "hub.mode": "unsubscribe",
             "hub.verify": "async",
@@ -631,10 +634,11 @@ class YouTubeMonitor:
                 except ValueError:
                     pass
 
+            raw_title = title_elem.text if title_elem is not None else "Unknown"
             video = YouTubeVideo(
                 video_id=vid,
                 channel_id=cid,
-                title=title_elem.text if title_elem is not None else "Unknown",
+                title=html.unescape(raw_title or "Unknown"),
                 url=f"https://www.youtube.com/watch?v={vid}",
                 published_at=published_at,
             )

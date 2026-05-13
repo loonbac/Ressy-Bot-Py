@@ -44,6 +44,10 @@ async def main_async() -> None:
     monitor = await setup_youtube(bot, cm, app)
     await monitor.start()  # Iniciar polling de YouTube
 
+    # Cargar plugin de bienvenida
+    from src.bot.plugins.welcome import setup as setup_welcome
+    await setup_welcome(bot, cm, app)
+
     # Mount SPA static files *after* all API routes are registered
     mount_static_files(app)
 

@@ -23,7 +23,12 @@ import FiltersCard from './youtube/FiltersCard';
 import ConnectionCard from './youtube/ConnectionCard';
 import FooterActions, { type TestFeedback } from './youtube/FooterActions';
 
-export default function YouTubeConfig() {
+interface YouTubeConfigProps {
+  botName?: string;
+  botAvatarUrl?: string;
+}
+
+export default function YouTubeConfig({ botName, botAvatarUrl }: YouTubeConfigProps = {}) {
   const [subscriptions, setSubscriptions] = useState<YouTubeSubscription[]>([]);
   const [config, setConfig] = useState<YouTubeConfigType | null>(null);
   const [discordChannels, setDiscordChannels] = useState<DiscordChannel[]>([]);
@@ -263,6 +268,8 @@ export default function YouTubeConfig() {
               <MessageSettingsCard
                 config={config}
                 discordChannels={discordChannels}
+                botName={botName}
+                botAvatarUrl={botAvatarUrl}
                 onMessageChange={(v) => updateField('announcement_message', v)}
                 onChannelChange={handleChannelChange}
               />

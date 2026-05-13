@@ -5,6 +5,7 @@ import ConfigPanel from '@/components/ConfigPanel';
 import PluginList from '@/components/PluginList';
 import SystemStatus from '@/components/SystemStatus';
 import YouTubeConfig from '@/components/YouTubeConfig';
+import WelcomeConfig from '@/components/WelcomeConfig';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import SakuraPetals from '@/components/SakuraPetals';
 import { fetchConfig, updateConfig, fetchStatus } from '@/api/config';
@@ -15,6 +16,7 @@ const sectionTitles: Record<string, string> = {
   plugins: 'Plugins',
   status: 'Estado del Sistema',
   youtube: 'YouTube',
+  welcome: 'Bienvenida',
 };
 
 export default function App() {
@@ -95,7 +97,16 @@ export default function App() {
         )}
         {activeSection === 'plugins' && <PluginList plugins={plugins} onNavigate={setActiveSection} />}
         {activeSection === 'status' && <SystemStatus status={status} />}
-        {activeSection === 'youtube' && <YouTubeConfig />}
+        {activeSection === 'youtube' && (
+          <YouTubeConfig botName={status?.bot_name} botAvatarUrl={status?.bot_avatar_url} />
+        )}
+        {activeSection === 'welcome' && (
+          <WelcomeConfig
+            onNavigate={setActiveSection}
+            botName={status?.bot_name}
+            botAvatarUrl={status?.bot_avatar_url}
+          />
+        )}
       </DashboardLayout>
     </WebSocketProvider>
   );

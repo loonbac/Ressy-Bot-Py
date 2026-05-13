@@ -1,6 +1,6 @@
 /**
- * Lista de cogs cargados con diseño glassmorphism zen.
- * Cada item muestra nombre, icono, estado activo y descripción.
+ * Lista de plugins con diseño glassmorphism zen.
+ * Unifica cogs dinámicos (loaded_cogs) y plugins con UI propia (welcome, youtube).
  */
 
 interface PluginListProps {
@@ -8,35 +8,99 @@ interface PluginListProps {
   onNavigate?: (section: string) => void;
 }
 
-const PLUGIN_META: Record<string, { icon: string; description: string }> = {
+interface PluginCard {
+  key: string;
+  title: string;
+  icon: string;
+  description: string;
+  section?: string;
+  order: number;
+}
+
+const STATIC_PLUGINS: PluginCard[] = [
+  {
+    key: 'welcome',
+    title: 'Bienvenida',
+    icon: 'waving_hand',
+    description: 'Saludo automático a nuevos miembros con embed personalizable.',
+    section: 'welcome',
+    order: 10,
+  },
+  {
+    key: 'youtube',
+    title: 'YouTube',
+    icon: 'smart_display',
+    description: 'Notificaciones de nuevos videos de YouTube con PubSubHubbub.',
+    section: 'youtube',
+    order: 20,
+  },
+];
+
+const COG_META: Record<string, { title: string; icon: string; description: string; order: number }> = {
   about: {
+    title: 'About',
     icon: 'info',
     description: 'Información del bot y estado del sistema.',
+    order: 30,
   },
   moderation: {
+    title: 'Moderación',
     icon: 'gavel',
     description: 'Herramientas de protección y orden.',
+    order: 40,
   },
   music: {
+    title: 'Música',
     icon: 'library_music',
     description: 'Armonía sonora para canales de voz.',
+    order: 50,
   },
   economy: {
+    title: 'Economía',
     icon: 'payments',
     description: 'Sistema de moneda virtual y recompensas.',
+    order: 60,
   },
   roles: {
+    title: 'Roles',
     icon: 'label',
     description: 'Asignación automática de roles.',
+    order: 70,
   },
 };
 
-function formatPluginName(name: string): string {
-  return name.charAt(0).toUpperCase() + name.slice(1);
+const HIDDEN_COGS = new Set(['welcomecog', 'welcome', 'youtubecog', 'youtube', 'youtubenotifier']);
+
+function buildCards(plugins: string[]): PluginCard[] {
+  const cards = [...STATIC_PLUGINS];
+  for (const name of plugins) {
+    if (HIDDEN_COGS.has(name.toLowerCase())) continue;
+    const meta = COG_META[name.toLowerCase()];
+    if (meta) {
+      cards.push({
+        key: name,
+        title: meta.title,
+        icon: meta.icon,
+        description: meta.description,
+        order: meta.order,
+      });
+    } else {
+      cards.push({
+        key: name,
+        title: name.charAt(0).toUpperCase() + name.slice(1),
+        icon: 'extension',
+        description: 'Módulo funcional activo.',
+        order: 100,
+      });
+    }
+  }
+  return cards.sort((a, b) => a.order - b.order);
 }
 
 export default function PluginList({ plugins, onNavigate }: PluginListProps) {
-  if (plugins.length === 0) {
+  const cards = buildCards(plugins);
+
+  if (cards.length === 0) {
     return (
       <section aria-label="Plugins" className="min-h-[calc(100vh-7rem)] -mx-margin-desktop -mt-8 px-margin-desktop pt-12 pb-20">
         <div className="flex flex-col items-center justify-center text-center py-20">
@@ -64,85 +128,58 @@ export default function PluginList({ plugins, onNavigate }: PluginListProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          {plugins.map((name) => {
-            const meta = PLUGIN_META[name] ?? {
-              icon: 'extension',
-              description: 'Módulo funcional activo.',
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter auto-rows-fr">
+          {cards.map((card) => {
+            const interactive = Boolean(card.section);
+            const handleClick = () => {
+              if (card.section) onNavigate?.(card.section);
             };
-
             return (
               <div
-                key={name}
+                key={card.key}
                 className="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64"
               >
                 <div className="flex justify-between items-start">
                   <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
-                    <span className="material-symbols-outlined text-[28px]">
-                      {meta.icon}
-                    </span>
+                    <span className="material-symbols-outlined text-[28px]">{card.icon}</span>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
                     <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-label-sm font-label-sm text-green-700">
-                      Activo
-                    </span>
+                    <span className="text-label-sm font-label-sm text-green-700">Activo</span>
                   </div>
                 </div>
 
                 <div>
                   <h3 className="font-headline-md text-headline-md text-on-surface mb-2">
-                    {formatPluginName(name)}
+                    {card.title}
                   </h3>
-                  <p className="text-label-sm text-tertiary line-clamp-2">
-                    {meta.description}
-                  </p>
+                  <p className="text-label-sm text-tertiary line-clamp-2">{card.description}</p>
                 </div>
 
-                <div className="flex justify-between items-center mt-4">
-                  <span className="text-label-sm text-secondary font-bold cursor-pointer hover:underline">
-                    Configurar
-                  </span>
-                  <span className="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors">
-                    arrow_forward
-                  </span>
-                </div>
+                {interactive ? (
+                  <button
+                    type="button"
+                    onClick={handleClick}
+                    className="flex justify-between items-center mt-4 w-full text-left"
+                  >
+                    <span className="text-label-sm text-secondary font-bold hover:underline">
+                      Configurar
+                    </span>
+                    <span className="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors">
+                      arrow_forward
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex justify-between items-center mt-4 opacity-50">
+                    <span className="text-label-sm text-tertiary font-bold">Sin configuración</span>
+                    <span className="material-symbols-outlined text-outline-variant">lock</span>
+                  </div>
+                )}
               </div>
             );
           })}
-
-          {/* YouTube Plugin Card */}
-          <div className="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64">
-            <div className="flex justify-between items-start">
-              <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
-                <span className="material-symbols-outlined text-[28px]">smart_display</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
-                <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-label-sm font-label-sm text-green-700">Activo</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-headline-md text-headline-md text-on-surface mb-2">YouTube</h3>
-              <p className="text-label-sm text-tertiary line-clamp-2">
-                Notificaciones de nuevos videos de YouTube con PubSubHubbub.
-              </p>
-            </div>
-            <button
-              onClick={() => onNavigate?.('youtube')}
-              className="flex justify-between items-center mt-4 w-full text-left"
-            >
-              <span className="text-label-sm text-secondary font-bold cursor-pointer hover:underline">
-                Configurar
-              </span>
-              <span className="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors">
-                arrow_forward
-              </span>
-            </button>
-          </div>
         </div>
 
-        {/* Footer subtle decoration */}
         <div className="mt-20 flex justify-center opacity-10">
           <svg
             width="200"

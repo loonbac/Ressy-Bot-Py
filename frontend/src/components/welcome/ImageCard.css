@@ -1,0 +1,61 @@
+.welcome-image-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.welcome-image-card__preset {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: inset 0 0 0 1px var(--color-outline-variant);
+}
+
+.welcome-image-card__preset:hover {
+  box-shadow: inset 0 0 0 1px var(--color-primary-container);
+}
+
+.welcome-image-card__preset.is-selected {
+  box-shadow:
+    inset 0 0 0 2px var(--color-secondary),
+    0 6px 18px rgba(218, 50, 63, 0.18);
+}
+
+.welcome-image-card__url {
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface);
+}
+
+.welcome-image-card__url:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 2px rgba(218, 50, 63, 0.15);
+}
+
+.welcome-image-card__apply-btn {
+  background: rgba(247, 207, 216, 0.4);
+  color: var(--color-primary);
+}
+
+.welcome-image-card__apply-btn:hover:not(:disabled) {
+  background: rgba(247, 207, 216, 0.6);
+}
+
+html.dark .welcome-image-card {
+  background: rgba(34, 36, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.dark .welcome-image-card__url {
+  background: var(--color-surface-container);
+  border-color: var(--color-outline-variant);
+}
+
+html.dark .welcome-image-card__apply-btn {
+  background: rgba(255, 217, 225, 0.12);
+  color: var(--color-primary);
+}
+
+html.dark .welcome-image-card__apply-btn:hover:not(:disabled) {
+  background: rgba(255, 217, 225, 0.2);
+}
