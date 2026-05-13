@@ -1,0 +1,19 @@
+.bb-save-btn {
+  background: var(--color-secondary);
+  color: var(--color-on-primary);
+  box-shadow: 0 6px 18px rgba(218, 50, 63, 0.28);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.bb-save-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.bb-save-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+html.dark .bb-save-btn {
+  box-shadow: 0 6px 18px rgba(218, 50, 63, 0.45);
+}

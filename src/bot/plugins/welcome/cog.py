@@ -6,13 +6,32 @@ from discord.ext import commands
 from .banner import generate_welcome_banner
 
 
+def _member_rank(member: discord.Member) -> int:
+    """Return the join-order rank of `member` among non-bot members.
+
+    Counts how many non-bot members joined the guild before (or at) this one.
+    Falls back to total non-bot count if join timestamps are missing.
+    """
+    guild = member.guild
+    target_join = member.joined_at
+    if target_join is None:
+        return sum(1 for m in guild.members if not m.bot) or (guild.member_count or 0)
+    rank = sum(
+        1
+        for m in guild.members
+        if not m.bot and m.joined_at is not None and m.joined_at <= target_join
+    )
+    return rank or 1
+
+
 def _format_text(template: str, member: discord.Member) -> str:
     guild = member.guild
+    rank = _member_rank(member)
     return (
         template.replace("{user}", member.mention)
         .replace("{user_name}", member.display_name)
         .replace("{server}", guild.name)
-        .replace("{member_count}", str(guild.member_count or len(guild.members)))
+        .replace("{member_count}", str(rank))
         .replace("{{user}}", member.mention)
     )
 
@@ -26,10 +45,22 @@ def _parse_color(raw: str, fallback: int = 0x23856B) -> int:
 
 
 class WelcomeCog(commands.Cog):
-    def __init__(self, db, bot):
+    def __init__(self, db, bot, config_manager=None):
         self.db = db
         self.bot = bot
+        self.config_manager = config_manager
         self._last_message_id: dict[int, int] = {}
+
+    def _configured_guild_id(self) -> int | None:
+        if self.config_manager is None:
+            return None
+        raw = self.config_manager.get("guild_id") or ""
+        if not raw:
+            return None
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
 
     async def _get_config(self) -> dict[str, str]:
         rows = await self.db.execute_fetchall("SELECT key, value FROM welcome_config")
@@ -61,7 +92,7 @@ class WelcomeCog(commands.Cog):
             color=color,
             timestamp=discord.utils.utcnow(),
         )
-        embed.set_footer(text=f"{member.guild.name} · Miembro #{member.guild.member_count}")
+        embed.set_footer(text=f"{member.guild.name} · Miembro #{_member_rank(member)}")
         return embed
 
     async def send_welcome(
@@ -130,8 +161,13 @@ class WelcomeCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
+        if member.bot:
+            return
+        target_guild = self._configured_guild_id()
+        if target_guild is not None and member.guild.id != target_guild:
+            return
         await self.send_welcome(member)
 
 
-async def setup(bot, db):
-    await bot.add_cog(WelcomeCog(db, bot))
+async def setup(bot, db, config_manager=None):
+    await bot.add_cog(WelcomeCog(db, bot, config_manager))

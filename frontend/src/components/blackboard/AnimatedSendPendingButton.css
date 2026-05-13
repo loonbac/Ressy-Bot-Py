@@ -1,0 +1,27 @@
+.bb-send-pending-btn {
+  background: linear-gradient(135deg, rgba(255, 145, 0, 0.18), rgba(255, 145, 0, 0.32));
+  color: #b45309;
+  border: 1px solid rgba(255, 145, 0, 0.35);
+  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.bb-send-pending-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 145, 0, 0.28), rgba(255, 145, 0, 0.45));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 145, 0, 0.22);
+}
+
+.bb-send-pending-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+html.dark .bb-send-pending-btn {
+  background: linear-gradient(135deg, rgba(255, 145, 0, 0.18), rgba(255, 145, 0, 0.28));
+  color: #fbbf77;
+  border-color: rgba(255, 145, 0, 0.25);
+}
+
+html.dark .bb-send-pending-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 145, 0, 0.28), rgba(255, 145, 0, 0.4));
+  box-shadow: 0 6px 18px rgba(255, 145, 0, 0.3);
+}

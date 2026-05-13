@@ -27,6 +27,14 @@ const STATIC_PLUGINS: PluginCard[] = [
     order: 10,
   },
   {
+    key: 'blackboard',
+    title: 'Blackboard',
+    icon: 'school',
+    description: 'Notificaciones de tareas y asignaciones de Blackboard.',
+    section: 'blackboard',
+    order: 15,
+  },
+  {
     key: 'youtube',
     title: 'YouTube',
     icon: 'smart_display',
@@ -37,12 +45,6 @@ const STATIC_PLUGINS: PluginCard[] = [
 ];
 
 const COG_META: Record<string, { title: string; icon: string; description: string; order: number }> = {
-  about: {
-    title: 'About',
-    icon: 'info',
-    description: 'Información del bot y estado del sistema.',
-    order: 30,
-  },
   moderation: {
     title: 'Moderación',
     icon: 'gavel',
@@ -69,7 +71,15 @@ const COG_META: Record<string, { title: string; icon: string; description: strin
   },
 };
 
-const HIDDEN_COGS = new Set(['welcomecog', 'welcome', 'youtubecog', 'youtube', 'youtubenotifier']);
+const HIDDEN_COGS = new Set([
+  'welcomecog',
+  'welcome',
+  'youtubecog',
+  'youtube',
+  'youtubenotifier',
+  'blackboardcog',
+  'blackboard',
+]);
 
 function buildCards(plugins: string[]): PluginCard[] {
   const cards = [...STATIC_PLUGINS];

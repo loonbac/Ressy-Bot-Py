@@ -9,6 +9,7 @@ from src.bot.core.config import ConfigManager
 class Bot(commands.Bot):
     def __init__(self, config_manager: ConfigManager):
         intents = discord.Intents.default()
+        intents.members = True  # required for on_member_join + guild.members iteration
         super().__init__(command_prefix="/", intents=intents)
         self.config_manager = config_manager
 

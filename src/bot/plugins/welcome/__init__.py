@@ -62,7 +62,7 @@ async def setup(bot: Bot, config_manager: ConfigManager, app):
     await db.execute("DELETE FROM welcome_config WHERE key = 'mention_user'")
     await db.commit()
 
-    cog = WelcomeCog(db, bot)
+    cog = WelcomeCog(db, bot, config_manager)
     await bot.add_cog(cog)
 
     app.include_router(welcome_router, prefix="/api/plugins/welcome")
