@@ -25,3 +25,7 @@ class BotStatus(BaseModel):
     uptime_seconds: float
     loaded_cogs: list[str]
     connected_ws_clients: int
+    latency_ms: float = 0.0
+    memory_mb: float = 0.0
+    bot_avatar_url: str = ""
+    bot_name: str = ""

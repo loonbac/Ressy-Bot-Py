@@ -13,6 +13,7 @@ class Bot(commands.Bot):
         self.config_manager = config_manager
 
     async def on_ready(self):
+        self.start_time = discord.utils.utcnow()
         print(f"Bot conectado como {self.user}")
         retries = 5
         for attempt in range(1, retries + 1):
