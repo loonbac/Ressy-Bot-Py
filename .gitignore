@@ -33,6 +33,9 @@ lwc-react/dist/
 # Tool artifacts
 .atl/
 
+# Unrelated projects
+lwc-react/
+
 # OS
 .DS_Store
 Thumbs.db
