@@ -94,6 +94,7 @@ class YouTubeMonitor:
             "poll_interval_minutes": "30",
             "discord_channel_id": "",
             "callback_url": "",
+            "google_api_key": "",
             "announcement_message": "@everyone ¡Hay un nuevo video en {canal}!",
             "filter_shorts": "false",
             "filter_premieres": "false",
@@ -149,15 +150,35 @@ class YouTubeMonitor:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
 
+        result = await self.poll_channels_with_diagnostics()
+        return result["videos"]
+
+    async def poll_channels_with_diagnostics(self) -> dict[str, Any]:
+        """Poll channels and return detailed diagnostics per channel."""
+        if self._db is None:
+            raise RuntimeError("DB no inicializada")
+
         rows = await self._db.execute_fetchall(
-            "SELECT channel_id, channel_name, notifications_enabled FROM youtube_subscriptions WHERE active = 1"
+            "SELECT channel_id, channel_name, thumbnail_url, notifications_enabled FROM youtube_subscriptions WHERE active = 1"
         )
 
         new_videos: list[YouTubeVideo] = []
+        diagnostics: list[dict[str, Any]] = []
+
         for row in rows:
             channel_id = row[0]
             channel_name = row[1]
-            notifications_enabled = bool(row[2])
+            channel_thumbnail = row[2] or ""
+            notifications_enabled = bool(row[3])
+
+            diag: dict[str, Any] = {
+                "channel_id": channel_id,
+                "channel_name": channel_name,
+                "status": "ok",
+                "videos_found": 0,
+                "new_videos": 0,
+            }
+
             try:
                 videos = await self.fetch_recent_videos(channel_id)
                 # Success: reset failure counter
@@ -165,6 +186,13 @@ class YouTubeMonitor:
             except httpx.HTTPStatusError as exc:
                 self._consecutive_failures[channel_id] = self._consecutive_failures.get(channel_id, 0) + 1
                 fails = self._consecutive_failures[channel_id]
+                diag["status"] = "error"
+                diag["error"] = f"HTTP {exc.response.status_code}"
+                try:
+                    diag["error_detail"] = exc.response.text[:500]
+                except Exception:
+                    diag["error_detail"] = "No detail available"
+
                 if fails == 1:
                     print(f"[YouTubeMonitor] RSS no disponible para {channel_id} (HTTP {exc.response.status_code})")
                 elif fails >= 3:
@@ -174,10 +202,16 @@ class YouTubeMonitor:
                     )
                     await self._db.commit()
                     print(f"[YouTubeMonitor] Canal {channel_id} desactivado tras {fails} fallos consecutivos")
+                diagnostics.append(diag)
                 continue
             except Exception as exc:
+                diag["status"] = "error"
+                diag["error"] = str(exc)
+                diagnostics.append(diag)
                 print(f"[YouTubeMonitor] Error inesperado para {channel_id}: {exc}")
                 continue
+
+            diag["videos_found"] = len(videos)
 
             for video in videos:
                 exists = await self._db.execute_fetchall(
@@ -186,16 +220,22 @@ class YouTubeMonitor:
                 if not exists:
                     await self._store_video(video)
                     new_videos.append(video)
+                    diag["new_videos"] += 1
                     if notifications_enabled:
-                        await self.notify_new_video(video, channel_name)
+                        await self.notify_new_video(video, channel_name, channel_thumbnail)
 
             await self._db.execute(
                 "UPDATE youtube_subscriptions SET last_checked = ? WHERE channel_id = ?",
                 (datetime.now(timezone.utc).isoformat(), channel_id),
             )
             await self._db.commit()
+            diagnostics.append(diag)
 
-        return new_videos
+        return {
+            "videos": new_videos,
+            "diagnostics": diagnostics,
+            "channels_checked": len(rows),
+        }
 
     async def fetch_recent_videos(self, channel_id: str) -> list[YouTubeVideo]:
         """Fetch recent videos using YouTube Data API v3 (preferred) or RSS fallback."""
@@ -212,39 +252,69 @@ class YouTubeMonitor:
         params = {
             "part": "snippet",
             "channelId": channel_id,
+            "type": "video",
             "order": "date",
             "maxResults": 10,
             "key": api_key,
         }
 
+        # Use a fresh client with default headers instead of the RSS-optimised
+        # client that sends Accept: text/xml. This matches what search_channels
+        # does in api.py and avoids any header-related surprises.
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params)
+
+        if response.status_code == 403:
+            try:
+                error_data = response.json()
+                error_msg = error_data.get("error", {}).get("message", "Unknown 403")
+            except Exception:
+                error_msg = response.text[:500] or "Unknown 403"
+            print(f"[YouTubeMonitor] API 403 for {channel_id}: {error_msg}")
+            return []
+
         try:
-            response = await self._http.get(url, params=params, follow_redirects=True)
-            if response.status_code == 403:
-                print(f"[YouTubeMonitor] API key inválida o cuota excedida para {channel_id}")
-                return []
             response.raise_for_status()
-            data = response.json()
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 404:  # silent on 404 (RSS fallback already failed)
-                print(f"[YouTubeMonitor] Error API al obtener videos de {channel_id}: HTTP {exc.response.status_code}")
-            return []
-        except Exception:
-            return []
+            try:
+                error_body = exc.response.text[:500]
+            except Exception:
+                error_body = "Unable to read response body"
+            print(f"[YouTubeMonitor] API HTTP {exc.response.status_code} for {channel_id}: {error_body}")
+            raise
+
+        try:
+            data = response.json()
+        except Exception as exc:
+            print(f"[YouTubeMonitor] API JSON decode error for {channel_id}: {exc}")
+            raise
 
         videos = []
         for item in data.get("items", []):
-            if item["id"]["kind"] != "youtube#video":
-                continue  # skip playlists, channels
+            item_id = item.get("id", {})
+            if item_id.get("kind") != "youtube#video":
+                continue
 
-            video_id = item["id"]["videoId"]
-            published_at = item["snippet"]["publishedAt"]
+            video_id = item_id.get("videoId")
+            if not video_id:
+                continue
+
+            snippet = item.get("snippet", {})
+            published_at = snippet.get("publishedAt")
+            if not published_at:
+                continue
+
+            try:
+                published_dt = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+            except ValueError:
+                continue
 
             videos.append(YouTubeVideo(
                 video_id=video_id,
                 channel_id=channel_id,
-                title=item["snippet"]["title"],
+                title=snippet.get("title", "Unknown"),
                 url=f"https://www.youtube.com/watch?v={video_id}",
-                published_at=datetime.fromisoformat(published_at.replace("Z", "+00:00")),
+                published_at=published_dt,
             ))
 
         return videos
@@ -311,18 +381,36 @@ class YouTubeMonitor:
         except Exception:
             return False
 
-    async def notify_new_video(self, video: YouTubeVideo, channel_name: str = "") -> None:
+    async def notify_new_video(
+        self,
+        video: YouTubeVideo,
+        channel_name: str = "",
+        channel_thumbnail: str = "",
+        skip_filters: bool = False,
+    ) -> None:
         config = await self.get_config()
         channel_id = config.discord_channel_id
         if channel_id is None or self.bot is None:
             return
 
-        # Apply content filters
-        if config.filter_shorts and self._is_short(video):
-            return
-        if config.filter_premieres and self._is_premiere(video):
-            return
-        # filter_min_duration: RSS doesn't provide duration; skip for now
+        if not skip_filters:
+            if config.filter_shorts and self._is_short(video):
+                return
+            if config.filter_premieres and self._is_premiere(video):
+                return
+            # filter_min_duration: RSS doesn't provide duration; skip for now
+
+        # Backfill channel info from DB if caller didn't pass it.
+        if (not channel_name or not channel_thumbnail) and self._db is not None:
+            sub_rows = await self._db.execute_fetchall(
+                "SELECT channel_name, thumbnail_url FROM youtube_subscriptions WHERE channel_id = ?",
+                (video.channel_id,),
+            )
+            if sub_rows:
+                if not channel_name:
+                    channel_name = sub_rows[0][0] or ""
+                if not channel_thumbnail:
+                    channel_thumbnail = sub_rows[0][1] or ""
 
         try:
             discord_channel = self.bot.get_channel(channel_id)
@@ -339,24 +427,24 @@ class YouTubeMonitor:
         if "{canal}" in message:
             message = message.replace("{canal}", channel_name or "YouTube")
 
-        description = f"Nuevo video de {channel_name}" if channel_name else "Nuevo video"
         embed = discord.Embed(
             title=video.title,
             url=video.url,
-            description=description,
+            description="Nuevo video publicado en YouTube",
             color=discord.Color.red(),
+            timestamp=video.published_at,
         )
         if channel_name:
             embed.set_author(
                 name=channel_name,
                 url=f"https://youtube.com/channel/{video.channel_id}",
+                icon_url=channel_thumbnail or None,
             )
-        embed.set_footer(text="YouTube Notifier")
+        embed.set_image(url=f"https://i.ytimg.com/vi/{video.video_id}/hqdefault.jpg")
+        embed.set_footer(text="YouTube")
 
         try:
-            if message and not message.startswith("@everyone"):
-                await discord_channel.send(message, embed=embed)
-            elif message:
+            if message:
                 await discord_channel.send(message, embed=embed)
             else:
                 await discord_channel.send(embed=embed)
@@ -370,6 +458,77 @@ class YouTubeMonitor:
                 (datetime.now(timezone.utc).isoformat(), video.video_id),
             )
             await self._db.commit()
+
+    async def test_notify_latest(self, count: int) -> dict[str, Any]:
+        """Send notifications for the N latest videos of each active subscription.
+
+        Bypasses content filters so the user can preview the embed regardless
+        of shorts/premiere settings. Does NOT dedupe — re-sends even if the
+        video was already notified.
+        """
+        if self._db is None:
+            raise RuntimeError("DB no inicializada")
+        if count < 1:
+            count = 1
+        if count > 10:
+            count = 10
+
+        config = await self.get_config()
+        rows = await self._db.execute_fetchall(
+            "SELECT channel_id, channel_name, thumbnail_url FROM youtube_subscriptions WHERE active = 1"
+        )
+
+        diagnostics: list[dict[str, Any]] = []
+        total_sent = 0
+
+        for row in rows:
+            channel_id = row[0]
+            channel_name = row[1]
+            channel_thumbnail = row[2] or ""
+
+            diag: dict[str, Any] = {
+                "channel_id": channel_id,
+                "channel_name": channel_name,
+                "status": "ok",
+                "videos_sent": 0,
+            }
+
+            try:
+                videos = await self.fetch_recent_videos(channel_id)
+            except httpx.HTTPStatusError as exc:
+                diag["status"] = "error"
+                diag["error"] = f"HTTP {exc.response.status_code}"
+                try:
+                    diag["error_detail"] = exc.response.text[:500]
+                except Exception:
+                    diag["error_detail"] = "No detail available"
+                diagnostics.append(diag)
+                continue
+            except Exception as exc:
+                diag["status"] = "error"
+                diag["error"] = str(exc)
+                diagnostics.append(diag)
+                continue
+
+            for video in videos[:count]:
+                try:
+                    await self.notify_new_video(
+                        video, channel_name, channel_thumbnail, skip_filters=True
+                    )
+                    diag["videos_sent"] += 1
+                    total_sent += 1
+                except Exception as exc:
+                    diag["status"] = "error"
+                    diag["error"] = str(exc)
+
+            diagnostics.append(diag)
+
+        return {
+            "total_sent": total_sent,
+            "has_api_key": bool(config.google_api_key),
+            "channels_checked": len(rows),
+            "diagnostics": diagnostics,
+        }
 
     def _is_short(self, video: YouTubeVideo) -> bool:
         title = video.title.lower()
@@ -664,7 +823,7 @@ class YouTubeMonitor:
         return {
             "enabled": config.enabled,
             "poll_interval_minutes": config.poll_interval_minutes,
-            "discord_channel_id": config.discord_channel_id,
+            "discord_channel_id": str(config.discord_channel_id) if config.discord_channel_id is not None else None,
             "callback_url": config.callback_url,
             "google_api_key": config.google_api_key,
             "announcement_message": config.announcement_message,

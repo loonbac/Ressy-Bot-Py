@@ -123,8 +123,10 @@ async def list_discord_channels(request: Request) -> dict[str, Any]:
         if guild_id is not None and guild.id != guild_id:
             continue
         for channel in guild.text_channels:
+            # Snowflake IDs are 64-bit; serialize as string to avoid JS
+            # Number.MAX_SAFE_INTEGER precision loss.
             channels.append({
-                "id": channel.id,
+                "id": str(channel.id),
                 "name": f"#{channel.name}",
                 "guild_name": guild.name,
             })
@@ -201,9 +203,14 @@ async def handle_verification(request: Request):
 async def trigger_poll(request: Request) -> dict:
     """Manually trigger a channel poll (for testing)."""
     monitor = _get_monitor(request)
-    new_videos = await monitor.poll_channels()
+    config = await monitor.get_config()
+    result = await monitor.poll_channels_with_diagnostics()
+    new_videos = result["videos"]
     return {
         "new_videos": len(new_videos),
+        "has_api_key": bool(config.google_api_key),
+        "diagnostics": result.get("diagnostics", []),
+        "channels_checked": result.get("channels_checked", 0),
         "videos": [
             {
                 "video_id": v.video_id,
@@ -215,6 +222,24 @@ async def trigger_poll(request: Request) -> dict:
             for v in new_videos
         ],
     }
+
+
+@router.post("/test-notify")
+async def test_notify(request: Request, body: dict[str, Any]) -> dict[str, Any]:
+    """Send a test notification for the N most recent videos of each subscribed channel.
+
+    Bypasses content filters so the embed can be previewed in Discord
+    regardless of shorts/premiere settings.
+    """
+    monitor = _get_monitor(request)
+    raw_count = body.get("count", 1)
+    try:
+        count = int(raw_count)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="count debe ser un entero")
+    if count < 1 or count > 10:
+        raise HTTPException(status_code=400, detail="count debe estar entre 1 y 10")
+    return await monitor.test_notify_latest(count)
 
 
 @router.post("/callback")

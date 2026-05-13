@@ -13,12 +13,12 @@ import {
   searchYouTubeChannels,
   type YouTubeSearchResult,
   getProxiedThumbnailUrl,
-  triggerYouTubePoll,
-  removeFailedSubscriptions,
+  testNotifyLatest,
 } from '@/api/youtube';
 import ToggleSwitch from './youtube/ToggleSwitch';
 import AnimatedChannelCard from './youtube/AnimatedChannelCard';
 import AnimatedSaveButton, { type SaveState } from './youtube/AnimatedSaveButton';
+import AnimatedTestButton, { type TestState } from './youtube/AnimatedTestButton';
 import ChannelAddedToast from './youtube/ChannelAddedToast';
 
 export default function YouTubeConfig() {
@@ -36,9 +36,13 @@ export default function YouTubeConfig() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [polling, setPolling] = useState(false);
-  const [pollResult, setPollResult] = useState<string | null>(null);
-  const [cleaning, setCleaning] = useState(false);
+  const [testState, setTestState] = useState<TestState>('idle');
+  const [testCount, setTestCount] = useState<number>(1);
+  const [testFeedback, setTestFeedback] = useState<{
+    kind: 'success' | 'error';
+    text: string;
+    nonce: number;
+  } | null>(null);
   const [EmbedVisualizer, setEmbedVisualizer] = useState<any>(null);
   const [embedCssLoaded, setEmbedCssLoaded] = useState(false);
 
@@ -167,39 +171,55 @@ export default function YouTubeConfig() {
     setConfig((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
-  const handleTestPoll = async () => {
-    setPolling(true);
-    setPollResult(null);
-    try {
-      const result = await triggerYouTubePoll();
-      if (result.new_videos > 0) {
-        setPollResult(`✅ ${result.new_videos} video(s) nuevo(s) encontrados`);
-      } else {
-        setPollResult('✅ No hay videos nuevos en las últimas 72 horas');
-      }
-    } catch (err) {
-      setPollResult(`❌ Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
-    } finally {
-      setPolling(false);
-    }
+  const showFeedback = (kind: 'success' | 'error', text: string) => {
+    setTestFeedback({ kind, text, nonce: Date.now() });
+    window.setTimeout(() => {
+      setTestFeedback((prev) => (prev && prev.text === text ? null : prev));
+    }, 4200);
   };
 
-  const handleCleanFailed = async () => {
-    setCleaning(true);
-    setPollResult(null);
+  const handleTestNotify = async () => {
+    setTestState('testing');
+    setTestFeedback(null);
     try {
-      const result = await removeFailedSubscriptions();
-      if (result.count > 0) {
-        const subs = await fetchYouTubeSubscriptions();
-        setSubscriptions(subs);
-        setPollResult(`🧹 ${result.count} canal(es) inválido(s) eliminados`);
-      } else {
-        setPollResult('✅ No hay canales inválidos');
+      const result = await testNotifyLatest(testCount);
+      if (!result.has_api_key) {
+        setTestState('error');
+        showFeedback('error', 'No hay Google API Key configurada');
+        window.setTimeout(() => setTestState('idle'), 1600);
+        return;
       }
+      if (result.channels_checked === 0) {
+        setTestState('error');
+        showFeedback('error', 'No hay canales sincronizados');
+        window.setTimeout(() => setTestState('idle'), 1600);
+        return;
+      }
+
+      const errors = result.diagnostics.filter((d) => d.status === 'error');
+      if (errors.length > 0 && result.total_sent === 0) {
+        const firstError = errors[0];
+        setTestState('error');
+        showFeedback(
+          'error',
+          `${firstError.channel_name || firstError.channel_id}: ${firstError.error ?? 'error'}`
+        );
+        window.setTimeout(() => setTestState('idle'), 1600);
+        return;
+      }
+
+      setTestState('success');
+      showFeedback(
+        'success',
+        `${result.total_sent} mensaje(s) enviado(s) a Discord${
+          errors.length > 0 ? ` (${errors.length} canal(es) con error)` : ''
+        }`
+      );
+      window.setTimeout(() => setTestState('idle'), 1600);
     } catch (err) {
-      setPollResult(`❌ Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
-    } finally {
-      setCleaning(false);
+      setTestState('error');
+      showFeedback('error', err instanceof Error ? err.message : 'Error desconocido');
+      window.setTimeout(() => setTestState('idle'), 1600);
     }
   };
 
@@ -351,7 +371,7 @@ export default function YouTubeConfig() {
           </section>
 
           {/* Settings Sidebar */}
-          <aside className="col-span-12 lg:col-span-5 flex flex-col gap-4 min-h-0 overflow-hidden">
+          <aside className="col-span-12 lg:col-span-5 flex flex-col gap-6 min-h-0 overflow-hidden">
             {/* Message Settings Card — flex-1 to fill remaining space */}
             <div className="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-5 border border-primary-container/30 flex flex-col flex-1 min-h-[160px]">
               <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2 flex-shrink-0">
@@ -379,15 +399,25 @@ export default function YouTubeConfig() {
                       {EmbedVisualizer && embedCssLoaded && config?.announcement_message !== undefined ? (
                         <EmbedVisualizer
                           embed={{
+                            content:
+                              (config?.announcement_message?.replace('{canal}', 'Canal de Ejemplo') || '') || undefined,
                             embed: {
-                              title: 'Canal de Ejemplo',
-                              description: config?.announcement_message?.replace('{canal}', 'Canal de Ejemplo') ?? '',
                               color: 0xFF0000,
-                              footer: { text: 'YouTube Notifier' },
+                              author: {
+                                name: 'Canal de Ejemplo',
+                                url: 'https://youtube.com',
+                              },
+                              title: 'Título del Nuevo Video',
+                              url: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
+                              description: 'Nuevo video publicado en YouTube',
+                              image: {
+                                url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                              },
+                              footer: { text: 'YouTube' },
                               timestamp: new Date().toISOString(),
                             },
                           }}
-                          onError={(e) => console.error(e)}
+                          onError={(e: unknown) => console.error(e)}
                         />
                       ) : (
                         <div className="bg-surface-container-low rounded-xl p-4 text-tertiary text-sm text-center">
@@ -406,7 +436,7 @@ export default function YouTubeConfig() {
                       className="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none cursor-pointer text-on-surface"
                       value={config?.discord_channel_id ?? ''}
                       onChange={(e) =>
-                        updateConfigField('discord_channel_id', e.target.value ? Number(e.target.value) : null)
+                        updateConfigField('discord_channel_id', e.target.value ? e.target.value : null)
                       }
                     >
                       <option value="">Seleccionar canal...</option>
@@ -425,7 +455,7 @@ export default function YouTubeConfig() {
             </div>
 
             {/* Filtros + Conexión — side-by-side to save vertical space */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 flex-shrink-0">
               {/* Content Filters Card */}
               <div className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-sm">
                 <h3 className="font-headline-md text-headline-md mb-3 flex items-center gap-2">
@@ -494,25 +524,45 @@ export default function YouTubeConfig() {
           </aside>
 
           {/* Footer Actions */}
-          <div className="col-span-12 flex justify-end items-center gap-4 py-3 px-5 bg-surface-container-low/40 rounded-xl border border-outline-variant/10 flex-shrink-0">
-            <button
-              onClick={handleCleanFailed}
-              disabled={cleaning}
-              className="text-tertiary text-sm hover:text-error transition-colors"
-            >
-              {cleaning ? 'Limpiando...' : 'Limpiar canales inválidos'}
-            </button>
-            <button
-              onClick={handleTestPoll}
-              disabled={polling}
-              className="text-secondary font-medium hover:underline transition-colors flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-              {polling ? 'Probando...' : 'Probar'}
-            </button>
-            {pollResult && (
-              <span className="text-sm text-tertiary">{pollResult}</span>
+          <div className="col-span-12 flex flex-wrap justify-end items-center gap-3 py-3 px-5 bg-surface-container-low/40 rounded-xl border border-outline-variant/10 flex-shrink-0">
+            {testFeedback && (
+              <div
+                key={testFeedback.nonce}
+                className="animate-toast-in flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant/30 shadow-sm"
+              >
+                <span
+                  className={`material-symbols-outlined text-[18px] ${
+                    testFeedback.kind === 'success' ? 'text-green-500' : 'text-error'
+                  }`}
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  {testFeedback.kind === 'success' ? 'check_circle' : 'error'}
+                </span>
+                <span className="text-sm text-on-surface">{testFeedback.text}</span>
+              </div>
             )}
+            <div className="flex items-center gap-2 bg-surface-container-low/60 border border-outline-variant/30 rounded-lg pl-3 pr-1.5 py-1">
+              <label className="text-label-sm text-on-surface-variant uppercase font-bold tracking-wide">
+                Últimos
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={testCount}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (Number.isNaN(v)) {
+                    setTestCount(1);
+                  } else {
+                    setTestCount(Math.max(1, Math.min(10, v)));
+                  }
+                }}
+                className="w-12 bg-transparent text-center text-sm font-body-md outline-none focus:ring-2 focus:ring-secondary/30 rounded-md py-1 text-on-surface"
+              />
+              <span className="text-label-sm text-on-surface-variant pr-1">video(s)</span>
+            </div>
+            <AnimatedTestButton state={testState} onClick={handleTestNotify} />
             <AnimatedSaveButton saveState={saveState} onSave={handleSave} />
           </div>
         </div>

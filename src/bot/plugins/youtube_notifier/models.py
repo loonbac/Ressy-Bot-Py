@@ -1,5 +1,6 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import Any
+from pydantic import BaseModel, field_serializer, field_validator
 
 
 class YouTubeChannel(BaseModel):
@@ -30,6 +31,9 @@ class YouTubeSubscription(BaseModel):
 class YouTubePluginConfig(BaseModel):
     enabled: bool = True
     poll_interval_minutes: int = 30  # reduce polling since PubSubHubbub is primary
+    # Discord IDs are 64-bit snowflakes that exceed JS Number.MAX_SAFE_INTEGER.
+    # Internally stored as int; serialized as string on the JSON boundary so
+    # the frontend never loses precision.
     discord_channel_id: int | None = None
     callback_url: str = ""  # public URL for PubSubHubbub callbacks
     google_api_key: str = ""  # YouTube Data API v3 key
@@ -37,3 +41,19 @@ class YouTubePluginConfig(BaseModel):
     filter_shorts: bool = False
     filter_premieres: bool = False
     filter_min_duration: int = 0  # 0 = no filter, in seconds
+
+    @field_validator("discord_channel_id", mode="before")
+    @classmethod
+    def _parse_discord_channel_id(cls, v: Any) -> int | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return None
+            return int(v)
+        return v
+
+    @field_serializer("discord_channel_id")
+    def _serialize_discord_channel_id(self, v: int | None) -> str | None:
+        return str(v) if v is not None else None

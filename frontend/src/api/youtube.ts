@@ -16,7 +16,8 @@ export interface YouTubeSubscription {
 export interface YouTubeConfig {
   enabled: boolean;
   poll_interval_minutes: number;
-  discord_channel_id: number | null;
+  // Discord snowflake — string to preserve 64-bit precision across the JSON boundary
+  discord_channel_id: string | null;
   callback_url: string;
   google_api_key: string;
   announcement_message: string;
@@ -26,7 +27,8 @@ export interface YouTubeConfig {
 }
 
 export interface DiscordChannel {
-  id: number;
+  // Discord snowflake — string to preserve 64-bit precision
+  id: string;
   name: string;
   guild_name: string;
 }
@@ -121,14 +123,71 @@ export async function fetchDiscordChannels(): Promise<DiscordChannel[]> {
   return data.channels;
 }
 
-export async function triggerYouTubePoll(): Promise<{ new_videos: number; videos: any[] }> {
+export interface PollDiagnostics {
+  channel_id: string;
+  channel_name: string;
+  status: 'ok' | 'error';
+  videos_found?: number;
+  new_videos?: number;
+  error?: string;
+  error_detail?: string;
+}
+
+export async function triggerYouTubePoll(): Promise<{
+  new_videos: number;
+  has_api_key: boolean;
+  diagnostics: PollDiagnostics[];
+  channels_checked: number;
+  videos: any[];
+}> {
   const res = await apiFetch('/api/plugins/youtube/poll', { method: 'POST' });
   if (!res.ok) throw new Error(`Failed to trigger poll: ${res.status}`);
-  return res.json() as Promise<{ new_videos: number; videos: any[] }>;
+  return res.json() as Promise<{
+    new_videos: number;
+    has_api_key: boolean;
+    diagnostics: PollDiagnostics[];
+    channels_checked: number;
+    videos: any[];
+  }>;
 }
 
 export async function removeFailedSubscriptions(): Promise<{ removed: string[]; count: number }> {
   const res = await apiFetch('/api/plugins/youtube/subscriptions/failed', { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to clean: ${res.status}`);
   return res.json() as Promise<{ removed: string[]; count: number }>;
+}
+
+export interface TestNotifyDiagnostics {
+  channel_id: string;
+  channel_name: string;
+  status: 'ok' | 'error';
+  videos_sent?: number;
+  error?: string;
+  error_detail?: string;
+}
+
+export interface TestNotifyResult {
+  total_sent: number;
+  has_api_key: boolean;
+  channels_checked: number;
+  diagnostics: TestNotifyDiagnostics[];
+}
+
+export async function testNotifyLatest(count: number): Promise<TestNotifyResult> {
+  const res = await apiFetch('/api/plugins/youtube/test-notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ count }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const data = await res.json();
+      detail = data?.detail ?? '';
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail || `Failed to test-notify: ${res.status}`);
+  }
+  return res.json() as Promise<TestNotifyResult>;
 }

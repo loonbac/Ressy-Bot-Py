@@ -522,3 +522,39 @@ class TestYouTubePluginIntegration:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get("/api/plugins/youtube/discord-channels")
             assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+
+
+class TestGoogleAPIKeyPersistence:
+    """Test that google_api_key is correctly saved and loaded."""
+
+    async def test_save_and_load_api_key(self, monitor: YouTubeMonitor):
+        """Save a config with google_api_key, then load it back."""
+        config = await monitor.get_config()
+        assert config.google_api_key == "", "Should start empty"
+
+        config.google_api_key = "AIzaSyTestKey123"
+        await monitor.update_config(config)
+
+        loaded = await monitor.get_config()
+        assert loaded.google_api_key == "AIzaSyTestKey123", f"Expected key, got: '{loaded.google_api_key}'"
+
+    async def test_api_key_via_endpoint(self, youtube_client):
+        """Test that PUT /config saves google_api_key and GET /config returns it."""
+        # Save via endpoint
+        resp = await youtube_client.put("/api/plugins/youtube/config", json={
+            "google_api_key": "AIzaSyEndpointKey",
+            "enabled": True,
+            "poll_interval_minutes": 30,
+            "discord_channel_id": None,
+            "callback_url": "",
+            "announcement_message": "",
+            "filter_shorts": False,
+            "filter_premieres": False,
+            "filter_min_duration": 0,
+        })
+        assert resp.status_code == 200
+
+        # Read back via endpoint
+        resp = await youtube_client.get("/api/plugins/youtube/config")
+        data = resp.json()
+        assert data["google_api_key"] == "AIzaSyEndpointKey", f"Expected key, got: '{data.get('google_api_key')}'"
