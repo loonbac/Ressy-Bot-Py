@@ -27,7 +27,7 @@ export default function FooterActions({
   onTestCountChange,
 }: Props) {
   return (
-    <div className="flex flex-wrap justify-end items-center gap-3 py-3 px-5 bg-surface-container-low/40 rounded-xl border border-outline-variant/10">
+    <div className="flex flex-wrap justify-end items-center gap-3 py-3 px-5 bg-surface-container-low/40 rounded-xl border border-outline-variant/10 flex-shrink-0">
       {testFeedback && (
         <div
           key={testFeedback.nonce}

@@ -16,7 +16,7 @@ export default function MessageSettingsCard({
   onChannelChange,
 }: Props) {
   return (
-    <div className="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-5 border border-primary-container/30 flex flex-col min-h-0">
+    <div className="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-5 border border-primary-container/30 flex flex-col flex-1 min-h-0">
       <h3 className="font-headline-md text-headline-md mb-3 flex items-center gap-2 flex-shrink-0">
         <span
           className="material-symbols-outlined text-secondary text-[20px]"
