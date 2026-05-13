@@ -1,0 +1,251 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #75565e;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #f7cfd8;
+  --color-on-primary-container: #75565e;
+  --color-primary-fixed: #ffd9e1;
+  --color-primary-fixed-dim: #e3bdc5;
+  --color-on-primary-fixed: #2b151b;
+  --color-on-primary-fixed-variant: #5b3f46;
+  --color-secondary: #b71329;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #da323f;
+  --color-on-secondary-container: #fffbff;
+  --color-secondary-fixed: #ffdad8;
+  --color-secondary-fixed-dim: #ffb3b0;
+  --color-on-secondary-fixed: #410007;
+  --color-on-secondary-fixed-variant: #92001b;
+  --color-tertiary: #5f5e5e;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #dbd8d8;
+  --color-on-tertiary-container: #5f5e5e;
+  --color-tertiary-fixed: #e5e2e1;
+  --color-tertiary-fixed-dim: #c8c6c5;
+  --color-on-tertiary-fixed: #1c1b1b;
+  --color-on-tertiary-fixed-variant: #474746;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-background: #faf9f6;
+  --color-on-background: #1a1c1a;
+  --color-surface: #faf9f6;
+  --color-on-surface: #1a1c1a;
+  --color-surface-dim: #dbdad7;
+  --color-surface-bright: #faf9f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f4f3f0;
+  --color-surface-container: #efeeeb;
+  --color-surface-container-high: #e9e8e5;
+  --color-surface-container-highest: #e3e2e0;
+  --color-on-surface-variant: #4f4446;
+  --color-inverse-surface: #2f312f;
+  --color-inverse-on-surface: #f2f1ee;
+  --color-outline: #817476;
+  --color-outline-variant: #d2c3c5;
+  --color-surface-tint: #75565e;
+  --color-inverse-primary: #e3bdc5;
+  --color-surface-variant: #e3e2e0;
+
+  --font-display: "EB Garamond", serif;
+  --font-headline-lg: "EB Garamond", serif;
+  --font-headline-md: "EB Garamond", serif;
+  --font-body-lg: "Hanken Grotesk", sans-serif;
+  --font-body-md: "Hanken Grotesk", sans-serif;
+  --font-label-sm: "Hanken Grotesk", sans-serif;
+
+  --text-display: 48px;
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 500;
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 1.3;
+  --text-headline-lg--font-weight: 500;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 1.4;
+  --text-headline-md--font-weight: 500;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 1.6;
+  --text-body-md--font-weight: 400;
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 1;
+  --text-label-sm--letter-spacing: 0.05em;
+  --text-label-sm--font-weight: 600;
+
+  --radius-sm: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --spacing-unit: 8px;
+  --spacing-gutter: 24px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-tablet: 32px;
+  --spacing-margin-mobile: 20px;
+  --spacing-container-max: 1200px;
+}
+
+body {
+  background-color: #faf9f6;
+  background-image: radial-gradient(circle at 2px 2px, rgba(117, 86, 94, 0.03) 1px, transparent 0);
+  background-size: 40px 40px;
+  font-family: "Hanken Grotesk", sans-serif;
+  color: #1a1c1a;
+}
+
+.sakura-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.asanoha-pattern {
+  mask-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l20 10v20l-20 10L0 30V10L20 0zM0 10l20 10 20-10M0 30l20-10 20 10M20 0v20v20' fill='none' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+  opacity: 0.03;
+}
+
+.glass-panel {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.asanoha-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l30 17.32v34.64L30 69.28 0 51.96V17.32L30 0zm0 11.55L10 23.1v23.09l20 11.55 20-11.55V23.1L30 11.55zM0 17.32l30 17.32 30-17.32M30 69.28V34.64' fill='%23b71329' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+.input-zen {
+  border: none;
+  border-bottom: 1px solid var(--color-on-surface-variant);
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.input-zen:focus {
+  outline: none;
+  border-bottom: 2px solid var(--color-secondary);
+  box-shadow: none;
+}
+
+.bloom-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bloom-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(183, 19, 41, 0.15);
+}
+
+.bloom-btn:active {
+  transform: scale(0.98);
+}
+
+.seigaiha-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 20a20 20 0 0 1 40 0h-1a19 19 0 0 0-38 0H0zm5-5a15 15 0 0 1 30 0h-1a14 14 0 0 0-28 0H5zm5-5a10 10 0 0 1 20 0h-1a9 9 0 0 0-18 0h-1zm5-5a5 5 0 0 1 10 0h-1a4 4 0 0 0-8 0h-1z' fill='%2375565e' fill-opacity='0.03'/%3E%3C/svg%3E");
+}
+
+.sakura-petal {
+  position: absolute;
+  background: #ffd9e1;
+  border-radius: 150% 0 150% 0;
+  opacity: 0.6;
+  filter: blur(1px);
+}
+
+/* Animation Timing Functions */
+:root {
+  --expo-out: linear(
+    0 0%, 0.1684 2.66%, 0.3165 5.49%,
+    0.446 8.52%, 0.5581 11.78%,
+    0.6535 15.29%, 0.7341 19.11%,
+    0.8011 23.3%, 0.8557 27.93%,
+    0.8962 32.68%, 0.9283 38.01%,
+    0.9529 44.08%, 0.9711 51.14%,
+    0.9833 59.06%, 0.9915 68.74%, 1 100%
+  );
+}
+
+/* Skew Slide Theme Transition */
+html.skew-slide-transition::view-transition-group(root) {
+  animation-timing-function: var(--expo-out);
+}
+
+html.skew-slide-transition::view-transition-old(root) {
+  animation: skew-exit 0.8s var(--expo-out) forwards;
+  z-index: 1;
+}
+
+html.skew-slide-transition::view-transition-new(root) {
+  animation: skew-enter 0.8s var(--expo-out) forwards;
+  z-index: 2;
+}
+
+@keyframes skew-enter {
+  0% {
+    transform: translateX(100%) skewX(-15deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0%) skewX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes skew-exit {
+  0% {
+    transform: translateX(0%) skewX(0deg);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(-30%) skewX(8deg);
+    opacity: 0;
+  }
+}
+
+html.dark {
+  --color-primary: #ffd9e1;
+  --color-on-primary: #402830;
+  --color-background: #1a1c1a;
+  --color-on-background: #e3e2e0;
+  --color-surface: #1a1c1a;
+  --color-on-surface: #e3e2e0;
+  --color-surface-dim: #1a1c1a;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+/* Hide TradingView watermark from lightweight-charts */
+[id^="tv-attr-logo"] {
+  display: none !important;
+}
