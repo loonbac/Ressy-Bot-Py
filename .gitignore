@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Runtime data (SQLite, bot state)
+data/
+
+# Build output
+frontend/dist/
+lwc-react/dist/
+*.local
+
+# Tool artifacts
+.atl/
+
+# OS
+.DS_Store
+Thumbs.db
