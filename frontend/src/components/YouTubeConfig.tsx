@@ -216,8 +216,8 @@ export default function YouTubeConfig() {
   }
 
   return (
-    <section className="h-[calc(100vh-12rem)] overflow-hidden flex flex-col">
-      <div className="max-w-container-max mx-auto w-full flex-1 min-h-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-3 overflow-hidden">
+    <section className="fixed top-20 bottom-0 left-64 right-0 px-margin-desktop py-5 overflow-hidden">
+      <div className="max-w-container-max mx-auto h-full grid grid-rows-[auto_minmax(0,1fr)_auto] gap-3 overflow-hidden">
         <div className="flex flex-col gap-2">
           <PageHeader />
 
