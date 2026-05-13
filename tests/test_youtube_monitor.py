@@ -136,7 +136,7 @@ class TestVideoDetection:
         old_video.published_at = datetime.now(timezone.utc)
         old_video.notified = False
 
-        with patch.object(monitor, "fetch_rss", return_value=[new_video, old_video]):
+        with patch.object(monitor, "fetch_recent_videos", return_value=[new_video, old_video]):
             with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
                 new_videos = await monitor.poll_channels()
 
@@ -154,13 +154,13 @@ class TestVideoDetection:
         video.published_at = datetime.now(timezone.utc)
         video.notified = False
 
-        with patch.object(monitor, "fetch_rss", return_value=[video]):
+        with patch.object(monitor, "fetch_recent_videos", return_value=[video]):
             with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
                 new_videos = await monitor.poll_channels()
         assert len(new_videos) == 1
 
         # Segunda poll con el mismo video
-        with patch.object(monitor, "fetch_rss", return_value=[video]):
+        with patch.object(monitor, "fetch_recent_videos", return_value=[video]):
             with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
                 new_videos = await monitor.poll_channels()
         assert len(new_videos) == 0
@@ -187,7 +187,7 @@ class TestRSSParsing:
         mock_response.raise_for_status = MagicMock()
 
         with patch.object(monitor._http, "get", return_value=mock_response):
-            videos = await monitor.fetch_rss("UC_test")
+            videos = await monitor._fetch_via_rss("UC_test")
 
         assert len(videos) == 1
         assert videos[0].video_id == "ABC123"
@@ -206,7 +206,7 @@ class TestRSSParsing:
         mock_response.raise_for_status = MagicMock()
 
         with patch.object(monitor._http, "get", return_value=mock_response):
-            videos = await monitor.fetch_rss("UC_empty")
+            videos = await monitor._fetch_via_rss("UC_empty")
 
         assert len(videos) == 0
 

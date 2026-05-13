@@ -9,6 +9,7 @@ import aiosqlite
 SCHEMA = {
     "bot_prefix": {"type": "string", "default": "/"},
     "version": {"type": "string", "default": "1.0.0"},
+    "guild_id": {"type": "string", "default": ""},
 }
 
 

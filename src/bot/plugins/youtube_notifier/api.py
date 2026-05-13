@@ -49,6 +49,19 @@ async def remove_subscription(channel_id: str, request: Request) -> dict[str, st
     return {"detail": f"Canal {channel_id} eliminado"}
 
 
+@router.delete("/subscriptions/failed")
+async def remove_failed_subscriptions(request: Request) -> dict[str, Any]:
+    """Remove all subscriptions that return errors on RSS check."""
+    monitor = _get_monitor(request)
+    removed: list[str] = []
+    subs = await monitor.list_subscriptions()
+    for sub in subs:
+        if sub["active"] and not await monitor.check_rss(sub["channel_id"]):
+            await monitor.remove_subscription(sub["channel_id"])
+            removed.append(sub["channel_id"])
+    return {"removed": removed, "count": len(removed)}
+
+
 @router.get("/videos")
 async def list_videos(request: Request, limit: int = 50) -> dict[str, Any]:
     monitor = _get_monitor(request)
@@ -100,8 +113,15 @@ async def list_discord_channels(request: Request) -> dict[str, Any]:
     bot = getattr(request.app.state, "bot", None)
     if bot is None:
         return {"channels": []}
+
+    cm = getattr(request.app.state, "config_manager", None)
+    guild_id_str = cm.get("guild_id") if cm else None
+    guild_id = int(guild_id_str) if guild_id_str else None
+
     channels = []
     for guild in bot.guilds:
+        if guild_id is not None and guild.id != guild_id:
+            continue
         for channel in guild.text_channels:
             channels.append({
                 "id": channel.id,
@@ -175,6 +195,26 @@ async def handle_verification(request: Request):
         return PlainTextResponse(challenge)
 
     return PlainTextResponse("OK")
+
+
+@router.post("/poll")
+async def trigger_poll(request: Request) -> dict:
+    """Manually trigger a channel poll (for testing)."""
+    monitor = _get_monitor(request)
+    new_videos = await monitor.poll_channels()
+    return {
+        "new_videos": len(new_videos),
+        "videos": [
+            {
+                "video_id": v.video_id,
+                "channel_id": v.channel_id,
+                "title": v.title,
+                "url": v.url,
+                "published_at": v.published_at,
+            }
+            for v in new_videos
+        ],
+    }
 
 
 @router.post("/callback")

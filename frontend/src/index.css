@@ -232,11 +232,32 @@ html.skew-slide-transition::view-transition-new(root) {
 html.dark {
   --color-primary: #ffd9e1;
   --color-on-primary: #402830;
+  --color-primary-container: #5a2030;
+  --color-on-primary-container: #ffd9e1;
+  --color-primary-fixed: #2d1820;
+  --color-on-primary-fixed: #ffd9e1;
+  --color-on-primary-fixed-variant: #e3bdc5;
   --color-background: #1a1c1a;
   --color-on-background: #e3e2e0;
   --color-surface: #1a1c1a;
   --color-on-surface: #e3e2e0;
-  --color-surface-dim: #1a1c1a;
+  --color-surface-dim: #111312;
+  --color-surface-bright: #3a3d3a;
+  --color-surface-container-lowest: #111312;
+  --color-surface-container-low: #1d1f1d;
+  --color-surface-container: #222422;
+  --color-surface-container-high: #2c2e2c;
+  --color-surface-container-highest: #363936;
+  --color-on-surface-variant: #c9c4c4;
+  --color-outline: #9e9393;
+  --color-outline-variant: #524748;
+  --color-surface-variant: #4f4446;
+  --color-tertiary: #cac8c8;
+  --color-tertiary-container: #3a3939;
+  --color-on-tertiary-container: #cac8c8;
+  --color-inverse-surface: #e3e2e0;
+  --color-inverse-on-surface: #2f312f;
+  --color-surface-tint: #e3bdc5;
   color-scheme: dark;
 }
 

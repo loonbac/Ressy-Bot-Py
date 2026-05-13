@@ -13,43 +13,48 @@ import {
   searchYouTubeChannels,
   type YouTubeSearchResult,
   getProxiedThumbnailUrl,
+  triggerYouTubePoll,
+  removeFailedSubscriptions,
 } from '@/api/youtube';
-
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={
-        'w-10 h-5 rounded-full relative transition-colors duration-300 ' +
-        (checked ? 'bg-secondary' : 'bg-outline-variant/30')
-      }
-    >
-      <span
-        className={
-          'absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 ' +
-          (checked ? 'right-1 shadow-sm' : 'left-1 shadow-sm')
-        }
-      />
-    </button>
-  );
-}
+import ToggleSwitch from './youtube/ToggleSwitch';
+import AnimatedChannelCard from './youtube/AnimatedChannelCard';
+import AnimatedSaveButton, { type SaveState } from './youtube/AnimatedSaveButton';
+import ChannelAddedToast from './youtube/ChannelAddedToast';
 
 export default function YouTubeConfig() {
   const [subscriptions, setSubscriptions] = useState<YouTubeSubscription[]>([]);
   const [config, setConfig] = useState<YouTubeConfigType | null>(null);
-  const [savedConfig, setSavedConfig] = useState<YouTubeConfigType | null>(null);
   const [discordChannels, setDiscordChannels] = useState<DiscordChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [newChannelId, setNewChannelId] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [toastChannel, setToastChannel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [polling, setPolling] = useState(false);
+  const [pollResult, setPollResult] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [EmbedVisualizer, setEmbedVisualizer] = useState<any>(null);
+  const [embedCssLoaded, setEmbedCssLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadEmbedVisualizer() {
+      try {
+        const mod = await import('embed-visualizer');
+        setEmbedVisualizer(() => mod.EmbedVisualizer);
+        await import('embed-visualizer/dist/index.css');
+        setEmbedCssLoaded(true);
+      } catch (e) {
+        console.error('Failed to load embed visualizer:', e);
+      }
+    }
+    loadEmbedVisualizer();
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -62,7 +67,6 @@ export default function YouTubeConfig() {
       ]);
       setSubscriptions(subs);
       setConfig(cfg);
-      setSavedConfig(cfg);
       setDiscordChannels(channels);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
@@ -109,6 +113,9 @@ export default function YouTubeConfig() {
       setSearchResults([]);
       const subs = await fetchYouTubeSubscriptions();
       setSubscriptions(subs);
+      setNewChannelId(result.channel_id);
+      setToastChannel(result.channel_name);
+      setTimeout(() => setNewChannelId(null), 1500);
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'Error al agregar canal');
     } finally {
@@ -117,10 +124,15 @@ export default function YouTubeConfig() {
   };
 
   const handleDeleteChannel = async (channelId: string) => {
+    setDeletingIds((prev) => new Set(prev).add(channelId));
     try {
       await removeYouTubeSubscription(channelId);
-      setSubscriptions((prev) => prev.filter((s) => s.channel_id !== channelId));
+      setTimeout(() => {
+        setSubscriptions((prev) => prev.filter((s) => s.channel_id !== channelId));
+        setDeletingIds((prev) => { const n = new Set(prev); n.delete(channelId); return n; });
+      }, 320);
     } catch (err) {
+      setDeletingIds((prev) => { const n = new Set(prev); n.delete(channelId); return n; });
       setError(err instanceof Error ? err.message : 'Error al eliminar canal');
     }
   };
@@ -136,28 +148,59 @@ export default function YouTubeConfig() {
     }
   };
 
-  const handleDiscard = () => {
-    if (savedConfig) {
-      setConfig({ ...savedConfig });
-    }
-  };
-
   const handleSave = async () => {
     if (!config) return;
-    setSaving(true);
+    setSaveState('saving');
     try {
       const updated = await updateYouTubeConfig(config);
       setConfig(updated);
-      setSavedConfig(updated);
+      setSaveState('success');
+      setTimeout(() => setSaveState('idle'), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
-    } finally {
-      setSaving(false);
+      setSaveState('error');
+      setTimeout(() => setSaveState('idle'), 2000);
     }
   };
 
   const updateConfigField = <K extends keyof YouTubeConfigType>(key: K, value: YouTubeConfigType[K]) => {
     setConfig((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  const handleTestPoll = async () => {
+    setPolling(true);
+    setPollResult(null);
+    try {
+      const result = await triggerYouTubePoll();
+      if (result.new_videos > 0) {
+        setPollResult(`✅ ${result.new_videos} video(s) nuevo(s) encontrados`);
+      } else {
+        setPollResult('✅ No hay videos nuevos en las últimas 72 horas');
+      }
+    } catch (err) {
+      setPollResult(`❌ Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setPolling(false);
+    }
+  };
+
+  const handleCleanFailed = async () => {
+    setCleaning(true);
+    setPollResult(null);
+    try {
+      const result = await removeFailedSubscriptions();
+      if (result.count > 0) {
+        const subs = await fetchYouTubeSubscriptions();
+        setSubscriptions(subs);
+        setPollResult(`🧹 ${result.count} canal(es) inválido(s) eliminados`);
+      } else {
+        setPollResult('✅ No hay canales inválidos');
+      }
+    } catch (err) {
+      setPollResult(`❌ Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setCleaning(false);
+    }
   };
 
   if (loading) {
@@ -235,47 +278,19 @@ export default function YouTubeConfig() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {subscriptions.map((sub) => (
-                    <div
+                  {subscriptions.map((sub, index) => (
+                    <AnimatedChannelCard
                       key={sub.channel_id}
-                      className="flex items-center justify-between p-3 bg-surface/40 rounded-lg border border-outline-variant/10 hover:shadow-md transition-shadow duration-300"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border-2 border-secondary/20 overflow-hidden flex-shrink-0">
-                          {sub.thumbnail_url ? (
-                            <img
-                              src={getProxiedThumbnailUrl(sub.thumbnail_url)}
-                              alt={sub.channel_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-primary-container/30 flex items-center justify-center text-secondary">
-                              <span className="material-symbols-outlined text-[20px]">smart_display</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-medium text-on-surface text-sm truncate">{sub.channel_name || sub.channel_id}</h4>
-                          <p className="text-label-sm text-on-surface-variant truncate">@{sub.channel_id}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-label-sm text-on-surface-variant hidden xl:inline">Notificaciones</span>
-                          <ToggleSwitch
-                            checked={sub.notifications_enabled}
-                            onChange={(enabled) => handleToggleNotifications(sub.channel_id, enabled)}
-                          />
-                        </div>
-                        <button
-                          onClick={() => handleDeleteChannel(sub.channel_id)}
-                          className="text-outline hover:text-error transition-colors p-1"
-                          aria-label="Eliminar canal"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
-                      </div>
-                    </div>
+                      channelId={sub.channel_id}
+                      channelName={sub.channel_name}
+                      thumbnailUrl={sub.thumbnail_url}
+                      notificationsEnabled={sub.notifications_enabled}
+                      isNew={sub.channel_id === newChannelId}
+                      isDeleting={deletingIds.has(sub.channel_id)}
+                      animationDelay={index * 55}
+                      onToggle={(enabled) => handleToggleNotifications(sub.channel_id, enabled)}
+                      onDelete={() => handleDeleteChannel(sub.channel_id)}
+                    />
                   ))}
                 </div>
               )}
@@ -336,34 +351,59 @@ export default function YouTubeConfig() {
           </section>
 
           {/* Settings Sidebar */}
-          <aside className="col-span-12 lg:col-span-5 flex flex-col gap-4 min-h-0 overflow-y-auto">
-            {/* Message Settings Card */}
-            <div className="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-5 border border-primary-container/30">
-              <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2">
+          <aside className="col-span-12 lg:col-span-5 flex flex-col gap-4 min-h-0 overflow-hidden">
+            {/* Message Settings Card — flex-1 to fill remaining space */}
+            <div className="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-5 border border-primary-container/30 flex flex-col flex-1 min-h-[160px]">
+              <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2 flex-shrink-0">
                 <span className="material-symbols-outlined text-secondary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                   forum
                 </span>
                 Ajustes de Mensaje
               </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-label-sm text-primary font-bold uppercase mb-1.5">
+              <div className="flex flex-col gap-4 flex-1 min-h-0">
+                <div className="flex flex-col flex-1 min-h-0">
+                  <label className="block text-label-sm text-primary font-bold uppercase mb-1.5 flex-shrink-0">
                     Mensaje de anuncio
                   </label>
                   <textarea
-                    className="w-full bg-white/50 border border-outline-variant/20 rounded-lg p-3 text-sm font-body-md h-20 focus:ring-2 focus:ring-secondary/20 outline-none resize-none transition-all"
+                    className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg p-3 text-sm font-body-md flex-1 min-h-[50px] focus:ring-2 focus:ring-secondary/20 outline-none resize-none transition-all text-on-surface"
                     placeholder="@everyone ¡Hay un nuevo video en {canal}!"
                     value={config?.announcement_message ?? ''}
                     onChange={(e) => updateConfigField('announcement_message', e.target.value)}
                   />
+                  <div className="mt-4">
+                    <label className="block text-label-sm text-primary font-bold uppercase mb-2">
+                      Vista Previa
+                    </label>
+                    <div className="bg-discord rounded-xl overflow-hidden" style={{ maxWidth: 520 }}>
+                      {EmbedVisualizer && embedCssLoaded && config?.announcement_message !== undefined ? (
+                        <EmbedVisualizer
+                          embed={{
+                            embed: {
+                              title: 'Canal de Ejemplo',
+                              description: config?.announcement_message?.replace('{canal}', 'Canal de Ejemplo') ?? '',
+                              color: 0xFF0000,
+                              footer: { text: 'YouTube Notifier' },
+                              timestamp: new Date().toISOString(),
+                            },
+                          }}
+                          onError={(e) => console.error(e)}
+                        />
+                      ) : (
+                        <div className="bg-surface-container-low rounded-xl p-4 text-tertiary text-sm text-center">
+                          Cargando vista previa...
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
+                <div className="flex-shrink-0">
                   <label className="block text-label-sm text-primary font-bold uppercase mb-1.5">
                     Canal de Discord
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full appearance-none bg-white/50 border border-outline-variant/20 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none cursor-pointer"
+                      className="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none cursor-pointer text-on-surface"
                       value={config?.discord_channel_id ?? ''}
                       onChange={(e) =>
                         updateConfigField('discord_channel_id', e.target.value ? Number(e.target.value) : null)
@@ -384,93 +424,104 @@ export default function YouTubeConfig() {
               </div>
             </div>
 
-            {/* Content Filters Card */}
-            <div className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-5 border border-white/40 shadow-sm">
-              <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-[20px]">filter_list</span>
-                Filtros de Contenido
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-on-surface-variant">Omitir Shorts</span>
-                  <ToggleSwitch
-                    checked={config?.filter_shorts ?? false}
-                    onChange={(v) => updateConfigField('filter_shorts', v)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-on-surface-variant">Omitir Estrenos</span>
-                  <ToggleSwitch
-                    checked={config?.filter_premieres ?? false}
-                    onChange={(v) => updateConfigField('filter_premieres', v)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-on-surface-variant">Solo videos &gt; 5 min</span>
-                  <ToggleSwitch
-                    checked={(config?.filter_min_duration ?? 0) > 0}
-                    onChange={(v) => updateConfigField('filter_min_duration', v ? 300 : 0)}
-                  />
+            {/* Filtros + Conexión — side-by-side to save vertical space */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-shrink-0">
+              {/* Content Filters Card */}
+              <div className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-sm">
+                <h3 className="font-headline-md text-headline-md mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-secondary text-[20px]">filter_list</span>
+                  Filtros de Contenido
+                </h3>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-on-surface-variant">Omitir Shorts</span>
+                    <ToggleSwitch
+                      checked={config?.filter_shorts ?? false}
+                      onChange={(v) => updateConfigField('filter_shorts', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-on-surface-variant">Omitir Estrenos</span>
+                    <ToggleSwitch
+                      checked={config?.filter_premieres ?? false}
+                      onChange={(v) => updateConfigField('filter_premieres', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-on-surface-variant">Solo videos &gt; 5 min</span>
+                    <ToggleSwitch
+                      checked={(config?.filter_min_duration ?? 0) > 0}
+                      onChange={(v) => updateConfigField('filter_min_duration', v ? 300 : 0)}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Connection Settings Card */}
-            <div className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-5 border border-white/40 shadow-sm">
-              <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-[20px]">link</span>
-                Conexión
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-label-sm text-primary font-bold uppercase mb-1.5">
-                    URL de Callback
-                  </label>
-                  <input
-                    type="url"
-                    className="w-full bg-white/50 border border-outline-variant/20 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                    placeholder="https://tu-dominio.ngrok-free.app"
-                    value={config?.callback_url ?? ''}
-                    onChange={(e) => updateConfigField('callback_url', e.target.value)}
-                  />
-                  <p className="text-tertiary text-xs mt-1">URL pública para recibir notificaciones de YouTube vía PubSubHubbub</p>
-                </div>
-                <div>
-                  <label className="block text-label-sm text-primary font-bold uppercase mb-1.5">
-                    Google API Key
-                  </label>
-                  <input
-                    type="password"
-                    className="w-full bg-white/50 border border-outline-variant/20 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                    placeholder="AIzaSy..."
-                    value={config?.google_api_key ?? ''}
-                    onChange={(e) => updateConfigField('google_api_key', e.target.value)}
-                  />
-                  <p className="text-tertiary text-xs mt-1">Clave de API de YouTube Data API v3 (opcional)</p>
+              {/* Connection Settings Card */}
+              <div className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-sm">
+                <h3 className="font-headline-md text-headline-md mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-secondary text-[20px]">link</span>
+                  Conexión
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-label-sm text-primary font-bold uppercase mb-1">
+                      URL de Callback
+                    </label>
+                    <input
+                      type="url"
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all text-on-surface"
+                      placeholder="https://tu-dominio.ngrok-free.app"
+                      value={config?.callback_url ?? ''}
+                      onChange={(e) => updateConfigField('callback_url', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-label-sm text-primary font-bold uppercase mb-1">
+                      Google API Key
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all text-on-surface"
+                      placeholder="AIzaSy..."
+                      value={config?.google_api_key ?? ''}
+                      onChange={(e) => updateConfigField('google_api_key', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Footer Actions — slim, part of the grid */}
+          {/* Footer Actions */}
           <div className="col-span-12 flex justify-end items-center gap-4 py-3 px-5 bg-surface-container-low/40 rounded-xl border border-outline-variant/10 flex-shrink-0">
             <button
-              onClick={handleDiscard}
-              className="text-on-surface-variant font-medium text-sm hover:text-secondary transition-colors"
+              onClick={handleCleanFailed}
+              disabled={cleaning}
+              className="text-tertiary text-sm hover:text-error transition-colors"
             >
-              Descartar
+              {cleaning ? 'Limpiando...' : 'Limpiar canales inválidos'}
             </button>
             <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-secondary text-white px-8 py-2.5 rounded-lg font-label-sm shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 bloom-btn"
+              onClick={handleTestPoll}
+              disabled={polling}
+              className="text-secondary font-medium hover:underline transition-colors flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-[18px]">save</span>
-              {saving ? 'Guardando...' : 'Guardar Cambios'}
+              <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+              {polling ? 'Probando...' : 'Probar'}
             </button>
+            {pollResult && (
+              <span className="text-sm text-tertiary">{pollResult}</span>
+            )}
+            <AnimatedSaveButton saveState={saveState} onSave={handleSave} />
           </div>
         </div>
       </div>
+
+      <ChannelAddedToast
+        channelName={toastChannel}
+        onDismiss={() => setToastChannel(null)}
+      />
     </section>
   );
 }

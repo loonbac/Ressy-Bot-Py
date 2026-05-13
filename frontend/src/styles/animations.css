@@ -1,0 +1,76 @@
+/* ── Channel Cards ───────────────────────────────────────── */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+@keyframes card-enter-new {
+  0%   { opacity: 0; transform: translateY(-22px) scale(0.88); }
+  55%  { opacity: 1; transform: translateY(5px)   scale(1.03); }
+  80%  { transform: translateY(-2px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+@keyframes card-exit {
+  from { opacity: 1; transform: translateX(0)     scale(1);    max-height: 80px; margin-bottom: 8px; }
+  to   { opacity: 0; transform: translateX(-28px) scale(0.94); max-height: 0;   margin-bottom: 0; }
+}
+
+/* ── Save Button ─────────────────────────────────────────── */
+@keyframes btn-success {
+  0%   { background-color: var(--color-secondary); transform: scale(1); }
+  25%  { background-color: #16a34a; transform: scale(1.06); }
+  55%  { background-color: #16a34a; transform: scale(1); }
+  100% { background-color: var(--color-secondary); transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  18%       { transform: translateX(-7px); }
+  36%       { transform: translateX(7px); }
+  54%       { transform: translateX(-4px); }
+  72%       { transform: translateX(4px); }
+  90%       { transform: translateX(-2px); }
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.88); }
+  60%  { opacity: 1; transform: translateY(-4px)  scale(1.02); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0)    scale(1);    }
+  to   { opacity: 0; transform: translateY(-14px) scale(0.94); }
+}
+
+/* ── Icons ───────────────────────────────────────────────── */
+@keyframes spin-in {
+  from { transform: rotate(-200deg) scale(0); opacity: 0; }
+  to   { transform: rotate(0deg)   scale(1); opacity: 1; }
+}
+
+@keyframes sparkle-pop {
+  0%   { transform: scale(0) rotate(0deg);   opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: scale(2)   rotate(90deg); opacity: 0; }
+}
+
+/* ── Row feedback ────────────────────────────────────────── */
+@keyframes row-highlight {
+  0%, 100% { background-color: transparent; }
+  35%       { background-color: rgba(183, 19, 41, 0.07); }
+}
+
+/* ── Utility classes ─────────────────────────────────────── */
+.animate-card-enter     { animation: card-enter     0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-card-enter-new { animation: card-enter-new 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-card-exit      { animation: card-exit      0.3s  ease-in forwards; overflow: hidden; }
+.animate-btn-success    { animation: btn-success    1.3s  ease-in-out forwards; }
+.animate-shake          { animation: shake          0.45s ease-in-out; }
+.animate-toast-in       { animation: toast-in       0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-toast-out      { animation: toast-out      0.32s ease-in forwards; }
+.animate-spin-in        { animation: spin-in        0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-sparkle-pop    { animation: sparkle-pop    0.6s  ease-out forwards; }
+.animate-row-highlight  { animation: row-highlight  0.85s ease-in-out; }

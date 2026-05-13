@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
@@ -6,8 +6,21 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function removeCssHacks(): Plugin {
+  return {
+    name: 'remove-css-hacks',
+    enforce: 'pre',
+    transform(code: string, id: string) {
+      if (id.endsWith('.css')) {
+        // Remove legacy IE CSS hacks like: *zoom: 1;
+        return code.replace(/\*\w+\s*:\s*[^;]+;/g, '');
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), removeCssHacks()],
   build: {
     outDir: '../src/web/static',
     emptyOutDir: true,

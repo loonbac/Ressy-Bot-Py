@@ -120,3 +120,15 @@ export async function fetchDiscordChannels(): Promise<DiscordChannel[]> {
   const data = (await res.json()) as { channels: DiscordChannel[] };
   return data.channels;
 }
+
+export async function triggerYouTubePoll(): Promise<{ new_videos: number; videos: any[] }> {
+  const res = await apiFetch('/api/plugins/youtube/poll', { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to trigger poll: ${res.status}`);
+  return res.json() as Promise<{ new_videos: number; videos: any[] }>;
+}
+
+export async function removeFailedSubscriptions(): Promise<{ removed: string[]; count: number }> {
+  const res = await apiFetch('/api/plugins/youtube/subscriptions/failed', { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to clean: ${res.status}`);
+  return res.json() as Promise<{ removed: string[]; count: number }>;
+}

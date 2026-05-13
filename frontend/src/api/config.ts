@@ -26,6 +26,20 @@ export async function updateConfig(
   return res.json() as Promise<ConfigResponse>;
 }
 
+export interface DiscordGuild {
+  id: string;
+  name: string;
+  member_count: number;
+  icon_url: string | null;
+}
+
+export async function fetchGuilds(): Promise<DiscordGuild[]> {
+  const res = await apiFetch('/api/guilds');
+  if (!res.ok) throw new Error(`Failed to fetch guilds: ${res.status}`);
+  const data = (await res.json()) as { guilds: DiscordGuild[] };
+  return data.guilds;
+}
+
 export async function fetchStatus(): Promise<BotStatus> {
   const res = await apiFetch('/api/status');
   if (!res.ok) {

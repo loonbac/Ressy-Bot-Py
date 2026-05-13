@@ -60,6 +60,25 @@ async def update_config(
     return ConfigResponse(key=key, value=value, updated_at=datetime.now(timezone.utc))
 
 
+@router.get("/guilds")
+async def list_guilds(request: Request) -> dict:
+    """List Discord guilds the bot is connected to."""
+    bot = request.app.state.bot
+    if bot is None:
+        return {"guilds": []}
+
+    guilds = []
+    for guild in bot.guilds:
+        guilds.append({
+            "id": str(guild.id),
+            "name": guild.name,
+            "member_count": guild.member_count,
+            "icon_url": guild.icon.url if guild.icon else None,
+        })
+
+    return {"guilds": sorted(guilds, key=lambda g: g["name"])}
+
+
 @router.get("/status")
 async def get_status(request: Request) -> BotStatus:
     bot = request.app.state.bot

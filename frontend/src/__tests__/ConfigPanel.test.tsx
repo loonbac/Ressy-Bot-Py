@@ -3,6 +3,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ConfigPanel from '@/components/ConfigPanel';
 import { ConfigResponse } from '@/types';
 
+vi.mock('@/api/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/config')>();
+  return {
+    ...actual,
+    fetchGuilds: vi.fn().mockResolvedValue([]),
+  };
+});
+
 const mockConfigs: ConfigResponse[] = [
   { key: 'version', value: '1.0.0', updated_at: '2024-01-01T00:00:00Z' },
   { key: 'bot_prefix', value: '!', updated_at: '2024-01-01T00:00:00Z' },

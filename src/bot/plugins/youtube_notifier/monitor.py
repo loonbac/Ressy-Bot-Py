@@ -20,7 +20,15 @@ class YouTubeMonitor:
         self._task: asyncio.Task | None = None
         self._poll_interval = 10
         self._last_poll: datetime | None = None
-        self._http = httpx.AsyncClient(timeout=30.0)
+        self._http = httpx.AsyncClient(
+            timeout=30.0,
+            headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Accept": "text/xml, application/xml, */*",
+            },
+            follow_redirects=True,
+        )
+        self._consecutive_failures: dict[str, int] = {}
 
     async def init_db(self) -> None:
         self._db = await aiosqlite.connect(self.db_path)
@@ -151,9 +159,24 @@ class YouTubeMonitor:
             channel_name = row[1]
             notifications_enabled = bool(row[2])
             try:
-                videos = await self.fetch_rss(channel_id)
+                videos = await self.fetch_recent_videos(channel_id)
+                # Success: reset failure counter
+                self._consecutive_failures[channel_id] = 0
+            except httpx.HTTPStatusError as exc:
+                self._consecutive_failures[channel_id] = self._consecutive_failures.get(channel_id, 0) + 1
+                fails = self._consecutive_failures[channel_id]
+                if fails == 1:
+                    print(f"[YouTubeMonitor] RSS no disponible para {channel_id} (HTTP {exc.response.status_code})")
+                elif fails >= 3:
+                    await self._db.execute(
+                        "UPDATE youtube_subscriptions SET active = 0 WHERE channel_id = ?",
+                        (channel_id,),
+                    )
+                    await self._db.commit()
+                    print(f"[YouTubeMonitor] Canal {channel_id} desactivado tras {fails} fallos consecutivos")
+                continue
             except Exception as exc:
-                print(f"[YouTubeMonitor] Error al obtener RSS para {channel_id}: {exc}")
+                print(f"[YouTubeMonitor] Error inesperado para {channel_id}: {exc}")
                 continue
 
             for video in videos:
@@ -174,7 +197,59 @@ class YouTubeMonitor:
 
         return new_videos
 
-    async def fetch_rss(self, channel_id: str) -> list[YouTubeVideo]:
+    async def fetch_recent_videos(self, channel_id: str) -> list[YouTubeVideo]:
+        """Fetch recent videos using YouTube Data API v3 (preferred) or RSS fallback."""
+        config = await self.get_config()
+
+        if config.google_api_key:
+            return await self._fetch_via_api(channel_id, config.google_api_key)
+        else:
+            return await self._fetch_via_rss(channel_id)
+
+    async def _fetch_via_api(self, channel_id: str, api_key: str) -> list[YouTubeVideo]:
+        """Fetch videos using YouTube Data API v3."""
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {
+            "part": "snippet",
+            "channelId": channel_id,
+            "order": "date",
+            "maxResults": 10,
+            "key": api_key,
+        }
+
+        try:
+            response = await self._http.get(url, params=params, follow_redirects=True)
+            if response.status_code == 403:
+                print(f"[YouTubeMonitor] API key inválida o cuota excedida para {channel_id}")
+                return []
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:  # silent on 404 (RSS fallback already failed)
+                print(f"[YouTubeMonitor] Error API al obtener videos de {channel_id}: HTTP {exc.response.status_code}")
+            return []
+        except Exception:
+            return []
+
+        videos = []
+        for item in data.get("items", []):
+            if item["id"]["kind"] != "youtube#video":
+                continue  # skip playlists, channels
+
+            video_id = item["id"]["videoId"]
+            published_at = item["snippet"]["publishedAt"]
+
+            videos.append(YouTubeVideo(
+                video_id=video_id,
+                channel_id=channel_id,
+                title=item["snippet"]["title"],
+                url=f"https://www.youtube.com/watch?v={video_id}",
+                published_at=datetime.fromisoformat(published_at.replace("Z", "+00:00")),
+            ))
+
+        return videos
+
+    async def _fetch_via_rss(self, channel_id: str) -> list[YouTubeVideo]:
         url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
         response = await self._http.get(url, follow_redirects=True)
         response.raise_for_status()
@@ -226,6 +301,15 @@ class YouTubeMonitor:
             )
 
         return videos
+
+    async def check_rss(self, channel_id: str) -> bool:
+        """Check if a channel's RSS feed is accessible."""
+        url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+        try:
+            response = await self._http.get(url, follow_redirects=True, timeout=10.0)
+            return response.status_code == 200
+        except Exception:
+            return False
 
     async def notify_new_video(self, video: YouTubeVideo, channel_name: str = "") -> None:
         config = await self.get_config()
