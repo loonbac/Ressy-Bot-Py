@@ -75,32 +75,34 @@ export default function DashboardLayout({
       </aside>
 
       {/* TopAppBar */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-gutter ml-auto">
-        <h2 className="font-headline-md text-headline-md text-primary">{title}</h2>
-        <div className="flex items-center gap-6">
-          <div className="relative group">
-            <span className="absolute inset-y-0 left-3 flex items-center text-outline">
-              <span className="material-symbols-outlined text-[20px]">search</span>
-            </span>
-            <input
-              className="bg-surface-container-low border-none focus:ring-0 focus:border-secondary text-body-md pl-10 pr-4 py-2 rounded-full w-64 transition-all"
-              placeholder="Buscar..."
-              type="text"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="text-on-surface-variant hover:text-secondary transition-colors">
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <button className="text-on-surface-variant hover:text-secondary transition-colors">
-              <span className="material-symbols-outlined">settings_heart</span>
-            </button>
-            <div className="w-10 h-10 rounded-full bg-primary-container/30 border border-outline-variant/30 flex items-center justify-center overflow-hidden">
-              <img
-                alt="User Avatar"
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJJ8uP12K1ma9_HIviehy5h2gEMxi7HLP6iCdwT6Nh2z8glQZ70mczkU1nxt2LyViQH3YM_2O3mk-WktcFV_D3tZAmO8j1E-LEwkZFcjZPAxkIkulOXWACyzElDQnMb-40xDq6LiBnwtQEYjr4HsydwT66-dWG06XZTw9XCSfjtgCOcamueypdytSXnN8rjF42n0COJzEpM-hy3LTUnmRl_jW41n6Hi5znlmo1BAjQdKJcU873JMpLWpGxWhrGanc8Em011Kr5ghg"
+      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/20">
+        <div className="h-full max-w-container-max mx-auto px-margin-desktop flex justify-between items-center">
+          <h2 className="font-headline-md text-headline-md text-primary">{title}</h2>
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <span className="absolute inset-y-0 left-3 flex items-center text-outline">
+                <span className="material-symbols-outlined text-[20px]">search</span>
+              </span>
+              <input
+                className="bg-surface-container-low border-none focus:ring-0 focus:border-secondary text-body-md pl-10 pr-4 py-2 rounded-full w-64 transition-all"
+                placeholder="Buscar..."
+                type="text"
               />
+            </div>
+            <div className="flex items-center gap-4">
+              <button className="text-on-surface-variant hover:text-secondary transition-colors">
+                <span className="material-symbols-outlined">notifications</span>
+              </button>
+              <button className="text-on-surface-variant hover:text-secondary transition-colors">
+                <span className="material-symbols-outlined">settings_heart</span>
+              </button>
+              <div className="w-10 h-10 rounded-full bg-primary-container/30 border border-outline-variant/30 flex items-center justify-center overflow-hidden">
+                <img
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJJ8uP12K1ma9_HIviehy5h2gEMxi7HLP6iCdwT6Nh2z8glQZ70mczkU1nxt2LyViQH3YM_2O3mk-WktcFV_D3tZAmO8j1E-LEwkZFcjZPAxkIkulOXWACyzElDQnMb-40xDq6LiBnwtQEYjr4HsydwT66-dWG06XZTw9XCSfjtgCOcamueypdytSXnN8rjF42n0COJzEpM-hy3LTUnmRl_jW41n6Hi5znlmo1BAjQdKJcU873JMpLWpGxWhrGanc8Em011Kr5ghg"
+                />
+              </div>
             </div>
           </div>
         </div>

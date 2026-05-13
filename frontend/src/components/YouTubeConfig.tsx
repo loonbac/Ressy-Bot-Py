@@ -216,7 +216,7 @@ export default function YouTubeConfig() {
   }
 
   return (
-    <section className="h-[calc(100vh-12rem)] -mx-margin-desktop px-margin-desktop overflow-hidden flex flex-col">
+    <section className="h-[calc(100vh-12rem)] overflow-hidden flex flex-col">
       <div className="max-w-container-max mx-auto w-full flex flex-col flex-1 min-h-0 gap-3">
         <PageHeader />
 
