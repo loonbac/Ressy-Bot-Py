@@ -453,6 +453,17 @@ class YouTubeMonitor:
             print(f"[YouTubeMonitor] Error al enviar notificación: {exc}")
             return
 
+        try:
+            from src.web.routes.activity import push_event
+            push_event(
+                kind="youtube",
+                title=f"Nuevo video de {channel_name or 'YouTube'}",
+                detail=video.title[:140],
+                meta={"video_id": video.video_id, "url": video.url},
+            )
+        except Exception:
+            pass
+
         if self._db is not None:
             await self._db.execute(
                 "UPDATE youtube_videos SET notified = 1, notified_at = ? WHERE video_id = ?",

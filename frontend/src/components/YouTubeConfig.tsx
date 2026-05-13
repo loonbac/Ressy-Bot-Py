@@ -26,9 +26,14 @@ import FooterActions, { type TestFeedback } from './youtube/FooterActions';
 interface YouTubeConfigProps {
   botName?: string;
   botAvatarUrl?: string;
+  onNavigate?: (section: string) => void;
 }
 
-export default function YouTubeConfig({ botName, botAvatarUrl }: YouTubeConfigProps = {}) {
+export default function YouTubeConfig({
+  botName,
+  botAvatarUrl,
+  onNavigate,
+}: YouTubeConfigProps = {}) {
   const [subscriptions, setSubscriptions] = useState<YouTubeSubscription[]>([]);
   const [config, setConfig] = useState<YouTubeConfigType | null>(null);
   const [discordChannels, setDiscordChannels] = useState<DiscordChannel[]>([]);
@@ -224,7 +229,7 @@ export default function YouTubeConfig({ botName, botAvatarUrl }: YouTubeConfigPr
     <section className="fixed top-20 bottom-0 left-64 right-0 px-margin-desktop py-5 overflow-hidden">
       <div className="max-w-container-max mx-auto h-full grid grid-rows-[auto_minmax(0,1fr)_auto] gap-3 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <PageHeader />
+          <PageHeader onBack={() => onNavigate?.('plugins')} />
 
           {error && (
             <div className="p-2.5 bg-error-container/50 border border-error/20 rounded-lg flex items-center gap-3 text-error">

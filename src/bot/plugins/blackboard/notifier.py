@@ -193,7 +193,7 @@ class BlackboardNotifier:
             embed.description = "✅ No hay tareas pendientes ahora mismo."
         else:
             lines = [
-                f"Tenés **{len(assignments)}** tarea(s) pendiente(s). ¡A meterle ganas!"
+                f"Tienes **{len(assignments)}** tarea(s) pendiente(s)."
             ]
             embed.description = "\n".join(lines)
             for a in assignments[:24]:  # Discord allows max 25 fields

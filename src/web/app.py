@@ -33,9 +33,14 @@ def create_app(config_manager: ConfigManager | None = None, bot: Any = None) -> 
 
     from src.web.routes.config import router as config_router
     from src.web.routes.ws import router as ws_router
+    from src.web.routes.activity import router as activity_router, get_log
 
     app.include_router(config_router, prefix="/api")
+    app.include_router(activity_router, prefix="/api")
     app.include_router(ws_router)
+
+    # Pre-create the activity log singleton so plugins can push events
+    get_log(app)
 
     return app
 

@@ -72,7 +72,7 @@ export default function AssignmentsCard({ assignments, loading, onRefresh }: Pro
             </span>
             <p className="text-sm">No hay tareas todavía</p>
             <p className="text-[11px] opacity-70 mt-1">
-              Ejecutá el scraper para sincronizar
+              Ejecuta el scraper para sincronizar
             </p>
           </div>
         )}

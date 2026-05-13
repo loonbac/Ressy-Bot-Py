@@ -1,10 +1,13 @@
 """FastAPI router for Blackboard plugin."""
 
+import asyncio
 from typing import Any
 
+import discord
 from fastapi import APIRouter, HTTPException, Request
 
 from src.bot.plugins.blackboard.models import BlackboardConfig
+from src.web.routes.activity import push_event
 
 router = APIRouter()
 
@@ -93,6 +96,9 @@ async def save_config(request: Request, body: dict[str, Any]) -> dict[str, Any]:
     return _serialize_config(persisted)
 
 
+SCRAPE_TIMEOUT_SECONDS = 180
+
+
 @router.post("/scrape")
 async def trigger_scrape(request: Request) -> dict[str, Any]:
     db = _get_db(request)
@@ -107,8 +113,21 @@ async def trigger_scrape(request: Request) -> dict[str, Any]:
     from src.bot.plugins.blackboard.scraper import BlackboardScraper
 
     scraper = BlackboardScraper(cfg)
+    request.app.state.blackboard_last_steps = scraper.steps
+
     try:
-        assignments = await scraper.scrape_assignments()
+        try:
+            assignments = await asyncio.wait_for(
+                scraper.scrape_assignments(),
+                timeout=SCRAPE_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            scraper._log("ERROR", f"Timeout after {SCRAPE_TIMEOUT_SECONDS}s — abortando")
+            raise HTTPException(
+                status_code=504,
+                detail=f"Scrape excedió {SCRAPE_TIMEOUT_SECONDS}s. Mira los logs del bot o /api/plugins/blackboard/scrape-status.",
+            )
+
         new_count = 0
         for a in assignments:
             is_new, _ = await db.upsert_assignment(
@@ -122,11 +141,32 @@ async def trigger_scrape(request: Request) -> dict[str, Any]:
             )
             if is_new:
                 new_count += 1
-        return {"assignments_found": len(assignments), "new_assignments": new_count}
+        push_event(
+            kind="scrape",
+            title=f"Scrape Blackboard: {len(assignments)} tareas ({new_count} nuevas)",
+            detail=f"Tomó {scraper.steps[-1]['elapsed_s'] if scraper.steps else 0}s" if scraper.steps else "",
+        )
+        return {
+            "assignments_found": len(assignments),
+            "new_assignments": new_count,
+            "steps": scraper.steps,
+        }
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Scrape failed: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scrape failed: {type(exc).__name__}: {exc}",
+        )
     finally:
         await scraper.close()
+
+
+@router.get("/scrape-status")
+async def scrape_status(request: Request) -> dict[str, Any]:
+    """Return step-by-step log of the last scrape run (in-memory)."""
+    steps = getattr(request.app.state, "blackboard_last_steps", None) or []
+    return {"steps": steps, "count": len(steps)}
 
 
 @router.get("/assignments")
@@ -244,6 +284,12 @@ async def send_pending_digest(request: Request) -> dict[str, Any]:
 
     if not ok:
         raise HTTPException(status_code=400, detail="Canal no resoluble en el bot")
+
+    push_event(
+        kind="blackboard",
+        title=f"Digest enviado a #{getattr(channel, 'name', '?')}",
+        detail=f"{len(pending)} pendiente(s)",
+    )
 
     return {
         "sent": True,

@@ -1,0 +1,39 @@
+.bb-log-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.bb-log-card__terminal {
+  background: #11131a;
+  color: #d4d4d8;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bb-log-card__line {
+  display: grid;
+  grid-template-columns: 60px 60px 1fr;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.bb-log-card__line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bb-log-card__elapsed   { color: #71717a; }
+.bb-log-card__level-INFO  { color: #60a5fa; font-weight: 700; }
+.bb-log-card__level-OK    { color: #4ade80; font-weight: 700; }
+.bb-log-card__level-WARN  { color: #facc15; font-weight: 700; }
+.bb-log-card__level-ERROR { color: #f87171; font-weight: 700; }
+.bb-log-card__msg { color: #e4e4e7; word-break: break-word; }
+
+html.dark .bb-log-card {
+  background: rgba(34, 36, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}

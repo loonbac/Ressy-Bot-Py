@@ -249,7 +249,7 @@ export default function EmbedPreviewCard({
                         '✅ No hay tareas pendientes ahora mismo.'
                       ) : (
                         <>
-                          Tenés <b>{pendingList.length}</b> tarea(s) pendiente(s). ¡A meterle ganas!
+                          Tienes <b>{pendingList.length}</b> tarea(s) pendiente(s).
                         </>
                       )}
                     </div>

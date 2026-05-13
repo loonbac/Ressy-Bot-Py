@@ -152,7 +152,7 @@ async def send_test_welcome(request: Request) -> dict[str, Any]:
     if not channel_id_raw:
         raise HTTPException(
             status_code=400,
-            detail="No hay canal configurado. Seleccioná uno en el editor.",
+            detail="No hay canal configurado. Selecciona uno en el editor.",
         )
 
     try:

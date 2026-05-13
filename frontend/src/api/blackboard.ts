@@ -48,9 +48,23 @@ export interface BlackboardAssignment {
   updated_at?: string;
 }
 
+export interface ScrapeStep {
+  ts: string;
+  elapsed_s: number;
+  level: string;
+  message: string;
+}
+
 export interface ScrapeResult {
   assignments_found: number;
   new_assignments: number;
+  steps?: ScrapeStep[];
+}
+
+export async function fetchScrapeStatus(): Promise<{ steps: ScrapeStep[]; count: number }> {
+  const res = await apiFetch('/api/plugins/blackboard/scrape-status');
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json() as Promise<{ steps: ScrapeStep[]; count: number }>;
 }
 
 const DEFAULTS: BlackboardConfig = {

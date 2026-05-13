@@ -157,7 +157,23 @@ class WelcomeCog(commands.Cog):
             except Exception as exc:
                 result["dm_error"] = str(exc)
 
+        if result.get("sent_channel") or result.get("sent_dm"):
+            self._push_activity(member)
+
         return result
+
+    def _push_activity(self, member: discord.Member) -> None:
+        try:
+            from src.web.routes.activity import push_event
+
+            push_event(
+                kind="welcome",
+                title=f"Saludo enviado a {member.name}",
+                detail=f"en {member.guild.name}",
+                meta={"guild_id": str(member.guild.id), "user_id": str(member.id)},
+            )
+        except Exception:
+            pass
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:

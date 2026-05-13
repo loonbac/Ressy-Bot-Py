@@ -2,6 +2,7 @@
  * Lista de plugins con diseño glassmorphism zen.
  * Unifica cogs dinámicos (loaded_cogs) y plugins con UI propia (welcome, youtube).
  */
+import './PluginList.css';
 
 interface PluginListProps {
   plugins: string[];
@@ -147,15 +148,15 @@ export default function PluginList({ plugins, onNavigate }: PluginListProps) {
             return (
               <div
                 key={card.key}
-                className="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64"
+                className="plugin-card p-6 rounded-xl group flex flex-col justify-between h-64"
               >
                 <div className="flex justify-between items-start">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+                  <div className="plugin-card__icon w-12 h-12 rounded-lg flex items-center justify-center">
                     <span className="material-symbols-outlined text-[28px]">{card.icon}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
-                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-label-sm font-label-sm text-green-700">Activo</span>
+                  <div className="plugin-card__active-pill flex items-center gap-2 px-3 py-1 rounded-full">
+                    <span className="plugin-card__dot w-2.5 h-2.5 rounded-full animate-pulse" />
+                    <span className="text-label-sm font-label-sm">Activo</span>
                   </div>
                 </div>
 
@@ -172,17 +173,17 @@ export default function PluginList({ plugins, onNavigate }: PluginListProps) {
                     onClick={handleClick}
                     className="flex justify-between items-center mt-4 w-full text-left"
                   >
-                    <span className="text-label-sm text-secondary font-bold hover:underline">
+                    <span className="plugin-card__cta text-label-sm font-bold hover:underline">
                       Configurar
                     </span>
-                    <span className="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors">
+                    <span className="plugin-card__cta-arrow material-symbols-outlined">
                       arrow_forward
                     </span>
                   </button>
                 ) : (
-                  <div className="flex justify-between items-center mt-4 opacity-50">
-                    <span className="text-label-sm text-tertiary font-bold">Sin configuración</span>
-                    <span className="material-symbols-outlined text-outline-variant">lock</span>
+                  <div className="plugin-card__locked flex justify-between items-center mt-4">
+                    <span className="text-label-sm font-bold">Sin configuración</span>
+                    <span className="material-symbols-outlined">lock</span>
                   </div>
                 )}
               </div>

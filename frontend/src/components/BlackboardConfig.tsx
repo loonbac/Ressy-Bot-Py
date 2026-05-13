@@ -4,6 +4,7 @@ import {
   fetchBlackboardChannels,
   fetchBlackboardRoles,
   fetchBlackboardAssignments,
+  fetchScrapeStatus,
   triggerBlackboardScrape,
   sendPendingDigest,
   updateBlackboardConfig,
@@ -11,12 +12,14 @@ import {
   type BlackboardConfig as BlackboardConfigType,
   type BlackboardDiscordChannel,
   type BlackboardDiscordRole,
+  type ScrapeStep,
 } from '@/api/blackboard';
 import PageHeader from './blackboard/PageHeader';
 import CredentialsCard from './blackboard/CredentialsCard';
 import ScheduleCard from './blackboard/ScheduleCard';
 import AssignmentsCard from './blackboard/AssignmentsCard';
 import EmbedPreviewCard from './blackboard/EmbedPreviewCard';
+import ScraperLogCard from './blackboard/ScraperLogCard';
 import ConfettiBurst from './blackboard/ConfettiBurst';
 import FooterActions, {
   type SaveState,
@@ -50,6 +53,7 @@ export default function BlackboardConfig({ onNavigate, botName, botAvatarUrl }: 
   const [sendState, setSendState] = useState<SendState>('idle');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [scrapeSteps, setScrapeSteps] = useState<ScrapeStep[]>([]);
 
   const loadAssignments = useCallback(async () => {
     setAssignmentsLoading(true);
@@ -118,13 +122,31 @@ export default function BlackboardConfig({ onNavigate, botName, botAvatarUrl }: 
     }
   };
 
+  const refreshLogs = useCallback(async () => {
+    try {
+      const s = await fetchScrapeStatus();
+      setScrapeSteps(s.steps);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const handleScrape = async () => {
     if (!config) return;
     setScrapeState('scraping');
+    setScrapeSteps([]);
+    // Poll logs every 1.5s while scraping
+    const pollInterval = window.setInterval(refreshLogs, 1500);
     try {
       const updated = await updateBlackboardConfig(config);
       setConfig(updated);
       const result = await triggerBlackboardScrape();
+      window.clearInterval(pollInterval);
+      if (result.steps && result.steps.length > 0) {
+        setScrapeSteps(result.steps);
+      } else {
+        await refreshLogs();
+      }
       await loadAssignments();
       setScrapeState('success');
       setConfettiTrigger((n) => n + 1);
@@ -134,9 +156,11 @@ export default function BlackboardConfig({ onNavigate, botName, botAvatarUrl }: 
       );
       window.setTimeout(() => setScrapeState('idle'), 1800);
     } catch (err) {
+      window.clearInterval(pollInterval);
+      await refreshLogs();
       setScrapeState('error');
       showFeedback('error', err instanceof Error ? err.message : 'Error al scrapear');
-      window.setTimeout(() => setScrapeState('idle'), 1800);
+      window.setTimeout(() => setScrapeState('idle'), 2400);
     }
   };
 
@@ -231,7 +255,7 @@ export default function BlackboardConfig({ onNavigate, botName, botAvatarUrl }: 
           </div>
 
           {/* Row 2 */}
-          <div className="col-span-12 lg:col-span-5 min-h-0 overflow-hidden animate-bb-card-enter animate-bb-card-stagger-3">
+          <div className="col-span-12 lg:col-span-4 min-h-0 overflow-hidden animate-bb-card-enter animate-bb-card-stagger-3">
             <ScheduleCard
               config={config}
               channels={channels}
@@ -239,11 +263,18 @@ export default function BlackboardConfig({ onNavigate, botName, botAvatarUrl }: 
               onChange={updateField}
             />
           </div>
-          <div className="col-span-12 lg:col-span-7 min-h-0 overflow-hidden animate-bb-card-enter animate-bb-card-stagger-4">
+          <div className="col-span-12 lg:col-span-4 min-h-0 overflow-hidden animate-bb-card-enter animate-bb-card-stagger-4">
             <AssignmentsCard
               assignments={assignments}
               loading={assignmentsLoading}
               onRefresh={loadAssignments}
+            />
+          </div>
+          <div className="col-span-12 lg:col-span-4 min-h-0 overflow-hidden animate-bb-card-enter animate-bb-card-stagger-4">
+            <ScraperLogCard
+              steps={scrapeSteps}
+              running={scrapeState === 'scraping'}
+              onRefresh={refreshLogs}
             />
           </div>
         </div>

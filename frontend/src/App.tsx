@@ -100,7 +100,11 @@ export default function App() {
         {activeSection === 'plugins' && <PluginList plugins={plugins} onNavigate={setActiveSection} />}
         {activeSection === 'status' && <SystemStatus status={status} />}
         {activeSection === 'youtube' && (
-          <YouTubeConfig botName={status?.bot_name} botAvatarUrl={status?.bot_avatar_url} />
+          <YouTubeConfig
+            botName={status?.bot_name}
+            botAvatarUrl={status?.bot_avatar_url}
+            onNavigate={setActiveSection}
+          />
         )}
         {activeSection === 'welcome' && (
           <WelcomeConfig

@@ -1,0 +1,80 @@
+.topbar-search {
+  position: relative;
+}
+
+.topbar-search__input {
+  background: var(--color-surface-container-low);
+  border: 1px solid transparent;
+  color: var(--color-on-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.topbar-search__input:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(218, 50, 63, 0.18);
+}
+
+.topbar-search__shortcut {
+  background: var(--color-surface-container-highest);
+  color: var(--color-tertiary);
+  font-family: ui-monospace, monospace;
+}
+
+.topbar-search__results {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  animation: topbar-pop-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.topbar-search__result {
+  background: transparent;
+  color: var(--color-on-surface);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.topbar-search__result:hover,
+.topbar-search__result.is-active {
+  background: var(--color-surface-container-low);
+}
+
+.topbar-search__result-icon {
+  background: rgba(218, 50, 63, 0.10);
+  color: var(--color-secondary);
+}
+
+@keyframes topbar-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+html.dark .topbar-search__input {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+html.dark .topbar-search__input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 217, 225, 0.18);
+}
+
+html.dark .topbar-search__shortcut {
+  background: var(--color-surface-container-high);
+}
+
+html.dark .topbar-search__results {
+  background: var(--color-surface-container);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+html.dark .topbar-search__result:hover,
+html.dark .topbar-search__result.is-active {
+  background: var(--color-surface-container-high);
+}
+
+html.dark .topbar-search__result-icon {
+  background: rgba(255, 217, 225, 0.14);
+  color: var(--color-primary);
+}

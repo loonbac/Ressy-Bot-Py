@@ -23,7 +23,7 @@ const OPTIONS: Array<{
     key: 'delete_previous',
     icon: 'delete_sweep',
     label: 'Borrar anterior',
-    hint: 'Sólo la más reciente',
+    hint: 'Solo la más reciente',
   },
 ];
 
