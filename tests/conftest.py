@@ -20,10 +20,10 @@ async def config_manager() -> AsyncGenerator[ConfigManager, None]:
 
 
 @pytest.fixture
-def app() -> FastAPI:
+async def app(config_manager: ConfigManager) -> FastAPI:
     from src.web.app import create_app
 
-    return create_app()
+    return create_app(config_manager=config_manager)
 
 
 @pytest.fixture
