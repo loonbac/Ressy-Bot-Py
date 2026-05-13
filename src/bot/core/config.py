@@ -7,9 +7,7 @@ import aiosqlite
 
 
 SCHEMA = {
-    "welcome_message": {"type": "string", "default": "¡Bienvenido al servidor!"},
     "bot_prefix": {"type": "string", "default": "/"},
-    "mod_role_id": {"type": "int", "default": None},
     "version": {"type": "string", "default": "1.0.0"},
 }
 
