@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Configuración - Ressy Bot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#ffdad8",
+                    "outline": "#817476",
+                    "inverse-primary": "#e3bdc5",
+                    "on-primary-fixed": "#2b151b",
+                    "on-tertiary-container": "#5f5e5e",
+                    "tertiary-container": "#dbd8d8",
+                    "surface-bright": "#faf9f6",
+                    "inverse-surface": "#2f312f",
+                    "tertiary-fixed": "#e5e2e1",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#ffd9e1",
+                    "primary-container": "#f7cfd8",
+                    "on-background": "#1a1c1a",
+                    "on-secondary-fixed-variant": "#92001b",
+                    "on-secondary-fixed": "#410007",
+                    "primary-fixed-dim": "#e3bdc5",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "on-primary": "#ffffff",
+                    "surface-container-highest": "#e3e2e0",
+                    "surface-dim": "#dbdad7",
+                    "primary": "#75565e",
+                    "surface-container-high": "#e9e8e5",
+                    "secondary": "#b71329",
+                    "on-surface": "#1a1c1a",
+                    "outline-variant": "#d2c3c5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#da323f",
+                    "tertiary": "#5f5e5e",
+                    "surface-variant": "#e3e2e0",
+                    "inverse-on-surface": "#f2f1ee",
+                    "on-secondary-container": "#fffbff",
+                    "surface-container-low": "#f4f3f0",
+                    "surface": "#faf9f6",
+                    "surface-tint": "#75565e",
+                    "secondary-fixed-dim": "#ffb3b0",
+                    "on-primary-fixed-variant": "#5b3f46",
+                    "on-primary-container": "#75565e",
+                    "background": "#faf9f6",
+                    "surface-container": "#efeeeb",
+                    "on-surface-variant": "#4f4446",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "unit": "8px",
+                    "margin-mobile": "20px",
+                    "container-max": "1200px",
+                    "margin-tablet": "32px",
+                    "margin-desktop": "64px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["EB Garamond"],
+                    "body-md": ["Hanken Grotesk"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "headline-lg-mobile": ["EB Garamond"],
+                    "display": ["EB Garamond"],
+                    "headline-md": ["EB Garamond"],
+                    "label-sm": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #faf9f6;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255, 217, 225, 0.1) 0%, rgba(250, 249, 246, 0) 100%);
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sakura-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .sakura-petal {
+            position: absolute;
+            background: #ffd9e1;
+            border-radius: 150% 0 150% 0;
+            opacity: 0.6;
+            filter: blur(1px);
+        }
+        .seigaiha-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 20a20 20 0 0 1 40 0h-1a19 19 0 0 0-38 0H0zm5-5a15 15 0 0 1 30 0h-1a14 14 0 0 0-28 0H5zm5-5a10 10 0 0 1 20 0h-1a9 9 0 0 0-18 0h-1zm5-5a5 5 0 0 1 10 0h-1a4 4 0 0 0-8 0h-1z' fill='%2375565e' fill-opacity='0.03'/%3E%3C/svg%3E");
+        }
+        .input-zen {
+            border: none;
+            border-bottom: 1px solid #4f4446;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .input-zen:focus {
+            outline: none;
+            border-bottom: 2px solid #b71329;
+            box-shadow: none;
+        }
+        .bloom-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bloom-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(183, 19, 41, 0.15);
+        }
+        .bloom-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface min-h-screen">
+<div class="sakura-container">
+<!-- Static representation of falling petals -->
+<div class="sakura-petal w-3 h-4 top-10 left-[10%] rotate-45"></div>
+<div class="sakura-petal w-2 h-3 top-40 left-[25%] -rotate-12"></div>
+<div class="sakura-petal w-4 h-5 top-20 left-[60%] rotate-[110deg]"></div>
+<div class="sakura-petal w-2 h-3 top-80 left-[85%] rotate-12"></div>
+<div class="sakura-petal w-3 h-4 top-[70%] left-[15%] rotate-[200deg]"></div>
+<div class="sakura-petal w-2 h-2 top-[90%] left-[50%] rotate-45"></div>
+</div>
+<!-- SideNavBar Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-r border-outline-variant/30 shadow-[0px_10px_30px_rgba(168,0,33,0.05)] flex flex-col py-8 px-6 z-50">
+<div class="mb-12 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-primary-fixed border border-outline-variant/20">
+<img alt="Ressy Bot Logo" data-alt="A minimalist circular logo for a Discord bot named Ressy Bot. The logo features a stylized, elegant red cherry blossom petal centered against a pristine silk-white background. The aesthetic is clean, professional, and reflects a modern Japanese zen digital identity with soft lighting and premium textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWFjrIH8tK-RTO_mzHhDse0OKnuuQzGbvwVTYLg3-gQkKb01Pcf55JeHFMry9G1yXqHYjpmnnLz5bxVmp4bnJwciAxwY7z3y83jHOjBWNWK9CjpBMM5kW7o1Am1wRQyvYIRLJQfbVHdW7GtK88XgVM50IUew05Hbjqz74oKL1U4ZkP3oLp6RSQWDTJJPjl7XBEUYdmEP299Qm9ee1hV0UuvD8nzdVtzJTIhrjf0_rRpbTwSYQiu9o8jB6yXLNqs1KocRcrUqdSmb0"/>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">Ressy Bot</h2>
+<p class="font-label-sm text-label-sm text-tertiary">Zen Digital Management</p>
+</div>
+</div>
+<nav class="flex-1 space-y-4">
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-secondary dark:text-secondary-fixed-dim border-l-4 border-secondary dark:border-secondary-fixed-dim font-bold bg-secondary-container/10 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Configuración</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-tertiary dark:text-tertiary-fixed-dim hover:text-primary dark:hover:text-primary-fixed-dim hover:bg-primary-container/20 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-body-md text-body-md">Plugins</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-tertiary dark:text-tertiary-fixed-dim hover:text-primary dark:hover:text-primary-fixed-dim hover:bg-primary-container/20 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Estado</span>
+</a>
+</nav>
+<div class="mt-auto space-y-4 pt-6 border-t border-outline-variant/20">
+<button class="w-full py-2 px-4 bg-primary text-on-primary rounded-full font-label-sm bloom-btn">
+                Soporte
+            </button>
+<a class="flex items-center gap-3 py-2 px-4 text-tertiary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-body-md text-body-md">Perfil</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-4 text-tertiary hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-body-md text-body-md">Cerrar Sesión</span>
+</a>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 dark:bg-surface-dim/60 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-gutter">
+<h1 class="font-headline-md text-headline-md text-primary font-bold">Configuración</h1>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-tertiary text-[20px]" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md ml-2 w-48" placeholder="Buscar ajuste..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined" data-icon="settings_heart">settings_heart</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-secondary/20 overflow-hidden">
+<img alt="User Avatar" data-alt="A high-quality portrait of a user avatar in a modern minimalist style. The profile picture shows a subtle silhouette against a soft-lit, cherry blossom-themed background with elegant gradients of pale pink and silk white, maintaining a professional and zen-like appearance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIkLHkNCJ4CVxKiMo0199CfiN_K1jLXh2z-lxMlptICcwKptEAyZ6dDVTFrPd-Jr-HcWRdBKHToM-DFAkHPlgkr0Lw0PlertQtkGIvKxwrTCk8DjsVP0apB80TrSLkTabJFrAJmi_YBJlJBAC6-vIIVtZiBUrg1cWTt6at4p7E2IQbjqyRWIw8oRRACBZgHeFSLjlLXdneVAQf78k_ao4ifH0SJvmU7K8sG1D9UNyHANTM8pbXukniXMkyqx6Kro4yxaK_NrJgETo"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-margin-desktop min-h-screen relative z-10">
+<div class="max-w-container-max mx-auto py-12">
+<div class="mb-12">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-2">Panel de Control General</h2>
+<p class="text-tertiary font-body-lg">Gestiona el comportamiento y la identidad de tu servidor zen.</p>
+</div>
+<!-- Configuration Grid (Bento Style) -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Main Settings List -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-lowest/60 backdrop-blur-sm border border-white/40 rounded-3xl p-8 shadow-[0px_10px_30px_rgba(168,0,33,0.02)] seigaiha-pattern">
+<div class="space-y-10">
+<!-- Row 1: Bot Name -->
+<div class="group">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-outline-variant/10">
+<div class="flex-1">
+<label class="block font-label-sm text-secondary uppercase tracking-widest mb-2">Nombre del Bot</label>
+<input class="input-zen w-full font-headline-md text-headline-md text-on-surface py-2" type="text" value="Ressy Bot"/>
+<p class="text-tertiary text-sm mt-2">El nombre visible en el servidor de Discord.</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1 text-on-secondary-fixed-variant font-label-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                        Actualizado
+                                    </span>
+<button class="bg-secondary text-on-secondary px-8 py-2.5 rounded-full font-label-sm bloom-btn">
+                                        GUARDAR
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Row 2: Prefix -->
+<div class="group">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-outline-variant/10">
+<div class="flex-1">
+<label class="block font-label-sm text-secondary uppercase tracking-widest mb-2">Prefijo de Comando</label>
+<input class="input-zen w-full font-headline-md text-headline-md text-on-surface py-2" type="text" value="/"/>
+<p class="text-tertiary text-sm mt-2">Símbolo para activar las funciones del bot.</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1 text-error font-label-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span>
+                                        Prefijo no disponible
+                                    </span>
+<button class="bg-secondary text-on-secondary px-8 py-2.5 rounded-full font-label-sm bloom-btn">
+                                        GUARDAR
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Row 3: Welcome Message -->
+<div class="group">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6">
+<div class="flex-1">
+<label class="block font-label-sm text-secondary uppercase tracking-widest mb-2">Mensaje de Bienvenida</label>
+<input class="input-zen w-full font-headline-md text-headline-md text-on-surface py-2" type="text" value="Bienvenido al santuario digital, {{user}}."/>
+<p class="text-tertiary text-sm mt-2">Personaliza el saludo para los nuevos miembros.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-secondary text-on-secondary px-8 py-2.5 rounded-full font-label-sm bloom-btn">
+                                        GUARDAR
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Empty State Example (Hidden visually but present for requirement) -->
+<div class="hidden">
+<p class="text-tertiary text-center py-10 italic">No hay valores de configuración aún</p>
+</div>
+</div>
+</div>
+<!-- Side Info Cards -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Status Card -->
+<div class="bg-primary-container/30 backdrop-blur-sm border border-primary-fixed/20 rounded-3xl p-6 relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-primary">Estado del Sistema</h3>
+<span class="flex h-3 w-3 bg-secondary rounded-full animate-pulse"></span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-tertiary">Latencia</span>
+<span class="text-on-surface font-bold">24ms</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-tertiary">Servidores</span>
+<span class="text-on-surface font-bold">1,204</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-tertiary">Uptime</span>
+<span class="text-on-surface font-bold">99.9%</span>
+</div>
+</div>
+</div>
+<div class="absolute -bottom-4 -right-4 opacity-10">
+<span class="material-symbols-outlined text-[100px]" data-icon="tsunami">tsunami</span>
+</div>
+</div>
+<!-- Help Card -->
+<div class="bg-surface-container-high rounded-3xl p-6 border border-outline-variant/10">
+<h3 class="font-headline-md text-on-surface mb-4">¿Necesitas ayuda?</h3>
+<p class="text-tertiary text-sm mb-6">Consulta nuestra documentación técnica para ajustes avanzados de IA y moderación.</p>
+<a class="inline-flex items-center gap-2 text-secondary font-bold hover:underline" href="#">
+                            Ir a Documentación
+                            <span class="material-symbols-outlined text-[18px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Footer Area -->
+<footer class="mt-20 py-8 border-t border-outline-variant/10 text-center">
+<p class="text-tertiary font-label-sm tracking-widest uppercase">Ressy Bot © 2024 — Armonía Digital</p>
+</footer>
+</div>
+</main>
+</body></html>

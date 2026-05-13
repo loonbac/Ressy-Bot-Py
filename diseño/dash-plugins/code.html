@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#ffdad8",
+                    "outline": "#817476",
+                    "inverse-primary": "#e3bdc5",
+                    "on-primary-fixed": "#2b151b",
+                    "on-tertiary-container": "#5f5e5e",
+                    "tertiary-container": "#dbd8d8",
+                    "surface-bright": "#faf9f6",
+                    "inverse-surface": "#2f312f",
+                    "tertiary-fixed": "#e5e2e1",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#ffd9e1",
+                    "primary-container": "#f7cfd8",
+                    "on-background": "#1a1c1a",
+                    "on-secondary-fixed-variant": "#92001b",
+                    "on-secondary-fixed": "#410007",
+                    "primary-fixed-dim": "#e3bdc5",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "on-primary": "#ffffff",
+                    "surface-container-highest": "#e3e2e0",
+                    "surface-dim": "#dbdad7",
+                    "primary": "#75565e",
+                    "on-surface": "#1a1c1a",
+                    "outline-variant": "#d2c3c5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#da323f",
+                    "tertiary": "#5f5e5e",
+                    "surface-variant": "#e3e2e0",
+                    "inverse-on-surface": "#f2f1ee",
+                    "on-secondary-container": "#fffbff",
+                    "surface-container-low": "#f4f3f0",
+                    "surface": "#faf9f6",
+                    "surface-tint": "#75565e",
+                    "secondary-fixed-dim": "#ffb3b0",
+                    "on-primary-fixed-variant": "#5b3f46",
+                    "on-primary-container": "#75565e",
+                    "background": "#faf9f6",
+                    "surface-container": "#efeeeb",
+                    "on-surface-variant": "#4f4446",
+                    "on-error": "#ffffff",
+                    "secondary": "#b71329"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "unit": "8px",
+                    "margin-mobile": "20px",
+                    "container-max": "1200px",
+                    "margin-tablet": "32px",
+                    "margin-desktop": "64px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["EB Garamond"],
+                    "body-md": ["Hanken Grotesk"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "headline-lg-mobile": ["EB Garamond"],
+                    "display": ["EB Garamond"],
+                    "headline-md": ["EB Garamond"],
+                    "label-sm": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sakura-petal {
+            position: absolute;
+            top: -10%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.6;
+        }
+        .glass-panel {
+            background: rgba(250, 249, 246, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .asanoha-bg {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l30 17.32v34.64L30 69.28 0 51.96V17.32L30 0zm0 11.55L10 23.1v23.09l20 11.55 20-11.55V23.1L30 11.55zM0 17.32l30 17.32 30-17.32M30 69.28V34.64' fill='%23b71329' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-surface overflow-hidden">
+<!-- Decorative Sakura Background Elements -->
+<div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+<div class="absolute top-10 left-[10%] sakura-petal rotate-12">
+<svg fill="none" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2C12 2 14 6 18 8C22 10 22 14 18 16C14 18 12 22 12 22C12 22 10 18 6 16C2 14 2 10 6 8C10 6 12 2 12 2Z" fill="#f7cfd8"></path>
+</svg>
+</div>
+<div class="absolute top-[40%] right-[15%] sakura-petal -rotate-45">
+<svg fill="none" height="18" viewbox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2C12 2 14 6 18 8C22 10 22 14 18 16C14 18 12 22 12 22C12 22 10 18 6 16C2 14 2 10 6 8C10 6 12 2 12 2Z" fill="#ffd9e1"></path>
+</svg>
+</div>
+<div class="absolute bottom-20 left-[20%] sakura-petal rotate-90">
+<svg fill="none" height="30" viewbox="0 0 24 24" width="30" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2C12 2 14 6 18 8C22 10 22 14 18 16C14 18 12 22 12 22C12 22 10 18 6 16C2 14 2 10 6 8C10 6 12 2 12 2Z" fill="#e3bdc5"></path>
+</svg>
+</div>
+</div>
+<div class="flex h-screen w-full relative z-10">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/30 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md shadow-[0px_10px_30px_rgba(168,0,33,0.05)] flex flex-col py-8 px-6">
+<div class="mb-12 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden">
+<img alt="Ressy Bot Logo" class="w-full h-full object-cover" data-alt="A sophisticated minimalist logo for a Discord bot named Ressy. The logo features a stylized red Sakura petal combined with clean geometric lines on a soft silk-white background. The lighting is diffused and professional, evoking a sense of calm and precision. The overall aesthetic is high-end Japanese minimalism with a tech-focused, modern twist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuw3YQ_WzW-khuNFQSnn5GnwJggXm_vQBLN5CKEw5Rz_4T81itMyjbdfo6SpHB2QNI5Xd2OqhYV12CQkcRQ6B9fdhC-YUNQ58mndJ03UBqs7WoLsXr_MH1n_fRygwUOfRJ5wnrVdRr1cAsqeIXo9Yfx9-GBYCpTDriELMbW9Mnu-Hdjd_ny9Rn1NK7ncSAorWSyJbA_-RIRmrjgZ9pGu56CA-wYKU7ISV7s-Q0QZ_40Lwy8OoDt0db09JCn2kBFCJVGg_7yyOhzT8"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary leading-none">Ressy Bot</h1>
+<p class="text-label-sm font-label-sm text-tertiary mt-1">Zen Digital Management</p>
+</div>
+</div>
+<nav class="flex-1 space-y-4">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-tertiary hover:text-primary transition-all duration-300 hover:bg-primary-container/20 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Configuración</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary border-l-4 border-secondary font-bold bg-secondary-container/10 active:scale-[0.98] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="extension" style="font-variation-settings: 'FILL' 1;">extension</span>
+<span class="font-body-md text-body-md">Plugins</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-tertiary hover:text-primary transition-all duration-300 hover:bg-primary-container/20 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Estado</span>
+</a>
+</nav>
+<div class="mt-auto space-y-4">
+<button class="w-full py-2 bg-secondary text-on-secondary rounded-full font-label-sm text-label-sm hover:opacity-90 transition-opacity">Soporte</button>
+<div class="pt-6 border-t border-outline-variant/20 space-y-2">
+<a class="flex items-center gap-4 px-4 py-2 text-tertiary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
+<span class="text-label-sm">Perfil</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-2 text-tertiary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="text-label-sm">Cerrar Sesión</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 h-full overflow-y-auto">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-gutter">
+<h2 class="font-headline-lg text-headline-lg text-primary">Plugins</h2>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<input class="bg-surface-container-low border-none border-b border-outline-variant focus:ring-0 focus:border-secondary transition-all w-64 px-4 py-2 text-body-md" placeholder="Buscar módulos..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-tertiary" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined" data-icon="settings_heart">settings_heart</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-tertiary-container overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A portrait of a serene community manager represented by a minimalist avatar icon. The background is a soft Sakura pink with subtle Japanese wave patterns. The lighting is bright and ethereal, matching a Zen-Digital interface aesthetic. Professional and calm mood with high-key lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEogLly3fbuDRayfljA_dVX_awFp5qzn6BPKGITiZgDZ9y-awtkxgUKPcEPVaOlYnPW-vmvynkqRrrzHPzsptM4Azopmjuf32mn9PgmlE19i3wIWi4Uh85odBY2oCDpEVQLC5Y6OI8_BM3iXvl5XyiBNEwlI2SXbjXDZTFqwwcfQZMn0fRHsJGB7C39oC_juuuagw2TBq7IW9eJQhhUSmpM1PltPyJXktTnzqh9TB_Xh7sT8YsQWRj-9dJU7zbhswncefGPciJjoI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="pt-32 pb-12 px-margin-desktop max-w-[1200px] mx-auto asanoha-bg min-h-full">
+<div class="mb-10">
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                        Gestiona los módulos activos de tu comunidad. Cada plugin está diseñado para ofrecer una experiencia equilibrada y eficiente.
+                    </p>
+</div>
+<!-- Bento Grid Layout for Plugins -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Moderación -->
+<div class="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]" data-icon="gavel">gavel</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
+<span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-green-700">Activo</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Moderación</h3>
+<p class="text-label-sm text-tertiary line-clamp-2">Herramientas de protección y orden para mantener la paz en el templo digital.</p>
+</div>
+<div class="flex justify-between items-center mt-4">
+<span class="text-label-sm text-secondary font-bold cursor-pointer hover:underline">Configurar</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Música -->
+<div class="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]" data-icon="library_music">library_music</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
+<span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-green-700">Activo</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Música</h3>
+<p class="text-label-sm text-tertiary line-clamp-2">Armonía sonora para tus canales de voz, con soporte para múltiples fuentes.</p>
+</div>
+<div class="flex justify-between items-center mt-4">
+<span class="text-label-sm text-secondary font-bold cursor-pointer hover:underline">Configurar</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Economía -->
+<div class="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]" data-icon="payments">payments</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
+<span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-green-700">Activo</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Economía</h3>
+<p class="text-label-sm text-tertiary line-clamp-2">Sistema de moneda virtual y recompensas para incentivar la participación.</p>
+</div>
+<div class="flex justify-between items-center mt-4">
+<span class="text-label-sm text-secondary font-bold cursor-pointer hover:underline">Configurar</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Auto-Roles (Example of another plugin) -->
+<div class="glass-panel p-6 rounded-xl border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] hover:shadow-[0px_15px_40px_rgba(168,0,33,0.08)] transition-all duration-500 group flex flex-col justify-between h-64">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]" data-icon="label">label</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-green-100/50 rounded-full">
+<span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-green-700">Activo</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Auto-Roles</h3>
+<p class="text-label-sm text-tertiary line-clamp-2">Asignación automática de roles basada en interacciones o tiempo.</p>
+</div>
+<div class="flex justify-between items-center mt-4">
+<span class="text-label-sm text-secondary font-bold cursor-pointer hover:underline">Configurar</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Empty State Placeholder (Commented out in actual use, but here for reference) -->
+<!-- 
+                    <div class="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                        <span class="material-symbols-outlined text-6xl text-outline-variant mb-4" data-icon="extension_off">extension_off</span>
+                        <h3 class="font-headline-md text-headline-md text-tertiary">No hay plugins cargados</h3>
+                        <p class="text-body-md text-tertiary mt-2">Parece que tu bot está en un estado de vacío puro.</p>
+                    </div> 
+                    -->
+</div>
+<!-- Footer subtle decoration -->
+<div class="mt-20 flex justify-center opacity-10">
+<svg fill="none" height="40" viewbox="0 0 200 40" width="200" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 20C20 20 30 10 50 10C70 10 80 30 100 30C120 30 130 10 150 10C170 10 180 20 200 20" stroke="#b71329" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</main>
+</div>
+<!-- Background texture overlay -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03] z-[5] asanoha-bg"></div>
+</body></html>

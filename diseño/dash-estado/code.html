@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Estado del Sistema - Ressy Bot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #faf9f6;
+            background-image: radial-gradient(circle at 2px 2px, rgba(117, 86, 94, 0.03) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .sakura-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .asanoha-pattern {
+            mask-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l20 10v20l-20 10L0 30V10L20 0zM0 10l20 10 20-10M0 30l20-10 20 10M20 0v20v20' fill='none' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#ffdad8",
+                        "outline": "#817476",
+                        "inverse-primary": "#e3bdc5",
+                        "on-primary-fixed": "#2b151b",
+                        "on-tertiary-container": "#5f5e5e",
+                        "tertiary-container": "#dbd8d8",
+                        "surface-bright": "#faf9f6",
+                        "inverse-surface": "#2f312f",
+                        "tertiary-fixed": "#e5e2e1",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#ffd9e1",
+                        "primary-container": "#f7cfd8",
+                        "on-background": "#1a1c1a",
+                        "on-secondary-fixed-variant": "#92001b",
+                        "on-secondary-fixed": "#410007",
+                        "primary-fixed-dim": "#e3bdc5",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e3e2e0",
+                        "surface-dim": "#dbdad7",
+                        "primary": "#75565e",
+                        "surface-container-high": "#e9e8e5",
+                        "secondary": "#b71329",
+                        "on-surface": "#1a1c1a",
+                        "outline-variant": "#d2c3c5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#da323f",
+                        "tertiary": "#5f5e5e",
+                        "surface-variant": "#e3e2e0",
+                        "inverse-on-surface": "#f2f1ee",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-low": "#f4f3f0",
+                        "surface": "#faf9f6",
+                        "surface-tint": "#75565e",
+                        "secondary-fixed-dim": "#ffb3b0",
+                        "on-primary-fixed-variant": "#5b3f46",
+                        "on-primary-container": "#75565e",
+                        "background": "#faf9f6",
+                        "surface-container": "#efeeeb",
+                        "on-surface-variant": "#4f4446",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "margin-mobile": "20px",
+                        "container-max": "1200px",
+                        "margin-tablet": "32px",
+                        "margin-desktop": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["EB Garamond"],
+                        "body-md": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "display": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "label-sm": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed overflow-x-hidden">
+<!-- Sakura Background Particles -->
+<div class="sakura-bg">
+<div class="absolute top-10 left-[10%] opacity-20 transform -rotate-12">
+<span class="material-symbols-outlined text-secondary text-2xl">eco</span>
+</div>
+<div class="absolute top-40 right-[15%] opacity-15 transform rotate-45">
+<span class="material-symbols-outlined text-secondary text-xl">eco</span>
+</div>
+<div class="absolute bottom-20 left-[20%] opacity-20 transform rotate-180">
+<span class="material-symbols-outlined text-secondary text-lg">eco</span>
+</div>
+<div class="absolute top-3/4 right-[5%] opacity-10">
+<span class="material-symbols-outlined text-secondary text-3xl">eco</span>
+</div>
+</div>
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-r border-outline-variant/30 shadow-[0px_10px_30px_rgba(168,0,33,0.05)] flex flex-col h-full py-8 px-6 z-50">
+<div class="flex items-center gap-3 mb-10">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/50">
+<img alt="Ressy Bot Logo" class="w-full h-full object-cover" data-alt="A sophisticated minimalist robot head logo designed with clean architectural lines in a Zen-Digital style. The color palette features silk white, deep sumi-ink, and delicate cherry blossom pink accents. The background is a soft ivory with a subtle texture of Japanese shoji paper, creating a sense of tranquility and professional precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeJOLTvshFLrTFvo81nW760sjILKDx33RjuYDmi8pPAqG8keCFIHQoeoQ-gYe1F6Tr4KjPCTt7YbkmlTV8WTn4PyP2cH1AvGxMqWMEut4kWeCehpd4GZIPWa_GOzqkiFKGNf-0hJ4Ds4yT1OPM7Qf6qGTCz6HEW5XHE6fjkB8ByPaoRaqq1wl9AWRkHCU2YLkZvO4sqv3PdcEeQsDr1FGr0qcnFpyDWLJLztNNLs7ibIXtJ5Ul1QWh5oKTxwrJ23dFaM2W6grWmcY"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim leading-none">Ressy Bot</h1>
+<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest mt-1">Zen Digital</p>
+</div>
+</div>
+<nav class="flex-grow space-y-4">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-tertiary dark:text-tertiary-fixed-dim hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-300 hover:bg-primary-container/20 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Configuración</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-tertiary dark:text-tertiary-fixed-dim hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-300 hover:bg-primary-container/20 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">extension</span>
+<span class="font-body-md text-body-md">Plugins</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary dark:text-secondary-fixed-dim border-l-4 border-secondary dark:border-secondary-fixed-dim font-bold bg-secondary-container/10 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Estado</span>
+</a>
+</nav>
+<div class="pt-6 border-t border-outline-variant/20 space-y-4">
+<button class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-secondary text-secondary rounded-lg font-bold hover:bg-secondary-container/5 transition-colors">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+<span>Soporte</span>
+</button>
+<div class="space-y-1">
+<a class="flex items-center gap-4 px-4 py-2 text-tertiary text-sm hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+<span>Perfil</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-2 text-error text-sm hover:opacity-80 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Cerrar Sesión</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 dark:bg-surface-dim/60 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-gutter ml-auto">
+<h2 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim">Estado del Sistema</h2>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="absolute inset-y-0 left-3 flex items-center text-outline">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="bg-surface-container-low border-none border-b border-sumi-ink/20 focus:ring-0 focus:border-secondary text-body-md pl-10 pr-4 py-2 rounded-full w-64 transition-all" placeholder="Buscar..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">settings_heart</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary-container/30 border border-outline-variant/30 flex items-center justify-center overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJJ8uP12K1ma9_HIviehy5h2gEMxi7HLP6iCdwT6Nh2z8glQZ70mczkU1nxt2LyViQH3YM_2O3mk-WktcFV_D3tZAmO8j1E-LEwkZFcjZPAxkIkulOXWACyzElDQnMb-40xDq6LiBnwtQEYjr4HsydwT66-dWG06XZTw9XCSfjtgCOcamueypdytSXnN8rjF42n0COJzEpM-hy3LTUnmRl_jW41n6Hi5znlmo1BAjQdKJcU873JMpLWpGxWhrGanc8Em011Kr5ghg"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-28 px-margin-desktop pb-20 relative z-10">
+<div class="max-w-container-max mx-auto">
+<!-- Hero Status Section -->
+<section class="grid grid-cols-12 gap-gutter mb-gutter">
+<div class="col-span-12 lg:col-span-8">
+<div class="bg-surface/40 backdrop-blur-md rounded-xl p-10 border border-white/40 shadow-[0px_10px_30px_rgba(168,0,33,0.03)] relative overflow-hidden h-full flex flex-col justify-center">
+<div class="absolute bottom-0 right-0 asanoha-pattern w-48 h-48"></div>
+<div class="flex items-center gap-6 mb-4">
+<!-- Online Status Badge -->
+<div class="relative">
+<div class="absolute inset-0 bg-green-500/20 blur-xl rounded-full"></div>
+<div class="relative flex items-center gap-3 bg-white/60 backdrop-blur px-8 py-4 rounded-full border border-green-200 shadow-sm">
+<span class="w-4 h-4 bg-green-500 rounded-full animate-pulse"></span>
+<span class="font-headline-md text-green-700 tracking-wide">En línea</span>
+</div>
+</div>
+<span class="font-body-md text-tertiary italic">Cargando estado...</span>
+</div>
+<h3 class="font-display text-display text-primary mt-4 mb-2">Núcleo Operativo</h3>
+<p class="font-body-lg text-on-surface-variant max-w-xl">
+                            El bot está procesando comandos y eventos con normalidad. La latencia del santuario digital se mantiene en niveles óptimos.
+                        </p>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4">
+<div class="bg-primary-container/20 backdrop-blur-md rounded-xl p-8 border border-primary-fixed-dim/30 h-full flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-secondary text-5xl mb-4" style="font-variation-settings: 'FILL' 1;">history</span>
+<h4 class="font-label-sm text-label-sm text-primary uppercase tracking-[0.2em] mb-1">Tiempo de Actividad</h4>
+<p class="font-headline-lg text-headline-lg text-primary tracking-tighter">14d 06h 42m</p>
+<div class="mt-6 w-full h-1 bg-outline-variant/30 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[99.9%]" style="box-shadow: 0 0 10px rgba(183, 19, 41, 0.4);"></div>
+</div>
+<p class="mt-2 font-label-sm text-label-sm text-tertiary">99.9% Disponibilidad</p>
+</div>
+</div>
+</section>
+<!-- Detailed Metrics Bento Grid -->
+<section class="grid grid-cols-12 gap-gutter">
+<!-- Cogs Metric -->
+<div class="col-span-12 md:col-span-6 lg:col-span-4 group">
+<div class="bg-surface/60 backdrop-blur-lg rounded-xl p-8 border border-white/50 hover:border-secondary/30 transition-all duration-500 shadow-sm hover:shadow-lg relative overflow-hidden active:scale-[0.99]">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-9xl">settings</span>
+</div>
+<div class="flex items-start justify-between mb-8">
+<div class="p-3 bg-secondary/10 rounded-lg">
+<span class="material-symbols-outlined text-secondary">extension</span>
+</div>
+<span class="text-tertiary font-label-sm uppercase">Cogs</span>
+</div>
+<p class="font-headline-lg text-headline-lg text-on-surface mb-2">48 Cargados</p>
+<p class="font-body-md text-tertiary">Módulos funcionales activos en el entorno actual.</p>
+<div class="mt-6 flex gap-2">
+<span class="px-3 py-1 bg-primary-container/40 text-on-primary-container text-xs rounded-full font-bold">Admin</span>
+<span class="px-3 py-1 bg-primary-container/40 text-on-primary-container text-xs rounded-full font-bold">Social</span>
+<span class="px-3 py-1 bg-primary-container/40 text-on-primary-container text-xs rounded-full font-bold">Games</span>
+</div>
+</div>
+</div>
+<!-- WS Clients Metric -->
+<div class="col-span-12 md:col-span-6 lg:col-span-4 group">
+<div class="bg-surface/60 backdrop-blur-lg rounded-xl p-8 border border-white/50 hover:border-secondary/30 transition-all duration-500 shadow-sm hover:shadow-lg relative overflow-hidden active:scale-[0.99]">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-9xl">hub</span>
+</div>
+<div class="flex items-start justify-between mb-8">
+<div class="p-3 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">router</span>
+</div>
+<span class="text-tertiary font-label-sm uppercase">WebSocket</span>
+</div>
+<p class="font-headline-lg text-headline-lg text-on-surface mb-2">12 Clientes WS</p>
+<p class="font-body-md text-tertiary">Conexiones activas de puerta de enlace en tiempo real.</p>
+<div class="mt-6 flex items-center gap-2 text-green-600 font-label-sm">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>Tráfico Estable</span>
+</div>
+</div>
+</div>
+<!-- Latency / Health Chart Placeholder -->
+<div class="col-span-12 lg:col-span-4 group">
+<div class="bg-surface/60 backdrop-blur-lg rounded-xl p-8 border border-white/50 hover:border-secondary/30 transition-all duration-500 shadow-sm hover:shadow-lg flex flex-col h-full active:scale-[0.99]">
+<div class="flex items-start justify-between mb-6">
+<div class="p-3 bg-tertiary-container/30 rounded-lg">
+<span class="material-symbols-outlined text-tertiary">bolt</span>
+</div>
+<span class="text-tertiary font-label-sm uppercase">Latencia</span>
+</div>
+<div class="flex-grow flex items-end gap-1 px-2 h-24 mb-6">
+<div class="w-full bg-secondary-fixed h-1/2 rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-2/3 rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-1/3 rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-3/4 rounded-t-sm"></div>
+<div class="w-full bg-secondary h-full rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-2/3 rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-1/2 rounded-t-sm"></div>
+<div class="w-full bg-secondary-fixed h-3/4 rounded-t-sm"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-headline-md text-primary">24ms</span>
+<span class="font-label-sm text-tertiary italic">Excelente</span>
+</div>
+</div>
+</div>
+<!-- Secondary Visual Card -->
+<div class="col-span-12">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mt-gutter">
+<div class="md:col-span-2 relative h-64 rounded-xl overflow-hidden border border-outline-variant/30">
+<img alt="Digital Zen Garden" class="w-full h-full object-cover grayscale-[0.2] opacity-80" data-alt="A cinematic wide shot of a traditional Japanese garden at dusk with a minimalist digital interface overlay. In the foreground, a stone lantern is subtly illuminated by a soft pink glow, while in the background, a serene Zen pond reflects the twilight sky. The scene is infused with floating digital cherry blossom petals and translucent geometric data layers, creating a perfect blend of ancient tradition and futuristic technology. The lighting is high-key and ethereal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChvMvpZu50Lusz1V6vx85jclnlp-AbVm1JspCMpl5iwKTx60jlptLwCuSZY82iY-haekJJeu4I7r49qfmKPu7webhQ5Lpa0ys6oz0Yc91slGUv9XbnRHUTK9Qo6VmEttW9SFjQ13ioZpETj1qNPrzpDySJQIyD5KYTiaCbtPdeAkkVaC5D-ilQgR_83r53tN_DqiO9KeTDCIdxIh4PY2fE_kJ9kQIouTnpfxqpI64ji-e85T9Ab_3G2RhO0FqEikbfDviOu4u-944"/>
+<div class="absolute inset-0 bg-gradient-to-r from-surface via-transparent to-transparent flex items-center p-12">
+<div class="max-w-xs">
+<h5 class="font-headline-md text-primary mb-2">Sincronización</h5>
+<p class="font-body-md text-on-surface-variant">Todos los sistemas secundarios se encuentran en armonía con el servidor principal.</p>
+</div>
+</div>
+</div>
+<div class="bg-secondary p-8 rounded-xl flex flex-col justify-between text-on-secondary">
+<div>
+<span class="material-symbols-outlined text-4xl mb-4">memory</span>
+<h6 class="font-headline-md mb-2">Memoria</h6>
+</div>
+<div>
+<div class="text-4xl font-headline-lg mb-1">256MB</div>
+<p class="text-on-secondary/70 font-label-sm">Uso del Heap Node.js</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Global "Sakura" Interaction FAB (Hidden on detail pages as per mandate) -->
+</body></html>

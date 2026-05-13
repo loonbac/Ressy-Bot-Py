@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#f2f1ee",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#5f5e5e",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1a1c1a",
+                        "secondary": "#b71329",
+                        "on-secondary-fixed-variant": "#92001b",
+                        "inverse-primary": "#e3bdc5",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#faf9f6",
+                        "secondary-container": "#da323f",
+                        "primary-container": "#f7cfd8",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e3e2e0",
+                        "surface-container": "#efeeeb",
+                        "on-primary-container": "#75565e",
+                        "background": "#faf9f6",
+                        "tertiary-container": "#dbd8d8",
+                        "surface-container-low": "#f4f3f0",
+                        "inverse-surface": "#2f312f",
+                        "surface-dim": "#dbdad7",
+                        "on-primary-fixed-variant": "#5b3f46",
+                        "outline": "#817476",
+                        "on-error": "#ffffff",
+                        "tertiary": "#5f5e5e",
+                        "primary-fixed": "#ffd9e1",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e5e2e1",
+                        "on-surface-variant": "#4f4446",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#ffdad8",
+                        "surface-container-high": "#e9e8e5",
+                        "surface": "#faf9f6",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1a1c1a",
+                        "on-primary-fixed": "#2b151b",
+                        "secondary-fixed-dim": "#ffb3b0",
+                        "primary-fixed-dim": "#e3bdc5",
+                        "on-secondary-fixed": "#410007",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "primary": "#75565e",
+                        "outline-variant": "#d2c3c5",
+                        "surface-tint": "#75565e",
+                        "on-secondary-container": "#fffbff",
+                        "surface-variant": "#e3e2e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "container-max": "1200px",
+                        "unit": "8px",
+                        "margin-mobile": "20px",
+                        "margin-tablet": "32px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "display": ["EB Garamond"],
+                        "headline-lg": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "body-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .sakura-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .sakura {
+            position: absolute;
+            background: linear-gradient(to bottom, #f7cfd8, #e3bdc5);
+            border-radius: 100% 0 100% 100%;
+            opacity: 0.4;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+        }
+        .seigaiha-bg {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cpath d='M0 40a40 40 0 0 1 40-40 40 40 0 0 1 40 40H78a38 38 0 0 0-76 0H0zm7 0a33 33 0 0 1 33-33 33 33 0 0 1 33 33h-2a31 31 0 0 0-62 0H7zm7 0a26 26 0 0 1 26-26 26 26 0 0 1 26 26h-2a24 24 0 0 0-48 0h-2zm7 0a19 19 0 0 1 19-19 19 19 0 0 1 19 19h-2a17 17 0 0 0-34 0h-2zm7 0a12 12 0 0 1 12-12 12 12 0 0 1 12 12h-2a10 10 0 0 0-20 0h-2zm7 0a5 5 0 0 1 5-5 5 5 0 0 1 5 5h-2a3 3 0 0 0-6 0h-2z' fill='%23b71329' fill-opacity='0.03'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sakura Particles -->
+<div class="sakura-container">
+<!-- Static placeholders for petals to avoid JS -->
+<div class="sakura" style="width:12px; height:12px; left:10%; animation-duration:15s; animation-delay:-2s;"></div>
+<div class="sakura" style="width:15px; height:15px; left:30%; animation-duration:18s; animation-delay:-5s;"></div>
+<div class="sakura" style="width:10px; height:10px; left:55%; animation-duration:22s; animation-delay:-1s;"></div>
+<div class="sakura" style="width:14px; height:14px; left:85%; animation-duration:16s; animation-delay:-8s;"></div>
+<div class="sakura" style="width:11px; height:11px; left:40%; animation-duration:20s; animation-delay:-12s;"></div>
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-0 flex justify-between items-center px-margin-desktop h-16 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm dark:shadow-none z-40">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary text-headline-md" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h1 class="font-display text-headline-md font-medium text-secondary dark:text-secondary-fixed-dim">Ressy Bot</h1>
+</div>
+<div class="flex items-center space-x-6">
+<button class="text-on-surface-variant hover:text-secondary transition-colors duration-300">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-secondary transition-colors duration-300">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 bottom-0 flex flex-col pt-24 pb-8 w-64 bg-surface-container-low/90 backdrop-blur-lg border-r border-outline-variant/20 shadow-[0px_10px_30px_rgba(183,19,41,0.05)] z-30">
+<div class="px-6 mb-10">
+<h2 class="font-display text-headline-md text-secondary">Ressy Bot</h2>
+<p class="text-on-surface-variant text-body-sm opacity-70">Zen Sanctuary</p>
+</div>
+<div class="flex flex-col space-y-1">
+<a class="flex items-center space-x-3 text-on-surface-variant py-3 px-6 hover:bg-primary-container/20 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="settings_heart">settings_heart</span>
+<span class="font-body-md">Configuration</span>
+</a>
+<a class="flex items-center space-x-3 text-secondary font-medium border-l-4 border-secondary bg-secondary-fixed/10 py-3 px-6 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="extension" style="font-variation-settings: 'FILL' 1;">extension</span>
+<span class="font-body-md">Plugins</span>
+</a>
+<a class="flex items-center space-x-3 text-on-surface-variant py-3 px-6 hover:bg-primary-container/20 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="monitoring">monitoring</span>
+<span class="font-body-md">Status</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-16 px-margin-desktop seigaiha-bg min-h-screen relative z-10">
+<div class="max-w-container-max mx-auto">
+<!-- Breadcrumb & Title -->
+<div class="mb-12">
+<div class="flex items-center gap-2 text-on-surface-variant text-label-sm mb-4">
+<span class="hover:text-secondary cursor-pointer">Plugins</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-secondary font-semibold">YouTube</span>
+</div>
+<h2 class="font-display text-display text-on-surface mb-2">Configuración de YouTube</h2>
+<p class="text-body-lg text-on-surface-variant max-w-2xl">Sincroniza y gestiona las alertas de tus canales favoritos con la armonía del santuario.</p>
+</div>
+<!-- Configuration Bento Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Channels List Section -->
+<section class="col-span-12 lg:col-span-8 bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-8 border border-white/40 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-display text-headline-md flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="subscriptions">subscriptions</span>
+                            Canales Sincronizados
+                        </h3>
+<span class="bg-primary-fixed/30 text-on-primary-fixed-variant px-3 py-1 rounded-full text-label-sm">3 Sincronizados</span>
+</div>
+<div class="space-y-4">
+<!-- Channel Item -->
+<div class="flex items-center justify-between p-4 bg-surface/40 rounded-lg border border-outline-variant/10 hover:shadow-md transition-shadow duration-300">
+<div class="flex items-center gap-4">
+<img class="w-12 h-12 rounded-full border-2 border-secondary/20 object-cover" data-alt="A clean, minimalist circular avatar for a YouTube channel featuring abstract geometric shapes in soft pink and charcoal grey, set against a pristine white background. The lighting is diffused and bright, following a professional studio aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwYttKZ04mPAi2JhQ-7pqAeRnCyA5dk7zUtOLmGV1nKXHz6PA4aeU_aZ7yYavsD-ZI7b0mrzlSVBdDNQ59ZLd5Y_eSocj5WoFcqGmvwk_2MpUsomv2_OC-l1YE-c3vmMtcaK_HGHJLm809FCzcowrU_hq42f31PPf8ajWAnT5YQncPDcYvQFwnAx3iDWnsn1e2KfHhs8vy-Jq5_7GFEwoZoRs-uZuqWaQDAThqzmIRMAbGI4sOzZxScnYdpJB3qUCi0P-rtzm5vwY"/>
+<div>
+<h4 class="font-medium text-on-surface">Canal de Meditación Zen</h4>
+<p class="text-label-sm text-on-surface-variant">@zen_meditation_es</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<span class="text-label-sm text-on-surface-variant">Notificaciones en vivo</span>
+<button class="w-10 h-5 bg-secondary rounded-full relative transition-colors duration-300">
+<span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></span>
+</button>
+</div>
+<button class="text-outline hover:text-error transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Channel Item -->
+<div class="flex items-center justify-between p-4 bg-surface/40 rounded-lg border border-outline-variant/10 hover:shadow-md transition-shadow duration-300">
+<div class="flex items-center gap-4">
+<img class="w-12 h-12 rounded-full border-2 border-secondary/20 object-cover" data-alt="A professional YouTube profile icon showcasing a stylized Japanese cherry blossom petal in vibrant crimson, designed with clean vector lines on a soft silk-white background. The aesthetic is serene, modern, and high-end." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtaJYjBZrbBZgcQ98Qk3YQ3v6Rpz24JcEkqivJlItS8jWrYivEvMv5VaJGkIxK89PRjWcJhjjt39omAaH0_lWsfRkYcm6PopNwAkEuH9uztntPSo_EOvRng5odx8957-LZXBwA4wC3oIOUqY-FA1_bmVjhL_Fi0IuK03zjbOY4jekhZyRNKMGZLaw9O2-jYApg7OFl6JNAdFvJIAE660GL4BIL5O8xWYmcOT97vXqh6yHaHXpqzsLxQccCNdwbp3WRjaKMRhldVs"/>
+<div>
+<h4 class="font-medium text-on-surface">Digital Sanctuary Gaming</h4>
+<p class="text-label-sm text-on-surface-variant">@ds_gaming</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<span class="text-label-sm text-on-surface-variant">Notificaciones en vivo</span>
+<button class="w-10 h-5 bg-outline-variant/30 rounded-full relative transition-colors duration-300">
+<span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+<button class="text-outline hover:text-error transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Channel Item -->
+<div class="flex items-center justify-between p-4 bg-surface/40 rounded-lg border border-outline-variant/10 hover:shadow-md transition-shadow duration-300">
+<div class="flex items-center gap-4">
+<img class="w-12 h-12 rounded-full border-2 border-secondary/20 object-cover" data-alt="A minimalist logo for a tech channel featuring a sleek, thin-lined mountain icon inspired by Mount Fuji, rendered in a charcoal ink style on a soft pink background. The design is elegant and uncluttered." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy5V3G7lJvuFQfxh-yYaDQHHfVKnm56AR3BXArFpFcl0bptFHiKF-BT_axaayLqgJ2UTZuBucL3Lc0Hv9Ni93422P3m_SztN0AugNq2y4Z8aom0GDmz6Q-5U9qvYK4BjKBorkhLxYtnjWbEUmYMk_R7Y1VfzCsreL9aTOpgCo6RS1PTTFmnLtcDDvih4LHsysbjnH-a9bwfsZ5o4VKWRG_yDlQyDvWXMw5dM-5ieGKRd0RGZAu8vwTzyMGzIJ45XHhZ2HWP4nFRx8"/>
+<div>
+<h4 class="font-medium text-on-surface">Tech Zen Reviews</h4>
+<p class="text-label-sm text-on-surface-variant">@techzen_reviews</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<span class="text-label-sm text-on-surface-variant">Notificaciones en vivo</span>
+<button class="w-10 h-5 bg-secondary rounded-full relative transition-colors duration-300">
+<span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></span>
+</button>
+</div>
+<button class="text-outline hover:text-error transition-colors">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Add Channel Input -->
+<div class="mt-12 pt-8 border-t border-outline-variant/20">
+<label class="block font-medium text-on-surface-variant mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]" data-icon="add_link">add_link</span>
+                            Añadir Nuevo Canal
+                        </label>
+<div class="flex gap-4">
+<div class="relative flex-1">
+<input class="w-full bg-transparent border-b-2 border-outline-variant/30 focus:border-secondary outline-none py-3 px-1 transition-all duration-300 font-body-md placeholder:text-outline-variant" placeholder="URL o ID del canal de YouTube..." type="text"/>
+</div>
+<button class="bg-secondary text-white px-8 py-3 rounded-lg hover:shadow-[0px_10px_30px_rgba(183,19,41,0.2)] transition-all duration-300 flex items-center gap-2 group">
+<span class="font-medium">Vincular</span>
+<span class="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform" data-icon="sync_alt">sync_alt</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Message Settings Sidebar Area -->
+<aside class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Message Preview Card -->
+<div class="bg-primary-fixed/20 backdrop-blur-md rounded-xl p-6 border border-primary-container/30">
+<h3 class="font-display text-headline-md mb-6 flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+                            Ajustes de Mensaje
+                        </h3>
+<div class="space-y-6">
+<div>
+<label class="block text-label-sm text-primary font-bold uppercase mb-2">Mensaje de anuncio</label>
+<textarea class="w-full bg-white/50 border border-outline-variant/20 rounded-lg p-4 font-body-md h-32 focus:ring-2 focus:ring-secondary/20 outline-none resize-none transition-all">@everyone ¡Hay un nuevo video en {canal}!</textarea>
+</div>
+<div>
+<label class="block text-label-sm text-primary font-bold uppercase mb-2">Canal de Discord</label>
+<div class="relative">
+<select class="w-full appearance-none bg-white/50 border border-outline-variant/20 rounded-lg p-4 font-body-md focus:ring-2 focus:ring-secondary/20 outline-none cursor-pointer">
+<option># 📢-anuncios</option>
+<option># 🎥-videos-nuevos</option>
+<option># 🌸-santuario-general</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Content Filters Card -->
+<div class="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl p-6 border border-white/40 shadow-sm">
+<h3 class="font-display text-headline-md mb-6 flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="filter_list">filter_list</span>
+                            Filtros de Contenido
+                        </h3>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<span class="text-body-md text-on-surface-variant">Omitir Shorts</span>
+<button class="w-10 h-5 bg-secondary rounded-full relative">
+<span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-body-md text-on-surface-variant">Omitir Estrenos</span>
+<button class="w-10 h-5 bg-outline-variant/30 rounded-full relative">
+<span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-body-md text-on-surface-variant">Solo videos &gt; 5 min</span>
+<button class="w-10 h-5 bg-outline-variant/30 rounded-full relative">
+<span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+<!-- Footer Actions -->
+<div class="col-span-12 flex justify-end items-center gap-6 mt-8 p-8 bg-surface-container-low/40 rounded-xl border border-outline-variant/10">
+<button class="text-on-surface-variant font-medium hover:text-secondary transition-colors">Descartar Cambios</button>
+<button class="bg-secondary text-white px-12 py-4 rounded-lg font-display text-headline-md shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-3">
+<span class="material-symbols-outlined" data-icon="save">save</span>
+                        Guardar Cambios
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Visual Embellishment: Floating Asanoha Pattern -->
+<div class="fixed bottom-0 right-0 w-64 h-64 opacity-5 pointer-events-none z-0">
+<svg class="w-full h-full fill-secondary" viewbox="0 0 100 100">
+<path d="M50 0L62.5 37.5L100 50L62.5 62.5L50 100L37.5 62.5L0 50L37.5 37.5L50 0Z"></path>
+</svg>
+</div>
+</body></html>
