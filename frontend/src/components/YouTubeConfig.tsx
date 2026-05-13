@@ -171,6 +171,18 @@ export default function YouTubeConfig() {
     setConfig((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
+  const handleChannelChange = async (newId: string | null) => {
+    if (!config) return;
+    const next: YouTubeConfigType = { ...config, discord_channel_id: newId };
+    setConfig(next);
+    try {
+      const updated = await updateYouTubeConfig(next);
+      setConfig(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar canal');
+    }
+  };
+
   const showFeedback = (kind: 'success' | 'error', text: string) => {
     setTestFeedback({ kind, text, nonce: Date.now() });
     window.setTimeout(() => {
@@ -435,9 +447,7 @@ export default function YouTubeConfig() {
                     <select
                       className="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg p-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none cursor-pointer text-on-surface"
                       value={config?.discord_channel_id ?? ''}
-                      onChange={(e) =>
-                        updateConfigField('discord_channel_id', e.target.value ? e.target.value : null)
-                      }
+                      onChange={(e) => handleChannelChange(e.target.value ? e.target.value : null)}
                     >
                       <option value="">Seleccionar canal...</option>
                       {discordChannels.map((ch) => (
