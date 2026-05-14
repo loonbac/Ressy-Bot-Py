@@ -21,6 +21,7 @@ ALLOWED_KINDS = {
     "config",
     "scrape",
     "system",
+    "music",
 }
 
 

@@ -10,6 +10,7 @@ class Bot(commands.Bot):
     def __init__(self, config_manager: ConfigManager):
         intents = discord.Intents.default()
         intents.members = True  # required for on_member_join + guild.members iteration
+        intents.voice_states = True  # required for voice channel state tracking
         super().__init__(command_prefix="/", intents=intents)
         self.config_manager = config_manager
 
