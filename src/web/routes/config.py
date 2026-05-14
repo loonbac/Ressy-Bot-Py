@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
+import discord
 from fastapi import APIRouter, HTTPException, Request
 
 from src.shared.models import BotStatus, ConfigResponse
@@ -148,3 +149,40 @@ async def get_status(request: Request) -> BotStatus:
         bot_avatar_url=bot_avatar_url,
         bot_name=bot_name,
     )
+
+
+@router.post("/presence")
+async def update_presence(request: Request) -> dict:
+    """Apply the configured status and activity to the bot."""
+    cm = request.app.state.config_manager
+    bot = request.app.state.bot
+
+    if cm is None or bot is None:
+        raise HTTPException(status_code=500, detail="Bot no disponible")
+
+    status_map = {
+        "online": discord.Status.online,
+        "idle": discord.Status.idle,
+        "dnd": discord.Status.dnd,
+        "invisible": discord.Status.invisible,
+    }
+    activity_map = {
+        "playing": lambda t: discord.Game(name=t),
+        "watching": lambda t: discord.Activity(type=discord.ActivityType.watching, name=t),
+        "listening": lambda t: discord.Activity(type=discord.ActivityType.listening, name=t),
+        "competing": lambda t: discord.Activity(type=discord.ActivityType.competing, name=t),
+    }
+
+    status_str = cm.get("bot_status") or "online"
+    activity_type = cm.get("bot_activity_type") or "playing"
+    activity_text = cm.get("bot_activity_text") or ""
+
+    status = status_map.get(status_str, discord.Status.online)
+    activity_fn = activity_map.get(activity_type, activity_map["playing"])
+    activity = activity_fn(activity_text) if activity_text else None
+
+    try:
+        await bot.change_presence(status=status, activity=activity)
+        return {"status": status_str, "activity_type": activity_type, "activity_text": activity_text}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

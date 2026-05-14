@@ -100,3 +100,54 @@ class TestGetStatus:
         assert "bot_name" in data
         assert isinstance(data["bot_avatar_url"], str)
         assert isinstance(data["bot_name"], str)
+
+
+class TestPostPresence:
+    async def test_presence_without_bot_returns_500(self, async_client: AsyncClient):
+        response = await async_client.post("/api/presence")
+        assert response.status_code == 500
+        assert "Bot no disponible" in response.json()["detail"]
+
+    async def test_presence_with_bot_applies_and_returns_config(
+        self, async_client: AsyncClient, config_manager: Any
+    ):
+        from unittest.mock import AsyncMock, MagicMock
+        from src.web.app import create_app
+        from httpx import ASGITransport, AsyncClient
+
+        await config_manager.update("bot_status", "dnd")
+        await config_manager.update("bot_activity_type", "watching")
+        await config_manager.update("bot_activity_text", "el dashboard")
+
+        bot = MagicMock()
+        bot.change_presence = AsyncMock()
+
+        app = create_app(config_manager=config_manager, bot=bot)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/api/presence")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "dnd"
+        assert data["activity_type"] == "watching"
+        assert data["activity_text"] == "el dashboard"
+        bot.change_presence.assert_awaited_once()
+
+    async def test_presence_with_bot_error_returns_500(
+        self, async_client: AsyncClient, config_manager: Any
+    ):
+        from unittest.mock import AsyncMock, MagicMock
+        from src.web.app import create_app
+        from httpx import ASGITransport, AsyncClient
+
+        bot = MagicMock()
+        bot.change_presence = AsyncMock(side_effect=RuntimeError("Discord error"))
+
+        app = create_app(config_manager=config_manager, bot=bot)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/api/presence")
+
+        assert response.status_code == 500
+        assert "Discord error" in response.json()["detail"]

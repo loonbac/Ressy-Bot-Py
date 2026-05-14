@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&amp;family=Hanken+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline": "#817476",
+                    "on-background": "#1a1c1a",
+                    "primary-fixed": "#ffd9e1",
+                    "tertiary-fixed": "#e5e2e1",
+                    "primary-fixed-dim": "#e3bdc5",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#e3bdc5",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "tertiary": "#5f5e5e",
+                    "surface-tint": "#75565e",
+                    "on-primary-container": "#75565e",
+                    "surface-variant": "#e3e2e0",
+                    "on-tertiary-container": "#5f5e5e",
+                    "on-tertiary": "#ffffff",
+                    "background": "#faf9f6",
+                    "tertiary-container": "#dbd8d8",
+                    "secondary-fixed-dim": "#ffb3b0",
+                    "secondary-fixed": "#ffdad8",
+                    "inverse-on-surface": "#f2f1ee",
+                    "primary": "#75565e",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "surface-container-highest": "#e3e2e0",
+                    "on-secondary-container": "#fffbff",
+                    "primary-container": "#f7cfd8",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#da323f",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "surface-container-low": "#f4f3f0",
+                    "surface": "#faf9f6",
+                    "outline-variant": "#d2c3c5",
+                    "surface-container": "#efeeeb",
+                    "on-surface-variant": "#4f4446",
+                    "inverse-surface": "#2f312f",
+                    "on-surface": "#1a1c1a",
+                    "on-secondary-fixed": "#410007",
+                    "surface-container-high": "#e9e8e5",
+                    "secondary": "#b71329",
+                    "surface-dim": "#dbdad7",
+                    "on-secondary-fixed-variant": "#92001b",
+                    "on-primary-fixed-variant": "#5b3f46",
+                    "on-primary-fixed": "#2b151b",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#faf9f6",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max": "1200px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "64px",
+                    "margin-tablet": "32px",
+                    "unit": "8px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["EB Garamond"],
+                    "display": ["EB Garamond"],
+                    "body-md": ["Hanken Grotesk"],
+                    "headline-lg": ["EB Garamond"],
+                    "headline-md": ["EB Garamond"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "label-sm": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #faf9f6;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(117, 86, 94, 0.03) 1px, transparent 0);
+            background-size: 40px 40px;
+            overflow-x: hidden;
+        }
+        .sakura-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.4;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .asanoha-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M20 0l20 10v20L20 40 0 30V10L20 0zm0 4.6l-16 8v14.8l16 8 16-8V12.6l-16-8z' fill='%2375565e' fill-opacity='0.03'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sakura Particles Simulation -->
+<div class="sakura-bg overflow-hidden">
+<div class="absolute top-10 left-[10%] opacity-20"><span class="material-symbols-outlined text-primary text-4xl">local_florist</span></div>
+<div class="absolute top-40 left-[80%] opacity-10 rotate-45"><span class="material-symbols-outlined text-primary text-2xl">local_florist</span></div>
+<div class="absolute bottom-20 left-[15%] opacity-15 -rotate-12"><span class="material-symbols-outlined text-primary text-3xl">local_florist</span></div>
+<div class="absolute top-1/2 left-1/2 opacity-5"><span class="material-symbols-outlined text-primary text-6xl">local_florist</span></div>
+</div>
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/30 bg-surface/80 backdrop-blur-md shadow-[0px_10px_30px_rgba(168,0,33,0.05)] flex flex-col py-8 px-6 z-50">
+<div class="flex items-center gap-3 mb-12">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary shadow-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rebase_edit</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary leading-none">Ressy Bot</h1>
+<p class="font-label-sm text-label-sm text-outline opacity-70">Zen Digital Management</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-tertiary hover:bg-primary-container/20 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">settings</span>
+<span class="font-body-md">Configuración</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-secondary border-l-4 border-secondary font-bold bg-secondary-container/10 transition-transform duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">extension</span>
+<span class="font-body-md">Plugins</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-tertiary hover:bg-primary-container/20 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">analytics</span>
+<span class="font-body-md">Estado</span>
+</a>
+</nav>
+<div class="pt-8 mt-auto border-t border-outline-variant/20 space-y-2">
+<a class="flex items-center gap-3 py-2 px-4 text-tertiary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-body-md">Perfil</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-4 text-tertiary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md">Cerrar Sesión</span>
+</a>
+<button class="w-full mt-4 bg-secondary text-on-primary py-3 rounded-xl font-bold shadow-md hover:brightness-110 transition-all">
+                Soporte
+            </button>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 z-40 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-gutter">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">handyman</span>
+<h2 class="font-headline-md text-headline-md text-primary">Ressy Bot Dashboard</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<input class="bg-surface-container-low border-none rounded-full px-6 py-2 w-64 text-body-md focus:ring-1 focus:ring-secondary/30 transition-all placeholder:text-outline/50" placeholder="Buscar ajustes..." type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-2 text-outline/50">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/20 transition-colors text-primary">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/20 transition-colors text-primary">
+<span class="material-symbols-outlined">settings_heart</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-primary-container p-0.5">
+<img alt="User Avatar" class="w-full h-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfB4AGlMTsqjhC0nNkFel0cdxDLu_uJj9KWi6bNr9bRssnx52J96PdCmPADSI08uWfrGg-j-XVs-bUmVxVX48d6qyJUHbaQTiA_5IS3WsyKfGtt4IJa6YSVn3nSv-eyHG8HMtd3Y37E36ECUF-6nsNnn9j-Q2MawY3Z8mbdZVcDap1rUTckEIrk9ZAE2cfNQ6LY89n3PsuzqU84Hh1IsmGX0L18N6ueLQMQujbHhV9KL-zhioY69W7-1Nk-j1NfwIwBUjfPvYmgtA"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-28 pb-12 px-margin-desktop">
+<div class="max-w-container-max mx-auto">
+<!-- Section Header -->
+<div class="mb-12">
+<div class="flex items-center gap-4 mb-2">
+<div class="w-12 h-12 bg-primary-container/30 rounded-2xl flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-3xl">Sparkle</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-primary">Configuración de Bienvenida</h1>
+</div>
+<p class="font-body-lg text-tertiary max-w-2xl">Diseña una recepción armoniosa y cálida para cada alma que se une a tu comunidad. El equilibrio entre lo visual y lo textual crea el primer vínculo sagrado.</p>
+</div>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Left Column: Controls -->
+<div class="col-span-12 lg:col-span-7 space-y-gutter">
+<!-- Master Switch & Basic Settings -->
+<div class="glass-card rounded-3xl p-8 shadow-[0px_10px_30px_rgba(168,0,33,0.05)] asanoha-pattern">
+<div class="flex items-center justify-between mb-8">
+<div class="flex flex-col">
+<span class="font-headline-md text-primary">Estado del Módulo</span>
+<span class="text-label-sm text-outline">Activa o desactiva la bienvenida automatizada</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-7 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+<div class="space-y-6">
+<div>
+<label class="block text-label-sm uppercase tracking-wider text-primary mb-2">Canal de Destino</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-xl py-4 px-6 text-body-md appearance-none focus:ring-1 focus:ring-secondary/30">
+<option>#general-chat</option>
+<option>#bienvenidos-aquí</option>
+<option>#lobby-principal</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-4 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<div>
+<div class="flex justify-between items-center mb-2">
+<label class="block text-label-sm uppercase tracking-wider text-primary">Editor de Mensaje</label>
+<div class="flex gap-2">
+<span class="px-2 py-1 bg-primary-container/20 text-primary text-[10px] rounded border border-primary-container/50 font-bold cursor-help" title="Menciona al usuario">{user}</span>
+<span class="px-2 py-1 bg-primary-container/20 text-primary text-[10px] rounded border border-primary-container/50 font-bold cursor-help" title="Nombre del servidor">{server}</span>
+<span class="px-2 py-1 bg-primary-container/20 text-primary text-[10px] rounded border border-primary-container/50 font-bold cursor-help" title="Cantidad de miembros">{member_count}</span>
+</div>
+</div>
+<div class="relative group">
+<textarea class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-secondary focus:ring-0 rounded-t-xl transition-all text-body-md p-6 resize-none" placeholder="Escribe tu mensaje de bienvenida aquí..." rows="4">¡Bienvenido/a {user} a {server}! 🌸 Esperamos que disfrutes de tu estancia en nuestra tranquila morada. Eres nuestro miembro número {member_count}.</textarea>
+<div class="absolute bottom-4 right-4 text-outline/30 text-label-sm">Sumi-ink Editor</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Image Section -->
+<div class="glass-card rounded-3xl p-8 shadow-[0px_10px_30px_rgba(168,0,33,0.05)]">
+<h3 class="font-headline-md text-primary mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined">image</span> Imagen de Fondo
+                        </h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="relative rounded-2xl overflow-hidden aspect-video border-2 border-secondary group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="A serene landscape photography of pink cherry blossoms in full bloom against a soft blue spring sky. The lighting is diffused and ethereal, capturing a peaceful Zen atmosphere with traditional Japanese aesthetic. High-key colors and soft focus create a clean, minimalist background suitable for a digital UI component." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQM_M5IkldQdJHtPlYbcxmt1NwAwoYoIQTnlZ3iGlzbNXckIuHXGgSkE6AzP9-QKaafKheL_Mg820KFAP-EWZWBywgPOH3BBHMgy48o1goHIBG0zHxSg8b3B2HI1YTgHeizxYpMPtuiZIAh8rB57zdBIiSHdtZcWztmQ-cKrYkorRVIWKwZMic6bcLG9M9PJBxeODK0wZjnlcsmmM-KO1szh74LtRLCBSu0a-ygode2HGWGCbXIB-MPPj7coM6DatFIXIzbsQZnYM"/>
+<div class="absolute inset-0 bg-secondary/20 flex items-center justify-center opacity-100">
+<span class="material-symbols-outlined text-white text-3xl">check_circle</span>
+</div>
+</div>
+<div class="rounded-2xl border-2 border-dashed border-outline-variant flex flex-col items-center justify-center aspect-video hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-3xl">cloud_upload</span>
+<span class="text-label-sm text-outline mt-2">Subir Imagen Personalizada</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Preview & Advanced -->
+<div class="col-span-12 lg:col-span-5 space-y-gutter">
+<!-- Real-time Preview -->
+<div class="glass-card rounded-3xl p-8 border-primary-container shadow-[0px_10px_30px_rgba(168,0,33,0.05)] relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-9xl">visibility</span>
+</div>
+<h3 class="font-headline-md text-primary mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined">visibility</span> Vista Previa
+                        </h3>
+<!-- Discord Message Mockup -->
+<div class="bg-[#313338] rounded-xl p-4 text-[#dbdee1] font-sans shadow-xl">
+<div class="flex gap-4">
+<div class="w-10 h-10 bg-secondary rounded-full flex-shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white">smart_toy</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-bold text-white hover:underline cursor-pointer">Ressy Bot</span>
+<span class="bg-[#5865f2] text-[10px] px-1 rounded-sm text-white font-bold uppercase py-0.5">BOT</span>
+<span class="text-xs text-outline opacity-50 ml-1">Hoy a las 14:22</span>
+</div>
+<div class="text-sm leading-relaxed mb-3">
+                                        ¡Bienvenido/a <span class="text-[#949cf7] bg-[#3c4270] rounded px-0.5 hover:bg-[#5865f2] hover:text-white cursor-pointer transition-colors">@ZenMaster</span> a Ressy Sanctuary! 🌸 Esperamos que disfrutes de tu estancia en nuestra tranquila morada. Eres nuestro miembro número 1,234.
+                                    </div>
+<div class="rounded-lg overflow-hidden border border-[#1e1f22] max-w-sm">
+<div class="relative aspect-video">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtH8ktPf5HuIX5GOGryYt9kMEmO5p4Oolsd1v8ZqupZuJNepn24_PXUHpoYyDU1yQfX_fQqFh0IQhC_7N2tcfDiB81-LLjtbrbv1qN10qseGdb57Flk-20nANhZQL95nyvuYxCvmlBTg3FsEBqzjL5IwMNMHEiw_tEMMSQ_eg9MkfG17NbvVcExPItTloFiHd997yJDF0n4HXno7xHk1dYADT-LBimdwgmb6kczKYjzoctYzVkxYx-_D-1CqUdHOWvUU3TcMLqD-Q"/>
+<div class="absolute inset-0 flex flex-col items-center justify-center bg-black/20 text-white text-center p-4">
+<div class="w-16 h-16 rounded-full border-4 border-white overflow-hidden mb-2">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyxOYKExRFT6dtbHVOmr-DKOHmYGeEFcpoSDwt56HhSJf2QnbUhrMxVzrEqelleBWZT-YoXkxIxJa9ChNBFew2mt_ktQukNJgj3lXehRfMvkW5xRdWLjv5AITd0s7jbtUhX6I1iVM4FOa4pRytqvk2C8RcdUCvQaKb--729OTFAu42lsdqfO10INhltAjwD-fSyG6i6AIu81uqgaPfBRLkTAwwjl-hlUwzrCdpLKiU07Mosdlma9L1t-UynKooQig4569SATwHaSQ"/>
+</div>
+<p class="font-bold text-lg drop-shadow-lg">BIENVENIDO/A</p>
+<p class="text-sm opacity-90 drop-shadow-lg">ZenMaster#0001</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p class="text-label-sm text-outline mt-4 italic text-center opacity-60">Representación visual del mensaje en Discord</p>
+</div>
+<!-- Advanced Settings -->
+<div class="glass-card rounded-3xl p-8 shadow-[0px_10px_30px_rgba(168,0,33,0.05)]">
+<h3 class="font-headline-md text-primary mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined">settings_suggest</span> Ajustes Avanzados
+                        </h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline group-hover:text-secondary">mail</span>
+<span class="text-body-md">Enviar mensaje por DM</span>
+</div>
+<input class="rounded text-secondary focus:ring-secondary border-outline-variant" type="checkbox"/>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline group-hover:text-secondary">person_add</span>
+<span class="text-body-md">Auto-asignar rol al entrar</span>
+</div>
+<input checked="" class="rounded text-secondary focus:ring-secondary border-outline-variant" type="checkbox"/>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline group-hover:text-secondary">delete_sweep</span>
+<span class="text-body-md">Borrar mensaje anterior</span>
+</div>
+<input class="rounded text-secondary focus:ring-secondary border-outline-variant" type="checkbox"/>
+</div>
+</div>
+<div class="mt-8">
+<button class="w-full bg-secondary text-on-primary py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">save</span>
+                                Guardar Armonía
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -558,3 +558,74 @@ class TestGoogleAPIKeyPersistence:
         resp = await youtube_client.get("/api/plugins/youtube/config")
         data = resp.json()
         assert data["google_api_key"] == "AIzaSyEndpointKey", f"Expected key, got: '{data.get('google_api_key')}'"
+
+
+class TestCallbackServer:
+    """Test the standalone callback server endpoints."""
+
+    async def test_health_endpoint(self):
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/health")
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "ok"
+
+    async def test_verification_returns_challenge(self):
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/plugins/youtube/callback?hub.challenge=test123")
+            assert resp.status_code == 200
+            assert resp.text == "test123"
+
+    async def test_verification_no_challenge(self):
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/plugins/youtube/callback")
+            assert resp.status_code == 200
+            assert resp.text == "OK"
+
+    async def test_notification_stores_video(self, tmp_path):
+        import src.bot.plugins.youtube_notifier.callback_server as cs
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+
+        # Point callback server to a temp DB
+        db_path = str(tmp_path / "test_cb.db")
+        cs.DB_PATH = db_path
+
+        # Initialise schema manually (ASGITransport does not trigger lifespan)
+        await cs._init_db()
+
+        transport = ASGITransport(app=app, client=("127.0.0.1", 50000))
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            atom_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>CB123</yt:videoId>
+    <yt:channelId>UC_cb</yt:channelId>
+    <title>Callback Video</title>
+    <published>2024-06-01T12:00:00+00:00</published>
+  </entry>
+</feed>
+"""
+            resp = await client.post("/api/plugins/youtube/callback", content=atom_xml)
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "ok"
+
+        # Verify DB contents
+        import aiosqlite
+        db = await aiosqlite.connect(db_path)
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall("SELECT * FROM youtube_videos")
+        await db.close()
+        assert len(rows) == 1
+        assert rows[0]["video_id"] == "CB123"
+        assert rows[0]["title"] == "Callback Video"
+        assert rows[0]["notified"] == 0

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#efeeeb",
+                        "outline-variant": "#d2c3c5",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e9e8e5",
+                        "primary-fixed": "#ffd9e1",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-tertiary-container": "#5f5e5e",
+                        "on-secondary-container": "#fffbff",
+                        "secondary": "#b71329",
+                        "secondary-fixed": "#ffdad8",
+                        "tertiary-container": "#dbd8d8",
+                        "on-secondary-fixed-variant": "#92001b",
+                        "tertiary-fixed": "#e5e2e1",
+                        "primary-fixed-dim": "#e3bdc5",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#4f4446",
+                        "on-primary-fixed": "#2b151b",
+                        "background": "#faf9f6",
+                        "on-surface": "#1a1c1a",
+                        "inverse-surface": "#2f312f",
+                        "inverse-on-surface": "#f2f1ee",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1a1c1a",
+                        "surface": "#faf9f6",
+                        "secondary-fixed-dim": "#ffb3b0",
+                        "surface-container-low": "#f4f3f0",
+                        "secondary-container": "#da323f",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#5f5e5e",
+                        "inverse-primary": "#e3bdc5",
+                        "surface-container-highest": "#e3e2e0",
+                        "on-primary-fixed-variant": "#5b3f46",
+                        "on-primary-container": "#75565e",
+                        "primary": "#75565e",
+                        "surface-variant": "#e3e2e0",
+                        "surface-bright": "#faf9f6",
+                        "surface-dim": "#dbdad7",
+                        "surface-tint": "#75565e",
+                        "primary-container": "#f7cfd8",
+                        "on-secondary-fixed": "#410007",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#817476",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-tablet": "32px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "margin-desktop": "64px",
+                        "container-max": "1200px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-md": ["EB Garamond"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["EB Garamond"],
+                        "display": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "display": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .sakura-bg {
+            background-image: radial-gradient(circle at 2px 2px, rgba(247, 207, 216, 0.2) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .asanoha-pattern {
+            mask-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l20 20-20 20L0 20z' fill='none' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md sakura-bg">
+<div class="flex min-h-screen">
+<!-- SideNavBar Navigation Shell -->
+<aside class="hidden md:flex flex-col h-screen w-64 bg-surface-container-low/90 backdrop-blur-xl border-r border-outline-variant/10 py-8 fixed left-0 top-0 z-40">
+<div class="px-6 mb-12">
+<h1 class="font-display text-headline-md text-secondary tracking-tight">Santuario Digital</h1>
+<p class="font-body-md text-on-surface-variant opacity-70">Administración Zen</p>
+</div>
+<nav class="flex-1">
+<a class="flex items-center space-x-4 border-l-4 border-secondary text-secondary bg-primary-container/20 px-6 py-4 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-lg text-body-lg">Configuración</span>
+</a>
+<a class="flex items-center space-x-4 text-on-surface-variant px-6 py-4 opacity-70 hover:bg-primary-container/10 hover:opacity-100 transition-all duration-300 translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-body-lg text-body-lg">Plugins</span>
+</a>
+<a class="flex items-center space-x-4 text-on-surface-variant px-6 py-4 opacity-70 hover:bg-primary-container/10 hover:opacity-100 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-lg text-body-lg">Estado</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="flex items-center space-x-3 p-3 rounded-xl bg-surface-container-highest/30">
+<img alt="ZenBot Mascot" class="w-10 h-10 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDVkMBDBt7h77CeMGc4IXo4AVHYcvrUn_jdF-vPF2q-rPrfEZRxLarCkTLGT1i9aCMSLakr_6s9kFiOMdZrZPk1B6uo2q_oPwMYmRv-XiD3Ghyg8UwUxDsjXqXHgIt9TBuOrxvcuBoKF0Rx99qk-fH0PhhCu0aKiDQ_2WZ4Vr8Di5DI-lpgPI-qsdtruvy_ql4IPnPcTHEF1z2Ohbpqq8DYUAvjFlXco8HIkT6zcPp6JiJiB38yvwriDKSAoN1FFoSrRC5Zq8n9yk"/>
+<div class="overflow-hidden">
+<p class="font-label-sm text-on-surface truncate">Ressy Bot</p>
+<p class="text-[10px] text-outline">v2.4.0-Zen</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 md:ml-64 relative">
+<!-- TopAppBar Navigation Shell -->
+<header class="sticky top-0 z-50 flex justify-between items-center w-full px-margin-desktop py-4 bg-surface/80 backdrop-blur-md border-b border-outline-variant/20 shadow-sm">
+<div class="flex items-center">
+<span class="font-display text-headline-lg text-secondary tracking-tight">ZenBot</span>
+</div>
+<div class="flex items-center space-x-6">
+<div class="relative">
+<span class="absolute inset-y-0 left-3 flex items-center text-outline">
+<span class="material-symbols-outlined text-[20px]" data-icon="search">search</span>
+</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-body-md focus:ring-1 focus:ring-secondary/30 w-64 transition-all duration-300" placeholder="Buscar en el santuario..." type="text"/>
+</div>
+<img alt="Avatar del usuario" class="w-10 h-10 rounded-full border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3x58BzQZTWVe9PehmkopwA18w3bDinHlsqkyVrj-I5Xk1yZdyRa0EyI9D2vjZOTxS5VdIQrLvSGGKc_t93-dYYMEynBOw7rlUme8zdYQCLLlPQ5rRCbkFvcjM1InK2hzukIKwVm8lHsKpXjWs-tyWvcNsvkvxpx7MY359_8zt07HiNQWZqSIHD76xb17h1fdGSTYD4fI6NY4CszkaDg93EFNt0TSRqQUtQBGULKZ5WfpDU7LqIiaCXfPoMkNHJJ7y9ndk8Um8LjA"/>
+</div>
+</header>
+<!-- Content Area -->
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+<!-- Hero Section -->
+<div class="mb-12 relative overflow-hidden rounded-3xl p-12 glass-panel shadow-sm">
+<div class="relative z-10 max-w-2xl">
+<h2 class="font-display text-display text-on-surface mb-4">Configuración de Blackboard</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                            Sincroniza y gestiona las tareas de tu plataforma educativa. Ajusta las credenciales y preferencias de notificación para mantener tu flujo de trabajo en armonía.
+                        </p>
+</div>
+<div class="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none asanoha-pattern"></div>
+<div class="absolute -right-20 -bottom-20 w-80 h-80 bg-primary-container/20 rounded-full blur-3xl"></div>
+</div>
+<!-- Settings Panel -->
+<div class="glass-panel rounded-3xl p-8 shadow-sm">
+<div class="flex items-center mb-8">
+<span class="material-symbols-outlined text-secondary mr-3" data-icon="settings_input_component">settings_input_component</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Panel de Parámetros</h3>
+</div>
+<form class="space-y-10">
+<!-- Hidden Toggle -->
+<input checked="" class="hidden" name="success_toggle" type="checkbox"/>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+<!-- Field 1: User Text Input -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Nombre de Usuario</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors font-body-md" placeholder="ZenMaster_01" type="text"/>
+</div>
+</div>
+<!-- Field 2: Email Input -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Correo Electrónico</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors font-body-md" placeholder="estudiante@universidad.edu" type="email"/>
+</div>
+</div>
+<!-- Field 3: Password Input -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Contraseña de Acceso</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors font-body-md" placeholder="••••••••••••" type="password"/>
+</div>
+</div>
+<!-- Field 4: Channel Selection -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Canal de Destino (Discord)</label>
+<div class="relative">
+<select class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors appearance-none cursor-pointer font-body-md">
+<option>#anuncios-tareas</option>
+<option>#general-blackboard</option>
+<option>#notificaciones-bot</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-3 text-outline pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Field 6: Numeric Input -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Intervalo de Escaneo (Minutos)</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors font-body-md" min="10" type="number" value="15"/>
+</div>
+</div>
+<!-- Field 7: Day Selection -->
+<div class="space-y-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Día de Reporte Semanal</label>
+<div class="relative">
+<select class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors appearance-none cursor-pointer font-body-md">
+<option>Lunes</option>
+<option>Martes</option>
+<option>Miércoles</option>
+<option>Jueves</option>
+<option>Viernes</option>
+<option>Sábado</option>
+<option>Domingo</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-3 text-outline pointer-events-none" data-icon="calendar_today">calendar_today</span>
+</div>
+</div>
+<!-- Field 8: Additional Text Input -->
+<div class="space-y-2 md:col-span-2">
+<label class="font-label-sm text-on-surface-variant block uppercase tracking-wider">Notas de Sincronización</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline py-3 px-1 focus:border-secondary focus:ring-0 transition-colors font-body-md" placeholder="Ej: Ignorar tareas de la facultad de ciencias" type="text"/>
+</div>
+</div>
+<!-- Field 5: Status Toggle -->
+<div class="md:col-span-2 flex items-center justify-between p-6 rounded-2xl bg-surface-container-low/50 border border-outline-variant/10">
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">Estado del Módulo</p>
+<p class="font-label-sm text-outline">Activa o desactiva la recolección automática de datos</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer" role="switch">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-7 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+</div>
+<!-- Action Buttons and Persistence -->
+<div class="pt-8 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-6">
+<div class="flex flex-wrap gap-4">
+<button class="flex items-center space-x-2 px-6 py-3 bg-surface-container-highest text-on-surface rounded-xl font-label-sm hover:bg-secondary/10 hover:text-secondary transition-all border border-transparent hover:border-secondary/20" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="precision_manufacturing">precision_manufacturing</span>
+<span>Ejecutar Scraper Manual</span>
+</button>
+<button class="flex items-center space-x-2 px-6 py-3 bg-surface-container-highest text-on-surface rounded-xl font-label-sm hover:bg-secondary/10 hover:text-secondary transition-all border border-transparent hover:border-secondary/20" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="list_alt">list_alt</span>
+<span>Ver Tareas Scrapeadas</span>
+</button>
+</div>
+<button class="group relative px-10 py-4 bg-secondary text-white rounded-full font-headline-md shadow-lg overflow-hidden hover:scale-[1.02] active:scale-95 transition-all duration-300 w-full sm:w-auto" type="submit">
+<span class="relative z-10">Guardar Cambios</span>
+<div class="absolute inset-0 bg-secondary-container opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+</button>
+</div>
+</form>
+</div>
+<!-- Footer-ish decoration -->
+<div class="mt-16 py-8 text-center text-outline-variant">
+<div class="flex justify-center space-x-2 mb-4">
+<div class="w-1 h-1 rounded-full bg-secondary opacity-40"></div>
+<div class="w-1 h-1 rounded-full bg-secondary opacity-40"></div>
+<div class="w-1 h-1 rounded-full bg-secondary opacity-40"></div>
+</div>
+<p class="font-label-sm tracking-widest">FLORECIENDO CON ARMONÍA DIGITAL</p>
+</div>
+</div>
+</main>
+</div>
+<!-- Background Sakura Particles (Visual Representation) -->
+<div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+<div class="absolute top-10 left-[10%] w-4 h-4 bg-primary-fixed-dim/30 rounded-tl-full rounded-br-full rotate-45"></div>
+<div class="absolute top-40 left-[80%] w-3 h-3 bg-primary-fixed-dim/20 rounded-tl-full rounded-br-full -rotate-12"></div>
+<div class="absolute top-[70%] left-[5%] w-5 h-5 bg-primary-fixed-dim/30 rounded-tl-full rounded-br-full rotate-[120deg]"></div>
+<div class="absolute top-[85%] left-[90%] w-4 h-4 bg-primary-fixed-dim/40 rounded-tl-full rounded-br-full rotate-12"></div>
+<div class="absolute top-[20%] left-[40%] w-2 h-2 bg-primary-fixed-dim/30 rounded-full"></div>
+</div>
+</body></html>

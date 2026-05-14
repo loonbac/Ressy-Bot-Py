@@ -10,6 +10,9 @@ SCHEMA = {
     "bot_prefix": {"type": "string", "default": "/"},
     "version": {"type": "string", "default": "1.0.0"},
     "guild_id": {"type": "string", "default": ""},
+    "bot_status": {"type": "string", "default": "online"},
+    "bot_activity_type": {"type": "string", "default": "playing"},
+    "bot_activity_text": {"type": "string", "default": "con el santuario digital"},
 }
 
 

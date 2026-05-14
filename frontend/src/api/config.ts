@@ -47,3 +47,19 @@ export async function fetchStatus(): Promise<BotStatus> {
   }
   return res.json() as Promise<BotStatus>;
 }
+
+export async function updatePresence(): Promise<{
+  status: string;
+  activity_type: string;
+  activity_text: string;
+}> {
+  const res = await apiFetch('/api/presence', { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to update presence: ${res.status}`);
+  }
+  return res.json() as Promise<{
+    status: string;
+    activity_type: string;
+    activity_text: string;
+  }>;
+}
