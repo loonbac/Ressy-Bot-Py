@@ -1,3 +1,4 @@
+import collections
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -16,7 +17,7 @@ class TrackQueue:
     """FIFO queue per guild."""
 
     def __init__(self):
-        self._queue: list[Track] = []
+        self._queue: collections.deque[Track] = collections.deque()
         self._current: Optional[Track] = None
         self._loop: bool = False
 
@@ -38,7 +39,7 @@ class TrackQueue:
 
     @property
     def upcoming(self) -> list[Track]:
-        return self._queue.copy()
+        return list(self._queue)
 
     @property
     def loop(self) -> bool:
@@ -54,12 +55,12 @@ class TrackQueue:
     def pop(self) -> Optional[Track]:
         if self.is_empty:
             return None
-        return self._queue.pop(0)
+        return self._queue.popleft()
 
     def remove(self, index: int) -> bool:
         if index < 0 or index >= len(self._queue):
             return False
-        self._queue.pop(index)
+        del self._queue[index]
         return True
 
     def clear(self) -> None:

@@ -52,6 +52,10 @@ async def main_async() -> None:
     from src.bot.plugins.welcome import setup as setup_welcome
     await setup_welcome(bot, cm, app)
 
+    # Cargar plugin de música
+    from src.bot.plugins.music_player import setup as setup_music_player
+    await setup_music_player(bot, cm, app)
+
     # Mount SPA static files *after* all API routes are registered
     mount_static_files(app)
 

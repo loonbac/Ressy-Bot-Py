@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python 3.11+, discord.py 2.4+, FastAPI, aiosqlite, Playwright, Pillow
+  Architecture: Plugin pattern in src/bot/plugins/<name>/ with setup(bot, config_manager, app)
+  Frontend: React 19 + TypeScript 5.9 + Vite 8 (rolldown) + Tailwind v4, pnpm
+  Testing: pytest (backend), vitest (frontend); pytest-cov, coverage enabled
+  Persistence: SQLite per plugin in data/plugins/<name>.db
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Document plugin pattern if plugin involved
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Keep bot and web runs on same event loop
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    tdd: true
+    test_command: "uv run pytest"
+  verify:
+    test_command: "uv run pytest"
+    build_command: "cd frontend && pnpm exec vite build"
+    coverage_threshold: 70
+  archive:
+    - Warn before merging destructive deltas
+
+strict_tdd: true
+
+testing:
+  backend:
+    runner: pytest
+    command: uv run pytest
+    coverage_command: uv run pytest --cov
+    framework: pytest-asyncio
+    testpaths:
+      - tests/
+  frontend:
+    runner: vitest
+    command: cd frontend && pnpm test
+    coverage_command: cd frontend && pnpm test:coverage
+    framework: @testing-library/react
+  quality:
+    linter: null
+    type_checker: tsc --noEmit
+    formatter: null

@@ -120,7 +120,7 @@ class TestPostPresence:
         await config_manager.update("bot_activity_text", "el dashboard")
 
         bot = MagicMock()
-        bot.change_presence = AsyncMock()
+        bot.apply_presence = AsyncMock()
 
         app = create_app(config_manager=config_manager, bot=bot)
         transport = ASGITransport(app=app)
@@ -132,7 +132,7 @@ class TestPostPresence:
         assert data["status"] == "dnd"
         assert data["activity_type"] == "watching"
         assert data["activity_text"] == "el dashboard"
-        bot.change_presence.assert_awaited_once()
+        bot.apply_presence.assert_awaited_once()
 
     async def test_presence_with_bot_error_returns_500(
         self, async_client: AsyncClient, config_manager: Any
@@ -142,7 +142,7 @@ class TestPostPresence:
         from httpx import ASGITransport, AsyncClient
 
         bot = MagicMock()
-        bot.change_presence = AsyncMock(side_effect=RuntimeError("Discord error"))
+        bot.apply_presence = AsyncMock(side_effect=RuntimeError("Discord error"))
 
         app = create_app(config_manager=config_manager, bot=bot)
         transport = ASGITransport(app=app)

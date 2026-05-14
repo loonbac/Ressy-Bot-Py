@@ -34,18 +34,18 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Core
 
-- [ ] 2.1 Create `src/bot/plugins/music_player/player.py` — GuildPlayer (connect/disconnect, play/pause/resume/skip/stop, after_callback, set_volume) + GuildPlayerManager (get/get_or_create/cleanup dict)
+- [x] 2.1 Create `src/bot/plugins/music_player/player.py` — GuildPlayer (connect/disconnect, play/pause/resume/skip/stop, after_callback, set_volume) + GuildPlayerManager (get/get_or_create/cleanup dict)
 
 ## Phase 3: Integration
 
-- [ ] 3.1 Create `src/bot/plugins/music_player/cog.py` — MusicCog with 10 guild-only slash commands (play, pause, resume, skip, stop, queue, nowplaying, volume, join, leave)
-- [ ] 3.2 Create `src/bot/plugins/music_player/__init__.py` — setup() with DB init, config defaults seeding, cog+router registration, FFmpeg availability check
-- [ ] 3.3 Modify `src/__main__.py` — import and await setup_music_player() before mount_static_files
+- [x] 3.1 Create `src/bot/plugins/music_player/cog.py` — MusicCog with 10 guild-only slash commands (play, pause, resume, skip, stop, queue, nowplaying, volume, join, leave)
+- [x] 3.2 Create `src/bot/plugins/music_player/__init__.py` — setup() with DB init, config defaults seeding, cog+router registration, FFmpeg availability check
+- [x] 3.3 Modify `src/__main__.py` — import and await setup_music_player() before mount_static_files
 
 ## Phase 4: API
 
-- [ ] 4.1 Create `src/bot/plugins/music_player/api.py` — GET/PUT config, GET queue, GET nowplaying, POST control/{action} with snowflake-as-string IDs and push_event integration
+- [x] 4.1 Create `src/bot/plugins/music_player/api.py` — GET/PUT config, GET queue, GET nowplaying, POST control/{action} with snowflake-as-string IDs and push_event integration
 
 ## Phase 5: Tests
 
-- [ ] 5.1 Create `tests/test_music_player_plugin.py` — unit tests for TrackQueue (enqueue/dequeue/peek/clear), Pydantic models (volume bounds, snowflake strings), GuildPlayerManager lifecycle (get/create/cleanup), API endpoints via httpx.AsyncClient + TestClient
+- [x] 5.1 Create `tests/test_music_player_plugin.py` — unit tests for TrackQueue (enqueue/dequeue/peek/clear), Pydantic models (volume bounds, snowflake strings), GuildPlayerManager lifecycle (get/create/cleanup), API endpoints via httpx.AsyncClient + TestClient

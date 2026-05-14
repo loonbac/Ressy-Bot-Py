@@ -1,4 +1,7 @@
 import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from unittest.mock import MagicMock, AsyncMock, patch
 
 from src.bot.plugins.music_player.models import MusicConfig, QueueInfo, TrackInfo
 from src.bot.plugins.music_player.queue_manager import Track, TrackQueue
@@ -191,3 +194,880 @@ class TestBotIntents:
         mock_cm = MagicMock()
         bot = Bot(mock_cm)
         assert bot.intents.voice_states is True
+
+
+class TestGuildPlayerManager:
+    def test_get_returns_none_for_unknown_guild(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager
+        manager = GuildPlayerManager()
+        assert manager.get(123456789) is None
+
+    def test_get_or_create_creates_new_player(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager, GuildPlayer
+        manager = GuildPlayerManager()
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        assert isinstance(player, GuildPlayer)
+        assert player.guild_id == 123456789
+
+    def test_get_or_create_returns_existing_player(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager
+        manager = GuildPlayerManager()
+        mock_bot = MagicMock()
+        player1 = manager.get_or_create(123456789, mock_bot)
+        player2 = manager.get_or_create(123456789, mock_bot)
+        assert player1 is player2
+
+    def test_cleanup_removes_player(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager
+        manager = GuildPlayerManager()
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        manager.cleanup(123456789)
+        assert manager.get(123456789) is None
+
+    def test_cleanup_all_removes_all_players(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager
+        manager = GuildPlayerManager()
+        mock_bot = MagicMock()
+        manager.get_or_create(1, mock_bot)
+        manager.get_or_create(2, mock_bot)
+        manager.cleanup_all()
+        assert manager.get(1) is None
+        assert manager.get(2) is None
+
+    def test_active_players_returns_list(self):
+        from src.bot.plugins.music_player.player import GuildPlayerManager
+        manager = GuildPlayerManager()
+        mock_bot = MagicMock()
+        player = manager.get_or_create(1, mock_bot)
+        active = manager.active_players()
+        assert len(active) == 1
+        assert active[0][0] == 1
+        assert active[0][1] is player
+
+
+class TestGuildPlayer:
+    def test_initial_state(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        assert player.is_playing is False
+        assert player.is_paused is False
+        assert player.current_track is None
+        assert player.volume == 50
+
+    def test_set_volume(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        player.set_volume(75)
+        assert player.volume == 75
+
+    @pytest.mark.asyncio
+    async def test_connect_returns_true(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_channel.connect.return_value = AsyncMock()
+        result = await player.connect(mock_channel)
+        assert result is True
+        assert player.voice_client is not None
+
+    @pytest.mark.asyncio
+    async def test_disconnect_clears_voice_client(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_vc = AsyncMock()
+        mock_channel.connect.return_value = mock_vc
+        await player.connect(mock_channel)
+        await player.disconnect()
+        mock_vc.disconnect.assert_awaited_once()
+        assert player.voice_client is None
+
+    @pytest.mark.asyncio
+    async def test_play_extracts_and_starts_playback(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_vc = AsyncMock()
+        mock_channel.connect.return_value = mock_vc
+        await player.connect(mock_channel)
+
+        mock_extract_info = {
+            "title": "Test Song",
+            "url": "https://youtube.com/watch?v=abc",
+            "duration": 180,
+            "thumbnail": "https://img.youtube.com/vi/abc/default.jpg",
+            "formats": [{"url": "https://stream.url/audio", "format_id": "bestaudio"}],
+        }
+
+        with patch("src.bot.plugins.music_player.player.yt_dlp.YoutubeDL") as mock_ydl:
+            instance = MagicMock()
+            instance.__enter__ = MagicMock(return_value=instance)
+            instance.__exit__ = MagicMock(return_value=False)
+            instance.extract_info.return_value = mock_extract_info
+            mock_ydl.return_value = instance
+
+            track = await player.play("https://youtube.com/watch?v=abc")
+            assert track.title == "Test Song"
+            assert track.duration_seconds == 180
+            assert player.is_playing is True
+            assert player.current_track is not None
+            mock_vc.play.assert_called_once()
+
+    def test_pause(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_vc = MagicMock()
+        player.voice_client = mock_vc
+        player.is_playing = True
+        player.pause()
+        mock_vc.pause.assert_called_once()
+        assert player.is_paused is True
+
+    def test_resume(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_vc = MagicMock()
+        player.voice_client = mock_vc
+        player.is_paused = True
+        player.resume()
+        mock_vc.resume.assert_called_once()
+        assert player.is_paused is False
+
+    def test_skip_stops_current(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_vc = MagicMock()
+        player.voice_client = mock_vc
+        player.is_playing = True
+        player.skip()
+        mock_vc.stop.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_clears_queue_and_disconnects(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_vc = AsyncMock()
+        mock_channel.connect.return_value = mock_vc
+        await player.connect(mock_channel)
+        player.queue.add(Track(url="a", title="A"))
+        await player.stop()
+        assert player.queue.is_empty is True
+        assert player.is_playing is False
+        mock_vc.disconnect.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_after_callback_plays_next(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_vc = AsyncMock()
+        mock_channel.connect.return_value = mock_vc
+        await player.connect(mock_channel)
+
+        player.queue.add(Track(url="a", title="Next Song", duration_seconds=120))
+
+        mock_extract_info = {
+            "title": "Next Song",
+            "url": "https://youtube.com/watch?v=next",
+            "duration": 120,
+            "thumbnail": "",
+            "formats": [{"url": "https://stream.url/audio", "format_id": "bestaudio"}],
+        }
+
+        with patch("src.bot.plugins.music_player.player.yt_dlp.YoutubeDL") as mock_ydl:
+            instance = MagicMock()
+            instance.__enter__ = MagicMock(return_value=instance)
+            instance.__exit__ = MagicMock(return_value=False)
+            instance.extract_info.return_value = mock_extract_info
+            mock_ydl.return_value = instance
+
+            # after_callback is async but discord calls it sync with a lambda wrapping
+            # We call it directly for testing
+            await player.after_callback(None)
+            assert player.current_track is not None
+            assert player.current_track.title == "Next Song"
+            mock_vc.play.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_play_from_queue_empty(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        mock_channel = AsyncMock()
+        mock_vc = AsyncMock()
+        mock_channel.connect.return_value = mock_vc
+        await player.connect(mock_channel)
+        await player.play_from_queue()
+        assert player.is_playing is False
+        assert player.current_track is None
+
+    def test_set_volume_clamps_to_range(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+        player.set_volume(250)
+        assert player.volume == 200
+        player.set_volume(-10)
+        assert player.volume == 1
+
+
+class TestMusicCog:
+    def test_cog_initialization(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+        assert cog.bot is mock_bot
+        assert cog.player_manager is mock_manager
+
+    @pytest.mark.asyncio
+    async def test_join_command_connects_to_voice(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.user.voice.channel = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get_or_create.return_value = mock_player
+        mock_player.connect.return_value = True
+
+        await cog.join.callback(cog, interaction)
+        mock_player.connect.assert_awaited_once_with(interaction.user.voice.channel)
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_leave_command_disconnects(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+
+        await cog.leave.callback(cog, interaction)
+        mock_player.stop.assert_awaited_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_play_command_no_voice(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.user.voice = None
+        interaction.guild_id = 1
+
+        await cog.play.callback(cog, interaction, "test query")
+        interaction.response.send_message.assert_awaited_once()
+        assert "conectarte" in interaction.response.send_message.call_args[0][0].lower()
+
+    @pytest.mark.asyncio
+    async def test_play_command_adds_to_queue(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.user.voice.channel = AsyncMock()
+        interaction.user.id = 123
+        interaction.user.name = "TestUser"
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_player.is_playing = True
+        mock_manager.get_or_create.return_value = mock_player
+
+        mock_player.play.return_value = TrackInfo(
+            title="Test Song",
+            url="https://youtube.com/watch?v=abc",
+            requester_id="123",
+            requester_name="TestUser",
+            duration_seconds=180,
+            thumbnail_url="https://img.youtube.com/vi/abc/default.jpg",
+        )
+        await cog.play.callback(cog, interaction, "test query")
+        mock_player.queue.add.assert_called_once()
+        interaction.followup.send.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_pause_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+        mock_player.is_playing = True
+        mock_player.is_paused = False
+
+        await cog.pause.callback(cog, interaction)
+        mock_player.pause.assert_called_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_resume_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+        mock_player.is_paused = True
+
+        await cog.resume.callback(cog, interaction)
+        mock_player.resume.assert_called_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_skip_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+        mock_player.is_playing = True
+
+        await cog.skip.callback(cog, interaction)
+        mock_player.skip.assert_called_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+
+        await cog.stop.callback(cog, interaction)
+        mock_player.stop.assert_awaited_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_queue_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = MagicMock()
+        mock_player.queue.upcoming = []
+        mock_player.current_track = None
+        mock_manager.get.return_value = mock_player
+
+        await cog.queue.callback(cog, interaction)
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_nowplaying_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_track = MagicMock()
+        mock_track.title = "Current Song"
+        mock_track.requester_name = "User"
+        mock_track.duration_seconds = 180
+        mock_track.thumbnail_url = "https://img.youtube.com/vi/abc/default.jpg"
+
+        mock_player = MagicMock()
+        mock_player.current_track = mock_track
+        mock_player.is_paused = False
+        mock_player.volume = 75
+        mock_manager.get.return_value = mock_player
+
+        await cog.nowplaying.callback(cog, interaction)
+        interaction.response.send_message.assert_awaited_once()
+        embed = interaction.response.send_message.call_args[1]["embed"]
+        assert embed.title == "Current Song"
+
+    @pytest.mark.asyncio
+    async def test_volume_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = AsyncMock()
+        mock_manager.get.return_value = mock_player
+
+        await cog.volume.callback(cog, interaction, 75)
+        mock_player.set_volume.assert_called_once_with(75)
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_volume_command_out_of_range(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        await cog.volume.callback(cog, interaction, 250)
+        interaction.response.send_message.assert_awaited_once()
+        assert "1 y 200" in interaction.response.send_message.call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_clear_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = MagicMock()
+        mock_player.queue.is_empty = False
+        mock_manager.get.return_value = mock_player
+
+        await cog.clear.callback(cog, interaction)
+        mock_player.queue.clear.assert_called_once()
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_clear_command_empty_queue(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = MagicMock()
+        mock_player.queue.is_empty = True
+        mock_manager.get.return_value = mock_player
+
+        await cog.clear.callback(cog, interaction)
+        assert "vacía" in interaction.response.send_message.call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_remove_command(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = MagicMock()
+        mock_player.queue.is_empty = False
+        mock_player.queue.length = 5
+        mock_player.queue.remove.return_value = True
+        mock_manager.get.return_value = mock_player
+
+        await cog.remove.callback(cog, interaction, 3)
+        mock_player.queue.remove.assert_called_once_with(2)
+        interaction.response.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_remove_command_out_of_range(self):
+        from src.bot.plugins.music_player.cog import MusicCog
+        mock_bot = MagicMock()
+        mock_manager = MagicMock()
+        mock_db = MagicMock()
+        mock_cm = MagicMock()
+        cog = MusicCog(mock_bot, mock_manager, mock_db, mock_cm)
+
+        interaction = AsyncMock()
+        interaction.guild_id = 1
+
+        mock_player = MagicMock()
+        mock_player.queue.is_empty = False
+        mock_player.queue.length = 3
+        mock_player.queue.remove.return_value = False
+        mock_manager.get.return_value = mock_player
+
+        await cog.remove.callback(cog, interaction, 10)
+        assert "inválida" in interaction.response.send_message.call_args[0][0].lower()
+
+
+class TestMusicPluginSetup:
+    @pytest.mark.asyncio
+    async def test_setup_creates_db_and_registers_cog(self):
+        from src.bot.plugins.music_player import setup
+        from unittest.mock import AsyncMock
+
+        mock_bot = MagicMock()
+        mock_bot.add_cog = AsyncMock()
+        mock_cm = MagicMock()
+        mock_app = MagicMock()
+        mock_app.state = MagicMock()
+        mock_app.include_router = MagicMock()
+
+        db = await setup(mock_bot, mock_cm, mock_app)
+        assert db is not None
+        mock_bot.add_cog.assert_awaited_once()
+        mock_app.include_router.assert_called_once()
+        assert hasattr(mock_app.state, "music_db")
+        assert hasattr(mock_app.state, "music_cog")
+        assert hasattr(mock_app.state, "music_player_manager")
+        await db.close()
+
+
+# ---------------------------------------------------------------------------
+# API integration tests (PR 3)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+async def music_db():
+    import aiosqlite
+    db = await aiosqlite.connect(":memory:")
+    await db.execute(
+        "CREATE TABLE IF NOT EXISTS music_config (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+    )
+    defaults = {"enabled": "true", "default_volume": "50"}
+    for key, value in defaults.items():
+        await db.execute(
+            "INSERT OR IGNORE INTO music_config (key, value) VALUES (?, ?)", (key, value)
+        )
+    await db.commit()
+    yield db
+    await db.close()
+
+
+@pytest.fixture
+async def music_api_client(music_db):
+    from src.bot.plugins.music_player.api import router as music_router
+    from src.bot.plugins.music_player.player import GuildPlayerManager
+
+    app = FastAPI()
+    app.state.music_db = music_db
+    app.state.music_player_manager = GuildPlayerManager()
+
+    mock_bot = MagicMock()
+    app.state.bot = mock_bot
+    app.state.config_manager = MagicMock()
+    app.state.ffmpeg_available = True
+
+    app.include_router(music_router, prefix="/api/plugins/music")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
+class TestMusicAPI:
+    async def test_get_config_returns_defaults(self, music_api_client: AsyncClient):
+        resp = await music_api_client.get("/api/plugins/music/config")
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+        data = resp.json()
+        assert data["enabled"] is True
+        assert data["default_volume"] == 50
+
+    async def test_put_config_updates_values(self, music_api_client: AsyncClient):
+        resp = await music_api_client.put(
+            "/api/plugins/music/config",
+            json={"enabled": False, "default_volume": 75},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["enabled"] is False
+        assert data["default_volume"] == 75
+
+    async def test_put_config_clamps_volume_low(self, music_api_client: AsyncClient):
+        resp = await music_api_client.put(
+            "/api/plugins/music/config",
+            json={"default_volume": -50},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["default_volume"] == 1
+
+    async def test_put_config_clamps_volume_high(self, music_api_client: AsyncClient):
+        resp = await music_api_client.put(
+            "/api/plugins/music/config",
+            json={"default_volume": 500},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["default_volume"] == 200
+
+    async def test_put_config_ignores_unknown_keys(self, music_api_client: AsyncClient):
+        resp = await music_api_client.put(
+            "/api/plugins/music/config",
+            json={"unknown_key": "should_be_ignored"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "unknown_key" not in data
+
+    async def test_get_queue_no_guild_id_returns_error(self, music_api_client: AsyncClient):
+        resp = await music_api_client.get("/api/plugins/music/queue")
+        assert resp.status_code == 422  # FastAPI missing required query param
+
+    async def test_get_queue_with_no_player_returns_empty_queue(self, music_api_client: AsyncClient):
+        resp = await music_api_client.get("/api/plugins/music/queue?guild_id=123456789")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["guild_id"] == "123456789"
+        assert data["tracks"] == []
+        assert data["current_track"] is None
+        assert data["total_duration_seconds"] == 0
+
+    async def test_get_queue_with_player_returns_tracks(self, music_api_client: AsyncClient):
+        # Seed a player with tracks in the manager attached to the client app
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        player.queue.add(Track(url="https://a.com", title="Song A", duration_seconds=120))
+        player.queue.add(Track(url="https://b.com", title="Song B", duration_seconds=180))
+        player.set_volume(80)
+
+        resp = await music_api_client.get("/api/plugins/music/queue?guild_id=123456789")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["guild_id"] == "123456789"
+        assert len(data["tracks"]) == 2
+        assert data["tracks"][0]["title"] == "Song A"
+        assert data["tracks"][1]["title"] == "Song B"
+        assert data["total_duration_seconds"] == 300
+        assert data["volume"] == 80
+
+    async def test_get_nowplaying_no_guild_id_returns_error(self, music_api_client: AsyncClient):
+        resp = await music_api_client.get("/api/plugins/music/nowplaying")
+        assert resp.status_code == 422
+
+    async def test_get_nowplaying_no_player_returns_empty_state(self, music_api_client: AsyncClient):
+        resp = await music_api_client.get("/api/plugins/music/nowplaying?guild_id=123456789")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["current_track"] is None
+        assert data["is_playing"] is False
+        assert data["is_paused"] is False
+        assert data["volume"] == 50
+
+    async def test_get_nowplaying_with_player(self, music_api_client: AsyncClient):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        player._is_playing = True
+        player._is_paused = True
+        player._current_track = TrackInfo(
+            title="Now Playing",
+            url="https://example.com",
+            requester_id="111",
+            requester_name="User",
+            duration_seconds=200,
+            thumbnail_url="https://img.example.com/thumb.jpg",
+        )
+        player.set_volume(90)
+
+        resp = await music_api_client.get("/api/plugins/music/nowplaying?guild_id=123456789")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_playing"] is True
+        assert data["is_paused"] is True
+        assert data["volume"] == 90
+        assert data["current_track"]["title"] == "Now Playing"
+        assert data["current_track"]["duration_seconds"] == 200
+
+    async def test_control_pause(self, music_api_client: AsyncClient):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        mock_vc = MagicMock()
+        player.voice_client = mock_vc
+        player.is_playing = True
+
+        resp = await music_api_client.post(
+            "/api/plugins/music/control/pause",
+            json={"guild_id": "123456789"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ok"] is True
+        assert data["action"] == "pause"
+        mock_vc.pause.assert_called_once()
+        assert player.is_paused is True
+
+    async def test_control_resume(self, music_api_client: AsyncClient):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        mock_vc = MagicMock()
+        mock_vc.is_paused.return_value = True
+        player.voice_client = mock_vc
+        player.is_paused = True
+
+        resp = await music_api_client.post(
+            "/api/plugins/music/control/resume",
+            json={"guild_id": "123456789"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ok"] is True
+        assert data["action"] == "resume"
+        mock_vc.resume.assert_called_once()
+        assert player.is_paused is False
+
+    async def test_control_skip(self, music_api_client: AsyncClient):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        mock_vc = MagicMock()
+        player.voice_client = mock_vc
+        player.is_playing = True
+
+        resp = await music_api_client.post(
+            "/api/plugins/music/control/skip",
+            json={"guild_id": "123456789"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ok"] is True
+        assert data["action"] == "skip"
+        mock_vc.stop.assert_called_once()
+
+    async def test_control_stop(self, music_api_client: AsyncClient):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        manager = music_api_client._transport.app.state.music_player_manager
+        mock_bot = MagicMock()
+        player = manager.get_or_create(123456789, mock_bot)
+        mock_vc = AsyncMock()
+        player.voice_client = mock_vc
+        player.queue.add(Track(url="a", title="A"))
+
+        resp = await music_api_client.post(
+            "/api/plugins/music/control/stop",
+            json={"guild_id": "123456789"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ok"] is True
+        assert data["action"] == "stop"
+        assert player.queue.is_empty is True
+        assert player.is_playing is False
+
+    async def test_control_invalid_action_returns_400(self, music_api_client: AsyncClient):
+        resp = await music_api_client.post(
+            "/api/plugins/music/control/invalid",
+            json={"guild_id": "123456789"},
+        )
+        assert resp.status_code == 400
+
+    async def test_control_missing_guild_id(self, music_api_client: AsyncClient):
+        resp = await music_api_client.post("/api/plugins/music/control/pause", json={})
+        assert resp.status_code == 400
+
+    async def test_discord_channels_returns_voice_channels(self, music_api_client: AsyncClient):
+        mock_guild = MagicMock()
+        mock_guild.id = 111
+        mock_guild.name = "Test Guild"
+        mock_channel = MagicMock()
+        mock_channel.id = 222
+        mock_channel.name = "voice-general"
+        mock_guild.voice_channels = [mock_channel]
+        mock_guild.text_channels = []
+
+        music_api_client._transport.app.state.bot.guilds = [mock_guild]
+        music_api_client._transport.app.state.config_manager = MagicMock()
+        music_api_client._transport.app.state.config_manager.get.return_value = None
+
+        resp = await music_api_client.get("/api/plugins/music/discord-channels")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["channels"]) == 1
+        assert data["channels"][0]["id"] == "222"
+        assert data["channels"][0]["name"] == "voice-general"
+        assert data["channels"][0]["guild_name"] == "Test Guild"
+
+    async def test_discord_channels_no_bot_returns_empty(self, music_api_client: AsyncClient):
+        music_api_client._transport.app.state.bot = None
+        resp = await music_api_client.get("/api/plugins/music/discord-channels")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["channels"] == []
