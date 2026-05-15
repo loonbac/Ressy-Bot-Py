@@ -41,6 +41,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# FFmpeg: requerido por el plugin de música (yt-dlp + discord.py voice).
+# ffmpeg de Playwright NO sirve (no está en PATH ni es full ffmpeg).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Instalar dependencias Python primero (cache de capa: solo manifests).
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project

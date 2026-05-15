@@ -10,6 +10,7 @@ import asyncio
 import os
 import signal
 
+import discord
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -107,7 +108,27 @@ async def main_async() -> None:
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, _signal_handler)
 
-    bot_task = asyncio.create_task(bot.start(os.getenv("DISCORD_TOKEN", "")))
+    async def _run_bot() -> None:
+        """Arranca el bot. Si el token es inválido/ausente, NO mata el proceso:
+        loguea claro y se queda esperando, así el dashboard + /healthz siguen
+        vivos (Coolify no entra en crash-loop). Corregir DISCORD_TOKEN y
+        redeployar reconecta el bot."""
+        token = os.getenv("DISCORD_TOKEN", "")
+        try:
+            await bot.start(token)
+        except discord.LoginFailure:
+            print(
+                "[Bot] DISCORD_TOKEN inválido o ausente. El bot NO se conectó. "
+                "El dashboard sigue disponible. Configura DISCORD_TOKEN en el "
+                "entorno y redeploya.",
+                flush=True,
+            )
+            await asyncio.Event().wait()  # mantener vivo sin tumbar uvicorn
+        except Exception as exc:
+            print(f"[Bot] Error inesperado en arranque del bot: {exc}", flush=True)
+            await asyncio.Event().wait()
+
+    bot_task = asyncio.create_task(_run_bot())
     server_task = asyncio.create_task(server.serve())
     shutdown_task = asyncio.create_task(_shutdown_event.wait())
 
