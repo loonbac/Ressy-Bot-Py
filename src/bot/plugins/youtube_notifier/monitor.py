@@ -19,17 +19,13 @@ class YouTubeMonitor:
         self._db: aiosqlite.Connection | None = None
         self._stop_event = asyncio.Event()
         self._task: asyncio.Task | None = None
-        self._poll_interval = 10
-        self._last_poll: datetime | None = None
         self._http = httpx.AsyncClient(
             timeout=30.0,
             headers={
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-                "Accept": "text/xml, application/xml, */*",
             },
             follow_redirects=True,
         )
-        self._consecutive_failures: dict[str, int] = {}
 
     async def init_db(self) -> None:
         self._db = await aiosqlite.connect(self.db_path)
@@ -66,6 +62,24 @@ class YouTubeMonitor:
         except Exception:
             pass  # column already exists
 
+        # Migrate existing tables that don't have pending_hub_subscribe
+        try:
+            await self._db.execute(
+                "ALTER TABLE youtube_subscriptions ADD COLUMN pending_hub_subscribe INTEGER DEFAULT 0"
+            )
+            await self._db.commit()
+        except Exception:
+            pass  # column already exists
+
+        # Migrate existing tables that don't have hub_subscribed_at
+        try:
+            await self._db.execute(
+                "ALTER TABLE youtube_subscriptions ADD COLUMN hub_subscribed_at TEXT"
+            )
+            await self._db.commit()
+        except Exception:
+            pass  # column already exists
+
         await self._db.execute(
             """
             CREATE TABLE IF NOT EXISTS youtube_videos (
@@ -92,7 +106,6 @@ class YouTubeMonitor:
         # Seed default config
         defaults = {
             "enabled": "true",
-            "poll_interval_minutes": "30",
             "discord_channel_id": "",
             "callback_url": "",
             "google_api_key": "",
@@ -114,9 +127,40 @@ class YouTubeMonitor:
             self._db = None
         await self._http.aclose()
 
-    async def start(self) -> None:
-        self._stop_event.clear()
-        self._task = asyncio.create_task(self._polling_loop())
+    async def start_hub_renewal_loop(self) -> None:
+        self._stop_event = asyncio.Event()
+        self._task = asyncio.create_task(self._hub_renewal_loop())
+
+    async def _hub_renewal_loop(self) -> None:
+        """Every 24h, re-subscribe channels with leases >= 4 days old."""
+        while not self._stop_event.is_set():
+            try:
+                config = await self.get_config()
+                if config.callback_url:
+                    rows = await self._db.execute_fetchall(
+                        """SELECT channel_id FROM youtube_subscriptions
+                           WHERE active = 1
+                           AND (hub_subscribed_at IS NULL
+                                OR hub_subscribed_at < datetime('now', '-4 days'))"""
+                    )
+                    for (channel_id,) in rows:
+                        success = await self.subscribe_to_hub(channel_id, config.callback_url)
+                        if success:
+                            await self._db.execute(
+                                "UPDATE youtube_subscriptions SET hub_subscribed_at = ? WHERE channel_id = ?",
+                                (datetime.now(timezone.utc).isoformat(), channel_id),
+                            )
+                            await self._db.commit()
+                # TTL cleanup
+                await self._execute_ttl_cleanup()
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                print(f"[YouTubeMonitor] Hub renewal error: {exc}")
+            try:
+                await asyncio.wait_for(self._stop_event.wait(), timeout=86400)
+            except asyncio.TimeoutError:
+                continue
 
     async def stop(self) -> None:
         self._stop_event.set()
@@ -128,127 +172,15 @@ class YouTubeMonitor:
                 pass
             self._task = None
 
-    async def _polling_loop(self) -> None:
-        while not self._stop_event.is_set():
-            try:
-                config = await self.get_config()
-                if config.enabled:
-                    self._poll_interval = config.poll_interval_minutes
-                    await self.poll_channels()
-                    self._last_poll = datetime.now(timezone.utc)
-            except Exception as exc:
-                print(f"[YouTubeMonitor] Error en polling: {exc}")
-
-            try:
-                await asyncio.wait_for(
-                    self._stop_event.wait(),
-                    timeout=self._poll_interval * 60,
-                )
-            except asyncio.TimeoutError:
-                continue
-
-    async def poll_channels(self) -> list[YouTubeVideo]:
-        if self._db is None:
-            raise RuntimeError("DB no inicializada")
-
-        result = await self.poll_channels_with_diagnostics()
-        return result["videos"]
-
-    async def poll_channels_with_diagnostics(self) -> dict[str, Any]:
-        """Poll channels and return detailed diagnostics per channel."""
-        if self._db is None:
-            raise RuntimeError("DB no inicializada")
-
-        rows = await self._db.execute_fetchall(
-            "SELECT channel_id, channel_name, thumbnail_url, notifications_enabled FROM youtube_subscriptions WHERE active = 1"
-        )
-
-        new_videos: list[YouTubeVideo] = []
-        diagnostics: list[dict[str, Any]] = []
-
-        for row in rows:
-            channel_id = row[0]
-            channel_name = row[1]
-            channel_thumbnail = row[2] or ""
-            notifications_enabled = bool(row[3])
-
-            diag: dict[str, Any] = {
-                "channel_id": channel_id,
-                "channel_name": channel_name,
-                "status": "ok",
-                "videos_found": 0,
-                "new_videos": 0,
-            }
-
-            try:
-                videos = await self.fetch_recent_videos(channel_id)
-                # Success: reset failure counter
-                self._consecutive_failures[channel_id] = 0
-            except httpx.HTTPStatusError as exc:
-                self._consecutive_failures[channel_id] = self._consecutive_failures.get(channel_id, 0) + 1
-                fails = self._consecutive_failures[channel_id]
-                diag["status"] = "error"
-                diag["error"] = f"HTTP {exc.response.status_code}"
-                try:
-                    diag["error_detail"] = exc.response.text[:500]
-                except Exception:
-                    diag["error_detail"] = "No detail available"
-
-                if fails == 1:
-                    print(f"[YouTubeMonitor] RSS no disponible para {channel_id} (HTTP {exc.response.status_code})")
-                elif fails >= 3:
-                    await self._db.execute(
-                        "UPDATE youtube_subscriptions SET active = 0 WHERE channel_id = ?",
-                        (channel_id,),
-                    )
-                    await self._db.commit()
-                    print(f"[YouTubeMonitor] Canal {channel_id} desactivado tras {fails} fallos consecutivos")
-                diagnostics.append(diag)
-                continue
-            except Exception as exc:
-                diag["status"] = "error"
-                diag["error"] = str(exc)
-                diagnostics.append(diag)
-                print(f"[YouTubeMonitor] Error inesperado para {channel_id}: {exc}")
-                continue
-
-            diag["videos_found"] = len(videos)
-
-            for video in videos:
-                exists = await self._db.execute_fetchall(
-                    "SELECT 1 FROM youtube_videos WHERE video_id = ?", (video.video_id,)
-                )
-                if not exists:
-                    await self._store_video(video)
-                    new_videos.append(video)
-                    diag["new_videos"] += 1
-                    if notifications_enabled:
-                        await self.notify_new_video(video, channel_name, channel_thumbnail)
-
+    async def _execute_ttl_cleanup(self) -> None:
+        if self._db is not None:
             await self._db.execute(
-                "UPDATE youtube_subscriptions SET last_checked = ? WHERE channel_id = ?",
-                (datetime.now(timezone.utc).isoformat(), channel_id),
+                "DELETE FROM youtube_videos WHERE published_at < datetime('now', '-30 days')"
             )
             await self._db.commit()
-            diagnostics.append(diag)
 
-        return {
-            "videos": new_videos,
-            "diagnostics": diagnostics,
-            "channels_checked": len(rows),
-        }
-
-    async def fetch_recent_videos(self, channel_id: str) -> list[YouTubeVideo]:
-        """Fetch recent videos using YouTube Data API v3 (preferred) or RSS fallback."""
-        config = await self.get_config()
-
-        if config.google_api_key:
-            return await self._fetch_via_api(channel_id, config.google_api_key)
-        else:
-            return await self._fetch_via_rss(channel_id)
-
-    async def _fetch_via_api(self, channel_id: str, api_key: str) -> list[YouTubeVideo]:
-        """Fetch videos using YouTube Data API v3."""
+    async def _seed_via_api(self, channel_id: str, api_key: str) -> list[YouTubeVideo]:
+        """Fetch videos using YouTube Data API v3 for seeding a new subscription."""
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
             "part": "snippet",
@@ -259,9 +191,6 @@ class YouTubeMonitor:
             "key": api_key,
         }
 
-        # Use a fresh client with default headers instead of the RSS-optimised
-        # client that sends Accept: text/xml. This matches what search_channels
-        # does in api.py and avoids any header-related surprises.
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, params=params)
 
@@ -319,68 +248,6 @@ class YouTubeMonitor:
             ))
 
         return videos
-
-    async def _fetch_via_rss(self, channel_id: str) -> list[YouTubeVideo]:
-        url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-        response = await self._http.get(url, follow_redirects=True)
-        response.raise_for_status()
-        text = response.text
-
-        root = ET.fromstring(text)
-
-        # NS map for Atom + yt
-        ns = {
-            "atom": "http://www.w3.org/2005/Atom",
-            "yt": "http://www.youtube.com/xml/schemas/2015",
-        }
-
-        videos: list[YouTubeVideo] = []
-        for entry in root.findall("atom:entry", ns):
-            video_id_elem = entry.find("yt:videoId", ns)
-            title_elem = entry.find("atom:title", ns)
-            link_elem = entry.find("atom:link[@rel='alternate']", ns)
-            published_elem = entry.find("atom:published", ns)
-
-            if video_id_elem is None or title_elem is None:
-                continue
-
-            video_id = video_id_elem.text or ""
-            title = html.unescape(title_elem.text or "")
-            video_url = (
-                link_elem.get("href")
-                if link_elem is not None
-                else f"https://www.youtube.com/watch?v={video_id}"
-            )
-            published_at = datetime.now(timezone.utc)
-            if published_elem is not None and published_elem.text:
-                try:
-                    published_at = datetime.fromisoformat(
-                        published_elem.text.replace("Z", "+00:00")
-                    )
-                except ValueError:
-                    pass
-
-            videos.append(
-                YouTubeVideo(
-                    video_id=video_id,
-                    channel_id=channel_id,
-                    title=title,
-                    url=video_url,
-                    published_at=published_at,
-                    notified=False,
-                )
-            )
-
-        return videos
-
-    async def check_rss(self, channel_id: str) -> bool:
-        """Check if a channel's RSS feed is accessible."""
-        url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-        try:
-            response = await self._http.get(url, follow_redirects=True, timeout=10.0)
-            return response.status_code == 200
-        except Exception:
-            return False
 
     async def notify_new_video(
         self,
@@ -700,7 +567,7 @@ class YouTubeMonitor:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
         rows = await self._db.execute_fetchall(
-            "SELECT channel_id, channel_name, thumbnail_url, added_at, last_checked, active, notifications_enabled FROM youtube_subscriptions WHERE active = 1"
+            "SELECT channel_id, channel_name, thumbnail_url, added_at, last_checked, active, notifications_enabled, pending_hub_subscribe, hub_subscribed_at FROM youtube_subscriptions WHERE active = 1"
         )
         return [
             {
@@ -711,6 +578,8 @@ class YouTubeMonitor:
                 "last_checked": r[4],
                 "active": bool(r[5]),
                 "notifications_enabled": bool(r[6]),
+                "pending_hub_subscribe": r[7] if r[7] is not None else 0,
+                "hub_subscribed_at": r[8],
             }
             for r in rows
         ]
@@ -719,7 +588,7 @@ class YouTubeMonitor:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
         row = await self._db.execute_fetchall(
-            "SELECT channel_id, channel_name, thumbnail_url, added_at, last_checked, active, notifications_enabled FROM youtube_subscriptions WHERE channel_id = ?",
+            "SELECT channel_id, channel_name, thumbnail_url, added_at, last_checked, active, notifications_enabled, pending_hub_subscribe, hub_subscribed_at FROM youtube_subscriptions WHERE channel_id = ?",
             (channel_id,),
         )
         if not row:
@@ -733,6 +602,8 @@ class YouTubeMonitor:
             "last_checked": r[4],
             "active": bool(r[5]),
             "notifications_enabled": bool(r[6]),
+            "pending_hub_subscribe": r[7] if r[7] is not None else 0,
+            "hub_subscribed_at": r[8],
         }
 
     async def get_videos(
@@ -769,7 +640,6 @@ class YouTubeMonitor:
         cfg: dict[str, Any] = {r[0]: r[1] for r in rows}
         return YouTubePluginConfig(
             enabled=cfg.get("enabled", "true").lower() == "true",
-            poll_interval_minutes=int(cfg.get("poll_interval_minutes", "30")),
             discord_channel_id=int(cfg["discord_channel_id"])
             if cfg.get("discord_channel_id", "")
             else None,
@@ -787,10 +657,6 @@ class YouTubeMonitor:
         await self._db.execute(
             "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
             ("enabled", str(config.enabled).lower()),
-        )
-        await self._db.execute(
-            "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
-            ("poll_interval_minutes", str(config.poll_interval_minutes)),
         )
         await self._db.execute(
             "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
@@ -837,7 +703,6 @@ class YouTubeMonitor:
         config = await self.get_config()
         return {
             "enabled": config.enabled,
-            "poll_interval_minutes": config.poll_interval_minutes,
             "discord_channel_id": str(config.discord_channel_id) if config.discord_channel_id is not None else None,
             "callback_url": config.callback_url,
             "google_api_key": config.google_api_key,
@@ -847,7 +712,6 @@ class YouTubeMonitor:
             "filter_min_duration": config.filter_min_duration,
             "channels_count": sub_count[0][0] if sub_count else 0,
             "videos_count": video_count[0][0] if video_count else 0,
-            "last_poll": self._last_poll.isoformat() if self._last_poll else None,
         }
 
     async def get_latest_videos_per_channel(self) -> list[dict[str, Any]]:

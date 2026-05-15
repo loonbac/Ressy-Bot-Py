@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -29,6 +30,48 @@ async def monitor():
     await mon.init_db()
     yield mon
     await mon.close_db()
+
+
+class TestHubSubscribedColumns:
+    async def test_pending_hub_subscribe_column_exists(self, monitor: YouTubeMonitor):
+        """T1: pending_hub_subscribe column must exist after init_db."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        row = await monitor._db.execute_fetchall(
+            "SELECT pending_hub_subscribe FROM youtube_subscriptions WHERE channel_id = ?",
+            ("UC_test",),
+        )
+        assert len(row) == 1
+        assert row[0][0] == 0  # DEFAULT 0
+
+    async def test_hub_subscribed_at_column_exists(self, monitor: YouTubeMonitor):
+        """T1: hub_subscribed_at column must exist after init_db."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        row = await monitor._db.execute_fetchall(
+            "SELECT hub_subscribed_at FROM youtube_subscriptions WHERE channel_id = ?",
+            ("UC_test",),
+        )
+        assert len(row) == 1
+        assert row[0][0] is None
+
+    async def test_list_subscriptions_includes_hub_columns(self, monitor: YouTubeMonitor):
+        """T1: list_subscriptions must include pending_hub_subscribe and hub_subscribed_at."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        subs = await monitor.list_subscriptions()
+        assert len(subs) == 1
+        assert "pending_hub_subscribe" in subs[0]
+        assert "hub_subscribed_at" in subs[0]
+        assert subs[0]["pending_hub_subscribe"] == 0
+        assert subs[0]["hub_subscribed_at"] is None
+
+    async def test_get_subscription_includes_hub_columns(self, monitor: YouTubeMonitor):
+        """T1: get_subscription must include pending_hub_subscribe and hub_subscribed_at."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        sub = await monitor.get_subscription("UC_test")
+        assert sub is not None
+        assert "pending_hub_subscribe" in sub
+        assert "hub_subscribed_at" in sub
+        assert sub["pending_hub_subscribe"] == 0
+        assert sub["hub_subscribed_at"] is None
 
 
 class TestDatabaseOperations:
@@ -71,7 +114,6 @@ class TestDatabaseOperations:
     async def test_get_config_defaults(self, monitor: YouTubeMonitor):
         cfg = await monitor.get_config()
         assert cfg.enabled is True
-        assert cfg.poll_interval_minutes == 30
         assert cfg.discord_channel_id is None
         assert cfg.callback_url == ""
         assert cfg.announcement_message == "@everyone ¡Hay un nuevo video en {canal}!"
@@ -84,7 +126,6 @@ class TestDatabaseOperations:
 
         cfg = YouTubePluginConfig(
             enabled=False,
-            poll_interval_minutes=5,
             discord_channel_id=123456,
             callback_url="https://example.com/callback",
             announcement_message="Nuevo video!",
@@ -96,7 +137,6 @@ class TestDatabaseOperations:
 
         loaded = await monitor.get_config()
         assert loaded.enabled is False
-        assert loaded.poll_interval_minutes == 5
         assert loaded.discord_channel_id == 123456
         assert loaded.callback_url == "https://example.com/callback"
         assert loaded.announcement_message == "Nuevo video!"
@@ -105,110 +145,158 @@ class TestDatabaseOperations:
         assert loaded.filter_min_duration == 300
 
 
-class TestVideoDetection:
-    async def test_new_video_detected(self, monitor: YouTubeMonitor):
-        await monitor.add_subscription("UC_test", "Canal Test")
+class TestRSSRemoval:
+    async def test_fetch_via_rss_removed(self, monitor: YouTubeMonitor):
+        """T3: _fetch_via_rss must not exist after RSS removal."""
+        assert not hasattr(monitor, "_fetch_via_rss")
 
-        # Simular inserción manual de un video existente
+    async def test_check_rss_removed(self, monitor: YouTubeMonitor):
+        """T3: check_rss must not exist after RSS removal."""
+        assert not hasattr(monitor, "check_rss")
+
+    async def test_poll_channels_removed(self, monitor: YouTubeMonitor):
+        """T3: poll_channels must not exist after RSS removal."""
+        assert not hasattr(monitor, "poll_channels")
+
+    async def test_fetch_recent_videos_removed(self, monitor: YouTubeMonitor):
+        """T3: fetch_recent_videos must not exist after RSS removal."""
+        assert not hasattr(monitor, "fetch_recent_videos")
+
+    async def test_start_is_noop_or_removed(self, monitor: YouTubeMonitor):
+        """T3: start() should be a no-op or removed."""
+        if hasattr(monitor, "start"):
+            await monitor.start()
+            # Should not raise and should not create a polling task
+
+    async def test_http_headers_no_xml_accept(self, monitor: YouTubeMonitor):
+        """T3: httpx client should not send Accept: text/xml."""
+        headers = monitor._http.headers
+        accept = headers.get("Accept", "")
+        assert "text/xml" not in accept
+
+
+class TestHubRenewalLoop:
+    async def test_start_hub_renewal_loop_creates_task(self, monitor: YouTubeMonitor):
+        """T4: start_hub_renewal_loop must create an asyncio task."""
+        await monitor.start_hub_renewal_loop()
+        assert monitor._task is not None
+        assert not monitor._task.done()
+        await monitor.stop()
+
+    async def test_stop_cancels_task(self, monitor: YouTubeMonitor):
+        """T4: stop must cancel the hub renewal task."""
+        await monitor.start_hub_renewal_loop()
+        assert monitor._task is not None
+        await monitor.stop()
+        assert monitor._task is None
+
+    async def test_hub_renewal_loop_resubscribes_expired(self, monitor: YouTubeMonitor):
+        """T4: _hub_renewal_loop re-subscribes channels with hub_subscribed_at >= 4 days old."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
+
+        await monitor.add_subscription("UC_test", "Canal Test")
+        # Set hub_subscribed_at to 5 days ago
         await monitor._db.execute(
-            """
-            INSERT INTO youtube_videos (video_id, channel_id, title, url, published_at, notified)
-            VALUES (?, ?, ?, ?, ?, 0)
-            """,
-            ("video_old", "UC_test", "Old Video", "https://youtu.be/video_old", datetime.now(timezone.utc).isoformat()),
+            "UPDATE youtube_subscriptions SET hub_subscribed_at = datetime('now', '-5 days') WHERE channel_id = ?",
+            ("UC_test",),
         )
         await monitor._db.commit()
 
-        # Simular fetch_rss que devuelve un video nuevo y uno viejo
-        new_video = MagicMock()
-        new_video.video_id = "video_new"
-        new_video.channel_id = "UC_test"
-        new_video.title = "New Video"
-        new_video.url = "https://youtu.be/video_new"
-        new_video.published_at = datetime.now(timezone.utc)
-        new_video.notified = False
+        call_count = 0
+        def _is_set():
+            nonlocal call_count
+            call_count += 1
+            return call_count > 2  # allow one loop iteration
 
-        old_video = MagicMock()
-        old_video.video_id = "video_old"
-        old_video.channel_id = "UC_test"
-        old_video.title = "Old Video"
-        old_video.url = "https://youtu.be/video_old"
-        old_video.published_at = datetime.now(timezone.utc)
-        old_video.notified = False
+        with patch.object(monitor, "subscribe_to_hub", return_value=True) as mock_sub:
+            monitor._stop_event = asyncio.Event()
+            monitor._stop_event.is_set = _is_set
+            monitor._stop_event.wait = AsyncMock(return_value=None)
+            await monitor._hub_renewal_loop()
 
-        with patch.object(monitor, "fetch_recent_videos", return_value=[new_video, old_video]):
-            with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
-                new_videos = await monitor.poll_channels()
+        mock_sub.assert_awaited_once_with("UC_test", "https://example.com/callback")
 
-        assert len(new_videos) == 1
-        assert new_videos[0].video_id == "video_new"
-
-    async def test_no_duplicate_videos(self, monitor: YouTubeMonitor):
+    async def test_hub_renewal_loop_skips_fresh_subscriptions(self, monitor: YouTubeMonitor):
+        """T4: _hub_renewal_loop skips channels with hub_subscribed_at < 4 days old."""
         await monitor.add_subscription("UC_test", "Canal Test")
+        await monitor._db.execute(
+            "UPDATE youtube_subscriptions SET hub_subscribed_at = datetime('now', '-1 days') WHERE channel_id = ?",
+            ("UC_test",),
+        )
+        await monitor._db.commit()
 
-        video = MagicMock()
-        video.video_id = "video_1"
-        video.channel_id = "UC_test"
-        video.title = "Video 1"
-        video.url = "https://youtu.be/video_1"
-        video.published_at = datetime.now(timezone.utc)
-        video.notified = False
+        call_count = 0
+        def _is_set():
+            nonlocal call_count
+            call_count += 1
+            return call_count > 2
 
-        with patch.object(monitor, "fetch_recent_videos", return_value=[video]):
-            with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
-                new_videos = await monitor.poll_channels()
-        assert len(new_videos) == 1
+        with patch.object(monitor, "subscribe_to_hub", return_value=True) as mock_sub:
+            monitor._stop_event = asyncio.Event()
+            monitor._stop_event.is_set = _is_set
+            monitor._stop_event.wait = AsyncMock(return_value=None)
+            await monitor._hub_renewal_loop()
 
-        # Segunda poll con el mismo video
-        with patch.object(monitor, "fetch_recent_videos", return_value=[video]):
-            with patch.object(monitor, "notify_new_video", new_callable=AsyncMock):
-                new_videos = await monitor.poll_channels()
-        assert len(new_videos) == 0
+        mock_sub.assert_not_awaited()
+
+    async def test_execute_ttl_cleanup_deletes_old_videos(self, monitor: YouTubeMonitor):
+        """T4: _execute_ttl_cleanup deletes videos older than 30 days."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        await monitor._db.execute(
+            """
+            INSERT INTO youtube_videos (video_id, channel_id, title, url, published_at, notified)
+            VALUES (?, ?, ?, ?, datetime('now', '-31 days'), 0)
+            """,
+            ("v_old", "UC_test", "Old", "https://youtu.be/v_old"),
+        )
+        await monitor._db.execute(
+            """
+            INSERT INTO youtube_videos (video_id, channel_id, title, url, published_at, notified)
+            VALUES (?, ?, ?, ?, datetime('now', '-1 days'), 0)
+            """,
+            ("v_new", "UC_test", "New", "https://youtu.be/v_new"),
+        )
+        await monitor._db.commit()
+
+        await monitor._execute_ttl_cleanup()
+
+        videos = await monitor.get_videos(limit=10)
+        assert len(videos) == 1
+        assert videos[0]["video_id"] == "v_new"
 
 
-class TestRSSParsing:
-    async def test_fetch_rss_parses_xml(self, monitor: YouTubeMonitor):
-        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"
-      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
-  <title>Canal Test</title>
-  <entry>
-    <id>yt:video:ABC123:UC_test</id>
-    <yt:videoId>ABC123</yt:videoId>
-    <yt:channelId>UC_test</yt:channelId>
-    <title>Video de prueba</title>
-    <link rel="alternate" href="https://www.youtube.com/watch?v=ABC123"/>
-    <published>2024-01-15T10:30:00+00:00</published>
-  </entry>
-</feed>
-"""
+class TestSeedViaAPI:
+    async def test_seed_via_api_exists(self, monitor: YouTubeMonitor):
+        """T8: _seed_via_api must exist (renamed from _fetch_via_api)."""
+        assert hasattr(monitor, "_seed_via_api")
+
+    async def test_seed_via_api_returns_videos(self, monitor: YouTubeMonitor):
+        """T8: _seed_via_api fetches videos via YouTube Data API."""
+        import json
         mock_response = MagicMock()
-        mock_response.text = rss_xml
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "items": [
+                {
+                    "id": {"kind": "youtube#video", "videoId": "API123"},
+                    "snippet": {
+                        "title": "API Video",
+                        "publishedAt": "2024-01-15T10:30:00+00:00",
+                    },
+                }
+            ]
+        }
         mock_response.raise_for_status = MagicMock()
 
-        with patch.object(monitor._http, "get", return_value=mock_response):
-            videos = await monitor._fetch_via_rss("UC_test")
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            videos = await monitor._seed_via_api("UC_test", "test_api_key")
 
         assert len(videos) == 1
-        assert videos[0].video_id == "ABC123"
-        assert videos[0].title == "Video de prueba"
-        assert videos[0].url == "https://www.youtube.com/watch?v=ABC123"
-        assert videos[0].channel_id == "UC_test"
-
-    async def test_fetch_rss_empty_feed(self, monitor: YouTubeMonitor):
-        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-  <title>Canal Vacio</title>
-</feed>
-"""
-        mock_response = MagicMock()
-        mock_response.text = rss_xml
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(monitor._http, "get", return_value=mock_response):
-            videos = await monitor._fetch_via_rss("UC_empty")
-
-        assert len(videos) == 0
+        assert videos[0].video_id == "API123"
+        assert videos[0].title == "API Video"
 
 
 class TestAPIIntegration:
@@ -217,7 +305,8 @@ class TestAPIIntegration:
         assert "enabled" in status
         assert "channels_count" in status
         assert "videos_count" in status
-        assert "last_poll" in status
+        assert "poll_interval_minutes" not in status
+        assert "last_poll" not in status
         assert status["channels_count"] == 0
         assert status["videos_count"] == 0
 
@@ -544,7 +633,6 @@ class TestGoogleAPIKeyPersistence:
         resp = await youtube_client.put("/api/plugins/youtube/config", json={
             "google_api_key": "AIzaSyEndpointKey",
             "enabled": True,
-            "poll_interval_minutes": 30,
             "discord_channel_id": None,
             "callback_url": "",
             "announcement_message": "",

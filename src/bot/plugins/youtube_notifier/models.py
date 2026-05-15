@@ -30,7 +30,6 @@ class YouTubeSubscription(BaseModel):
 
 class YouTubePluginConfig(BaseModel):
     enabled: bool = True
-    poll_interval_minutes: int = 30  # reduce polling since PubSubHubbub is primary
     # Discord IDs are 64-bit snowflakes that exceed JS Number.MAX_SAFE_INTEGER.
     # Internally stored as int; serialized as string on the JSON boundary so
     # the frontend never loses precision.
