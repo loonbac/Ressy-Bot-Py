@@ -7,6 +7,7 @@ interface Props {
   channelName: string;
   thumbnailUrl?: string;
   notificationsEnabled: boolean;
+  pendingHubSubscribe?: boolean;
   isNew?: boolean;
   isDeleting?: boolean;
   animationDelay?: number;
@@ -19,6 +20,7 @@ export default function AnimatedChannelCard({
   channelName,
   thumbnailUrl,
   notificationsEnabled,
+  pendingHubSubscribe = false,
   isNew = false,
   isDeleting = false,
   animationDelay = 0,
@@ -62,8 +64,14 @@ export default function AnimatedChannelCard({
           )}
         </div>
         <div className="min-w-0">
-          <h4 className="font-medium text-on-surface text-sm truncate">
+          <h4 className="font-medium text-on-surface text-sm truncate flex items-center">
             {channelName || channelId}
+            {pendingHubSubscribe && (
+              <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/20 text-warning text-[11px] font-bold uppercase animate-pulse">
+                <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings: "'FILL' 1"}}>warning</span>
+                Sin callback
+              </span>
+            )}
           </h4>
           <p className="text-label-sm text-on-surface-variant truncate">@{channelId}</p>
         </div>

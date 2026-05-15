@@ -44,12 +44,13 @@ Chain strategy: pending
 
 ## Phase 4: Frontend — Remove Polling UI + Hub Fields
 
-- [ ] T11: Remove `PollDiagnostics`, `triggerYouTubePoll`, `removeFailedSubscriptions` from youtube.ts; remove `poll_interval_minutes` from `YouTubeConfig`; add `pending_hub_subscribe`, `hub_subscribed_at` to `YouTubeSubscription`
-- [ ] T12: Add prominent callback_url warning banner in ConnectionCard.tsx (required indicator, info text when empty)
-- [ ] T13: Pass `pending_hub_subscribe` via ChannelsListCard.tsx → AnimatedChannelCard.tsx; add yellow warning chip "Suscripción pendiente al hub"
-- [ ] T14: Clean up poll_interval_minutes references from YouTubeConfig.tsx (state type, PUT body, config update)
+- [x] T11: Remove `PollDiagnostics`, `triggerYouTubePoll`, `removeFailedSubscriptions` from youtube.ts; remove `poll_interval_minutes` from `YouTubeConfig`; add `pending_hub_subscribe`, `hub_subscribed_at` to `YouTubeSubscription`
+- [x] T12: Add prominent callback_url warning banner in ConnectionCard.tsx (required indicator, info text when empty)
+- [x] T13: Pass `pending_hub_subscribe` via ChannelsListCard.tsx → AnimatedChannelCard.tsx; add yellow warning chip "Sin callback"
+- [x] T14: Clean up poll_interval_minutes references from YouTubeConfig.tsx (state type, PUT body, config update)
 
 ## Phase 5: Tests
 
-- [ ] T15: Remove `TestRSSParsing`, `test_consecutive_failures_sweep`, poll-based `test_new_video_detected`/`test_videos_ttl`; drop poll_interval from config/status tests
-- [ ] T16: Add tests: hub renewal (expired/fresh/error), auto-subscribe (with/without callback), added_at cutoff (before/after), `_seed_via_api`, pending resolution, removed endpoints 404, test-notify 400, callback_server cutoff
+- [x] T15: Remove `TestRSSParsing`, `test_consecutive_failures_sweep`, poll-based `test_new_video_detected`/`test_videos_ttl`; drop poll_interval from config/status tests
+- [x] T16: Add tests: hub renewal (expired/fresh/error), auto-subscribe (with/without callback), added_at cutoff (before/after), `_seed_via_api`, pending resolution, removed endpoints 404, test-notify 400, callback_server cutoff
+- [x] T17 (PR2): Add API-level tests for pending_hub_subscribe in subscription listing, status excluding poll fields, and callback config resolving pending subscriptions

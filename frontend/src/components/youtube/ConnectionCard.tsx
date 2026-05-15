@@ -24,11 +24,17 @@ export default function ConnectionCard({
           </label>
           <input
             type="url"
-            className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all text-on-surface"
+            className={`w-full bg-surface-container-low border rounded-lg py-2 px-3 text-sm font-body-md focus:ring-2 focus:ring-secondary/20 outline-none transition-all text-on-surface ${
+              !config.callback_url ? 'border-error/60' : 'border-outline-variant/30'
+            }`}
             placeholder="https://tu-dominio.ngrok-free.app"
             value={config.callback_url}
             onChange={(e) => onCallbackUrlChange(e.target.value)}
           />
+          <p className="text-xs text-error/80 mt-1 flex items-start gap-1">
+            <span className="material-symbols-outlined text-[16px] mt-0.5" style={{fontVariationSettings: "'FILL' 1"}}>warning</span>
+            URL pública obligatoria. Sin esto el plugin no recibe notificaciones de YouTube.
+          </p>
         </div>
         <div>
           <label className="block text-label-sm text-primary font-bold uppercase mb-1">

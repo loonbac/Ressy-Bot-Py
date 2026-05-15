@@ -53,6 +53,7 @@ export default function ChannelsListCard({
                 channelName={sub.channel_name}
                 thumbnailUrl={sub.thumbnail_url}
                 notificationsEnabled={sub.notifications_enabled}
+                pendingHubSubscribe={sub.pending_hub_subscribe === 1}
                 isNew={sub.channel_id === newChannelId}
                 isDeleting={deletingIds.has(sub.channel_id)}
                 animationDelay={index * 55}

@@ -1041,6 +1041,57 @@ class TestCallbackServerCutoff:
         assert rows[0]["notified"] == 0
 
 
+class TestPendingHubSubscribeAPI:
+    async def test_list_subscriptions_shows_pending_when_no_callback(self, monitor: YouTubeMonitor):
+        """T19: list_subscriptions shows pending_hub_subscribe=1 when no callback_url."""
+        await monitor.add_subscription("UC_pending", "Canal Pendiente")
+        subs = await monitor.list_subscriptions()
+        assert len(subs) == 1
+        assert subs[0]["pending_hub_subscribe"] == 1
+        assert subs[0]["hub_subscribed_at"] is None
+
+    async def test_api_status_excludes_poll_fields(self, youtube_client: AsyncClient):
+        """T19: GET /status must not include poll_interval_minutes or last_poll."""
+        response = await youtube_client.get("/api/plugins/youtube/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert "poll_interval_minutes" not in data
+        assert "last_poll" not in data
+        assert "channels_count" in data
+
+    async def test_api_update_config_callback_resolves_pending(
+        self, youtube_client: AsyncClient, monitor: YouTubeMonitor
+    ):
+        """T19: PUT /config with callback_url resolves pending subscriptions."""
+        await monitor.add_subscription("UC_api_pending", "Canal API")
+        await monitor._db.execute(
+            "UPDATE youtube_subscriptions SET pending_hub_subscribe = 1, hub_subscribed_at = NULL WHERE channel_id = ?",
+            ("UC_api_pending",),
+        )
+        await monitor._db.commit()
+
+        with patch.object(monitor, "subscribe_to_hub", return_value=True) as mock_sub:
+            response = await youtube_client.put(
+                "/api/plugins/youtube/config",
+                json={
+                    "callback_url": "https://example.com/callback",
+                    "enabled": True,
+                    "discord_channel_id": None,
+                    "google_api_key": "",
+                    "announcement_message": "",
+                    "filter_shorts": False,
+                    "filter_premieres": False,
+                    "filter_min_duration": 0,
+                },
+            )
+
+        assert response.status_code == 200
+        mock_sub.assert_awaited_once_with("UC_api_pending", "https://example.com/callback")
+        sub = await monitor.get_subscription("UC_api_pending")
+        assert sub["pending_hub_subscribe"] == 0
+        assert sub["hub_subscribed_at"] is not None
+
+
 class TestInit:
     async def test_init_starts_hub_renewal_loop(self):
         """T12: setup() starts the hub renewal loop."""

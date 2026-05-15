@@ -8,6 +8,8 @@ export interface YouTubeSubscription {
   last_checked: string | null;
   active: boolean;
   notifications_enabled: boolean;
+  pending_hub_subscribe?: number;
+  hub_subscribed_at?: string | null;
   last_video_title?: string | null;
   last_video_url?: string | null;
   video_count?: number;
@@ -15,7 +17,6 @@ export interface YouTubeSubscription {
 
 export interface YouTubeConfig {
   enabled: boolean;
-  poll_interval_minutes: number;
   // Discord snowflake — string to preserve 64-bit precision across the JSON boundary
   discord_channel_id: string | null;
   callback_url: string;
@@ -121,40 +122,6 @@ export async function fetchDiscordChannels(): Promise<DiscordChannel[]> {
   }
   const data = (await res.json()) as { channels: DiscordChannel[] };
   return data.channels;
-}
-
-export interface PollDiagnostics {
-  channel_id: string;
-  channel_name: string;
-  status: 'ok' | 'error';
-  videos_found?: number;
-  new_videos?: number;
-  error?: string;
-  error_detail?: string;
-}
-
-export async function triggerYouTubePoll(): Promise<{
-  new_videos: number;
-  has_api_key: boolean;
-  diagnostics: PollDiagnostics[];
-  channels_checked: number;
-  videos: any[];
-}> {
-  const res = await apiFetch('/api/plugins/youtube/poll', { method: 'POST' });
-  if (!res.ok) throw new Error(`Failed to trigger poll: ${res.status}`);
-  return res.json() as Promise<{
-    new_videos: number;
-    has_api_key: boolean;
-    diagnostics: PollDiagnostics[];
-    channels_checked: number;
-    videos: any[];
-  }>;
-}
-
-export async function removeFailedSubscriptions(): Promise<{ removed: string[]; count: number }> {
-  const res = await apiFetch('/api/plugins/youtube/subscriptions/failed', { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Failed to clean: ${res.status}`);
-  return res.json() as Promise<{ removed: string[]; count: number }>;
 }
 
 export interface TestNotifyDiagnostics {
