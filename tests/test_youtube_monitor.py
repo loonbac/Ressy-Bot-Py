@@ -35,13 +35,17 @@ async def monitor():
 class TestHubSubscribedColumns:
     async def test_pending_hub_subscribe_column_exists(self, monitor: YouTubeMonitor):
         """T1: pending_hub_subscribe column must exist after init_db."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
         await monitor.add_subscription("UC_test", "Canal Test")
         row = await monitor._db.execute_fetchall(
             "SELECT pending_hub_subscribe FROM youtube_subscriptions WHERE channel_id = ?",
             ("UC_test",),
         )
         assert len(row) == 1
-        assert row[0][0] == 0  # DEFAULT 0
+        assert row[0][0] == 0
 
     async def test_hub_subscribed_at_column_exists(self, monitor: YouTubeMonitor):
         """T1: hub_subscribed_at column must exist after init_db."""
@@ -55,29 +59,38 @@ class TestHubSubscribedColumns:
 
     async def test_list_subscriptions_includes_hub_columns(self, monitor: YouTubeMonitor):
         """T1: list_subscriptions must include pending_hub_subscribe and hub_subscribed_at."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
         await monitor.add_subscription("UC_test", "Canal Test")
         subs = await monitor.list_subscriptions()
         assert len(subs) == 1
         assert "pending_hub_subscribe" in subs[0]
         assert "hub_subscribed_at" in subs[0]
         assert subs[0]["pending_hub_subscribe"] == 0
-        assert subs[0]["hub_subscribed_at"] is None
+        assert subs[0]["hub_subscribed_at"] is not None
 
     async def test_get_subscription_includes_hub_columns(self, monitor: YouTubeMonitor):
         """T1: get_subscription must include pending_hub_subscribe and hub_subscribed_at."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
         await monitor.add_subscription("UC_test", "Canal Test")
         sub = await monitor.get_subscription("UC_test")
         assert sub is not None
         assert "pending_hub_subscribe" in sub
         assert "hub_subscribed_at" in sub
         assert sub["pending_hub_subscribe"] == 0
-        assert sub["hub_subscribed_at"] is None
+        assert sub["hub_subscribed_at"] is not None
 
 
 class TestDatabaseOperations:
     async def test_add_subscription(self, monitor: YouTubeMonitor):
-        success = await monitor.add_subscription("UC_test_123", "Canal Test")
-        assert success is True
+        result = await monitor.add_subscription("UC_test_123", "Canal Test")
+        assert result["channel_id"] == "UC_test_123"
+        assert result["channel_name"] == "Canal Test"
 
         sub = await monitor.get_subscription("UC_test_123")
         assert sub is not None
@@ -88,8 +101,8 @@ class TestDatabaseOperations:
         assert sub["notifications_enabled"] is True
 
     async def test_add_subscription_with_thumbnail(self, monitor: YouTubeMonitor):
-        success = await monitor.add_subscription("UC_test_123", "Canal Test", "https://example.com/thumb.jpg")
-        assert success is True
+        result = await monitor.add_subscription("UC_test_123", "Canal Test", "https://example.com/thumb.jpg")
+        assert result["channel_id"] == "UC_test_123"
 
         sub = await monitor.get_subscription("UC_test_123")
         assert sub is not None
@@ -297,6 +310,159 @@ class TestSeedViaAPI:
         assert len(videos) == 1
         assert videos[0].video_id == "API123"
         assert videos[0].title == "API Video"
+
+
+class TestAutoSubscribe:
+    async def test_add_subscription_with_callback_subscribes_hub(self, monitor: YouTubeMonitor):
+        """T5: add_subscription auto-subscribes to hub when callback_url is set."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
+
+        with patch.object(monitor, "subscribe_to_hub", return_value=True) as mock_sub:
+            result = await monitor.add_subscription("UC_test", "Canal Test")
+
+        mock_sub.assert_awaited_once_with("UC_test", "https://example.com/callback")
+        assert result["channel_id"] == "UC_test"
+        assert result["channel_name"] == "Canal Test"
+        assert "warning" not in result
+
+        sub = await monitor.get_subscription("UC_test")
+        assert sub["hub_subscribed_at"] is not None
+        assert sub["pending_hub_subscribe"] == 0
+
+    async def test_add_subscription_without_callback_sets_pending(self, monitor: YouTubeMonitor):
+        """T5: add_subscription sets pending_hub_subscribe=1 when no callback_url."""
+        result = await monitor.add_subscription("UC_test", "Canal Test")
+
+        assert result["channel_id"] == "UC_test"
+        assert result["channel_name"] == "Canal Test"
+        assert result.get("warning") is not None
+
+        sub = await monitor.get_subscription("UC_test")
+        assert sub["pending_hub_subscribe"] == 1
+        assert sub["hub_subscribed_at"] is None
+
+    async def test_add_subscription_with_api_key_seeds_videos(self, monitor: YouTubeMonitor):
+        """T5: add_subscription seeds videos via API when google_api_key is set."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(
+            callback_url="https://example.com/callback",
+            google_api_key="AIzaSyTest",
+        )
+        await monitor.update_config(cfg)
+
+        mock_video = MagicMock()
+        mock_video.video_id = "SEED123"
+        mock_video.channel_id = "UC_test"
+        mock_video.title = "Seed Video"
+        mock_video.url = "https://youtu.be/SEED123"
+        mock_video.published_at = datetime.now(timezone.utc)
+        mock_video.notified = False
+
+        with patch.object(monitor, "subscribe_to_hub", return_value=True):
+            with patch.object(monitor, "_seed_via_api", return_value=[mock_video]) as mock_seed:
+                await monitor.add_subscription("UC_test", "Canal Test")
+
+        mock_seed.assert_awaited_once_with("UC_test", "AIzaSyTest")
+        videos = await monitor.get_videos(channel_id="UC_test", limit=10)
+        assert len(videos) == 1
+        assert videos[0]["video_id"] == "SEED123"
+        assert videos[0]["notified"] is True  # seeded videos are pre-notified
+
+
+class TestRemoveSubscription:
+    async def test_remove_subscription_unsubscribes_hub(self, monitor: YouTubeMonitor):
+        """T6: remove_subscription calls unsubscribe_from_hub when callback_url is set."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+        await monitor.update_config(cfg)
+        await monitor.add_subscription("UC_test", "Canal Test")
+
+        with patch.object(monitor, "unsubscribe_from_hub", return_value=True) as mock_unsub:
+            await monitor.remove_subscription("UC_test")
+
+        mock_unsub.assert_awaited_once_with("UC_test", "https://example.com/callback")
+
+        sub = await monitor.get_subscription("UC_test")
+        assert sub is not None
+        assert sub["active"] is False
+
+
+class TestPubSubCutoff:
+    async def test_process_pubsub_ignores_video_before_added_at(self, monitor: YouTubeMonitor):
+        """T7: Videos published before added_at are stored with notified=1."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+
+        # published 2 days before added_at
+        atom_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>OLD123</yt:videoId>
+    <yt:channelId>UC_test</yt:channelId>
+    <title>Old Video</title>
+    <published>2020-01-01T12:00:00+00:00</published>
+  </entry>
+</feed>
+"""
+        with patch.object(monitor, "notify_new_video", new_callable=AsyncMock) as mock_notify:
+            await monitor.process_pubsub_notification(atom_xml)
+
+        mock_notify.assert_not_awaited()
+        videos = await monitor.get_videos(limit=10)
+        assert len(videos) == 1
+        assert videos[0]["notified"] is True
+
+    async def test_process_pubsub_notifies_video_after_added_at(self, monitor: YouTubeMonitor):
+        """T7: Videos published after added_at are stored with notified=0 and notified."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+
+        # published far in the future relative to added_at
+        atom_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>NEW123</yt:videoId>
+    <yt:channelId>UC_test</yt:channelId>
+    <title>New Video</title>
+    <published>2099-01-01T12:00:00+00:00</published>
+  </entry>
+</feed>
+"""
+        with patch.object(monitor, "notify_new_video", new_callable=AsyncMock) as mock_notify:
+            await monitor.process_pubsub_notification(atom_xml)
+
+        mock_notify.assert_awaited_once()
+        videos = await monitor.get_videos(limit=10)
+        assert len(videos) == 1
+        assert videos[0]["notified"] is False
+
+
+class TestPendingResolution:
+    async def test_update_config_resolves_pending_subscriptions(self, monitor: YouTubeMonitor):
+        """T9: update_config with new callback_url resolves pending subscriptions."""
+        await monitor.add_subscription("UC_test", "Canal Test")
+        # Simulate pending state (no callback_url was set at add time)
+        await monitor._db.execute(
+            "UPDATE youtube_subscriptions SET pending_hub_subscribe = 1, hub_subscribed_at = NULL WHERE channel_id = ?",
+            ("UC_test",),
+        )
+        await monitor._db.commit()
+
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        with patch.object(monitor, "subscribe_to_hub", return_value=True) as mock_sub:
+            cfg = YouTubePluginConfig(callback_url="https://example.com/callback")
+            await monitor.update_config(cfg)
+
+        mock_sub.assert_awaited_once_with("UC_test", "https://example.com/callback")
+        sub = await monitor.get_subscription("UC_test")
+        assert sub["pending_hub_subscribe"] == 0
+        assert sub["hub_subscribed_at"] is not None
 
 
 class TestAPIIntegration:

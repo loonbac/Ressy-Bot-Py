@@ -512,6 +512,19 @@ class YouTubeMonitor:
                 except ValueError:
                     pass
 
+            # Load subscription added_at for cutoff check
+            added_at: datetime | None = None
+            if self._db is not None:
+                sub_rows = await self._db.execute_fetchall(
+                    "SELECT added_at FROM youtube_subscriptions WHERE channel_id = ? AND active = 1",
+                    (cid,),
+                )
+                if sub_rows:
+                    try:
+                        added_at = datetime.fromisoformat(sub_rows[0][0])
+                    except ValueError:
+                        added_at = None
+
             raw_title = title_elem.text if title_elem is not None else "Unknown"
             video = YouTubeVideo(
                 video_id=vid,
@@ -521,28 +534,69 @@ class YouTubeMonitor:
                 published_at=published_at,
             )
 
-            await self._store_video(video)
-            await self.notify_new_video(video)
+            if added_at is not None and published_at < added_at:
+                # Video published before subscription — store but don't notify
+                await self._db.execute(
+                    """INSERT OR IGNORE INTO youtube_videos
+                       (video_id, channel_id, title, url, published_at, notified)
+                       VALUES (?, ?, ?, ?, ?, 1)""",
+                    (video.video_id, video.channel_id, video.title, video.url, video.published_at.isoformat()),
+                )
+                await self._db.commit()
+            else:
+                await self._store_video(video)
+                await self.notify_new_video(video)
 
     # --- DB helpers ---
 
-    async def add_subscription(self, channel_id: str, channel_name: str = "", thumbnail_url: str = "") -> bool:
+    async def add_subscription(self, channel_id: str, channel_name: str = "", thumbnail_url: str = "") -> dict[str, Any]:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
         try:
+            added_at = datetime.now(timezone.utc).isoformat()
             await self._db.execute(
                 """
                 INSERT INTO youtube_subscriptions (channel_id, channel_name, thumbnail_url, added_at, active, notifications_enabled)
                 VALUES (?, ?, ?, ?, 1, 1)
                 ON CONFLICT(channel_id) DO UPDATE SET active = 1, channel_name = excluded.channel_name, thumbnail_url = excluded.thumbnail_url
                 """,
-                (channel_id, channel_name, thumbnail_url, datetime.now(timezone.utc).isoformat()),
+                (channel_id, channel_name, thumbnail_url, added_at),
             )
             await self._db.commit()
-            return True
+
+            config = await self.get_config()
+            result: dict[str, Any] = {"channel_id": channel_id, "channel_name": channel_name or channel_id}
+
+            if config.callback_url:
+                success = await self.subscribe_to_hub(channel_id, config.callback_url)
+                if success:
+                    await self._db.execute(
+                        "UPDATE youtube_subscriptions SET hub_subscribed_at = ?, pending_hub_subscribe = 0 WHERE channel_id = ?",
+                        (datetime.now(timezone.utc).isoformat(), channel_id),
+                    )
+                    await self._db.commit()
+                if config.google_api_key:
+                    videos = await self._seed_via_api(channel_id, config.google_api_key)
+                    for video in videos:
+                        await self._db.execute(
+                            """INSERT OR IGNORE INTO youtube_videos
+                               (video_id, channel_id, title, url, published_at, notified)
+                               VALUES (?, ?, ?, ?, ?, 1)""",
+                            (video.video_id, video.channel_id, video.title, video.url, video.published_at.isoformat()),
+                        )
+                    await self._db.commit()
+            else:
+                await self._db.execute(
+                    "UPDATE youtube_subscriptions SET pending_hub_subscribe = 1 WHERE channel_id = ?",
+                    (channel_id,),
+                )
+                await self._db.commit()
+                result["warning"] = "URL de callback no configurada. La suscripción quedará pendiente hasta que configures la URL de callback."
+
+            return result
         except Exception as exc:
             print(f"[YouTubeMonitor] Error al agregar suscripción: {exc}")
-            return False
+            return {"channel_id": channel_id, "channel_name": channel_name or channel_id, "error": str(exc)}
 
     async def update_subscription_notifications(self, channel_id: str, enabled: bool) -> None:
         if self._db is None:
@@ -556,6 +610,9 @@ class YouTubeMonitor:
     async def remove_subscription(self, channel_id: str) -> bool:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
+        config = await self.get_config()
+        if config.callback_url:
+            await self.unsubscribe_from_hub(channel_id, config.callback_url)
         await self._db.execute(
             "UPDATE youtube_subscriptions SET active = 0 WHERE channel_id = ?",
             (channel_id,),
@@ -654,6 +711,9 @@ class YouTubeMonitor:
     async def update_config(self, config: YouTubePluginConfig) -> None:
         if self._db is None:
             raise RuntimeError("DB no inicializada")
+
+        old_config = await self.get_config()
+
         await self._db.execute(
             "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
             ("enabled", str(config.enabled).lower()),
@@ -690,6 +750,20 @@ class YouTubeMonitor:
             ("filter_min_duration", str(config.filter_min_duration)),
         )
         await self._db.commit()
+
+        # Resolve pending subscriptions when callback_url becomes available
+        if config.callback_url and (not old_config.callback_url or old_config.callback_url != config.callback_url):
+            rows = await self._db.execute_fetchall(
+                "SELECT channel_id FROM youtube_subscriptions WHERE pending_hub_subscribe = 1 AND active = 1"
+            )
+            for (channel_id,) in rows:
+                success = await self.subscribe_to_hub(channel_id, config.callback_url)
+                if success:
+                    await self._db.execute(
+                        "UPDATE youtube_subscriptions SET pending_hub_subscribe = 0, hub_subscribed_at = ? WHERE channel_id = ?",
+                        (datetime.now(timezone.utc).isoformat(), channel_id),
+                    )
+                    await self._db.commit()
 
     async def get_status(self) -> dict[str, Any]:
         if self._db is None:
