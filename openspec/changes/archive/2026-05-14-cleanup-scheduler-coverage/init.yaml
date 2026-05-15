@@ -1,0 +1,94 @@
+schema: sdd-init-v1
+change_id: cleanup-scheduler-coverage
+created_at: 2026-05-14T17:30:00-05:00
+
+context: >
+  Project: ressy-korosoft (Python 3.11+, discord.py 2.4+, FastAPI, aiosqlite).
+  Plugin: src/bot/plugins/openrouter_prices/.
+  Test runner: uv run pytest, pytest-asyncio mode auto.
+  Strict TDD: enabled globally in openspec/config.yaml.
+
+target_module:
+  path: src/bot/plugins/openrouter_prices/scheduler.py
+  statements: 167
+  branches: 44
+  current_coverage: 66
+  covered_stmts: 110
+  missing_stmts: 52
+  coverage_threshold: 80
+
+coverage_gaps:
+  - area: trigger_scrape conflict path
+    lines: "105"
+    description: Early return False when source already in _active_scrapes
+
+  - area: trigger_scrape inner _run()
+    lines: "113-141"
+    description: Background dispatch for bfcl/aa/openrouter, exception handling + push_event
+
+  - area: _tick_loop
+    lines: "149-161"
+    description: Main loop error handling + wait_for TimeoutError branch
+
+  - area: _run_job_if_due branches
+    lines: "208->219, 221->exit"
+    description: Disabled early-return + within-interval skip
+
+  - area: _job_weekly_report
+    lines: "294-334"
+    description: Full weekly report — no channel, disabled, model fetch, embed publish, push_event
+
+  - area: _job_ranking_embed gaps
+    lines: "350, 363-364, 368, 412"
+    description: Disabled early return, JSON decode error, empty phases fallback, publish failure
+
+existing_tests:
+  file: tests/test_openrouter_ranking_scheduler.py
+  lines: 506
+  tests: 20
+  classes:
+    - TestSchedulerFirstTick
+    - TestSchedulerSecondTickWithinInterval
+    - TestSchedulerTickAfterInterval
+    - TestSchedulerPhasesEnabledJson
+    - TestSchedulerExceptionHandling
+    - TestSchedulerDisabledJobs
+    - TestSchedulerLifecycle
+    - TestSchedulerEmbedPublisher
+    - TestRankingEmbedMultiPhase
+
+goal: "Raise scheduler.py coverage from 66% to >=80% by adding ~15 focused tests covering the five uncovered areas above."
+
+non_goals:
+  - No changes to scheduler.py source code
+  - No changes to existing test patterns or fixtures
+  - No frontend/API work
+  - No integration tests requiring live bot
+
+test_strategy:
+  new_file: tests/test_openrouter_ranking_scheduler_coverage.py
+  reuse_fixtures: true
+  fixture_sources:
+    - conftest.py (db, mock_bot fixtures)
+    - test_openrouter_ranking_scheduler.py (Counter, _make_scheduler, _make_db_model, _ok_result, db, bfcl_scraper, aa_scraper, mock_client, embed_publisher)
+  strict_tdd: true
+  estimated_tests: 15
+
+estimated_test_breakdown:
+  trigger_scrape_conflict: 1
+  trigger_scrape_inner_dispatch: 4
+  tick_loop_error_paths: 2
+  run_job_if_due_boundaries: 2
+  job_weekly_report: 5
+  job_ranking_embed_gaps: 4
+
+risk_assessment:
+  - level: LOW
+    reason: scheduler.py is well-factored with dependency injection; no source changes needed
+  - level: LOW
+    reason: existing test infrastructure covers setup/teardown patterns
+  - level: MEDIUM
+    reason: _job_weekly_report needs build_weekly_price_embed mock + list_models fixture
+
+skill_resolution: injected
+skill_registry_status: present
