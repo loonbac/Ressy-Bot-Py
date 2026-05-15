@@ -60,16 +60,34 @@ The bot MUST log each successful cog load, including the cog name and class name
 
 ### Requirement: Plugin setup pattern
 
-Plugins in `src/bot/plugins/` MUST expose an `async def setup(bot, config_manager, app)` function in `__init__.py`. Setup MUST create the plugin's database in `data/plugins/`, register any cogs via `bot.add_cog()`, and mount API routes via `app.include_router()`. Each plugin MUST store its state on `app.state` for API access.
+Plugins in `src/bot/plugins/` MUST expose an `async def setup(bot, config_manager, app)` function in `__init__.py`. Setup MUST create the plugin's database in `data/plugins/`, register any cogs via `bot.add_cog()`, and mount API routes via `app.include_router()`. Each plugin MUST store its state on `app.state` for API access. The plugin's `setup()` function MUST own the lifecycle of its internal resources (background loops, polling tasks, renewal loops); the bot's main entry point MUST NOT call external lifecycle methods on plugin objects beyond `setup()` itself.
 
-#### Scenario: Music plugin setup
+#### Scenario: YouTube plugin owns its renewal loop
 
 - GIVEN the bot is starting up
-- WHEN `setup(bot, config_manager, app)` is called for `music_player`
-- THEN the cog is registered, the REST API is mounted at `/api/plugins/music_player`, and config defaults are seeded in `data/plugins/music_player.db`
+- WHEN `setup(bot, config_manager, app)` is called for `youtube_notifier`
+- THEN the plugin starts its hub renewal loop internally and the main entry point does NOT call any external start method on the returned plugin object
+- AND the plugin registers its teardown callback on `app.state.teardown_callbacks`
 
 #### Scenario: Plugin init failure does not crash bot
 
 - GIVEN FFmpeg is not installed on the host
 - WHEN the music plugin setup runs
 - THEN the plugin logs a warning, marks itself as unavailable, and the bot continues starting normally
+
+### Requirement: Bot startup must not invoke phantom methods on plugin objects
+
+The bot's main entry point (`src/__main__.py`) MUST NOT call methods on plugin objects that the plugin does not expose in its public API. Specifically, the YouTube plugin's `YouTubeMonitor` object returned from `setup()` does not expose a `start()` method; calling such a method constitutes an invalid contract and MUST cause an `AttributeError` that crashes startup.
+
+#### Scenario: Bot starts without YouTube AttributeError
+
+- GIVEN the YouTube plugin `setup()` has been called
+- WHEN the bot main entry point completes plugin loading
+- THEN no `AttributeError` is raised for missing `YouTubeMonitor.start()` method
+- AND the hub renewal loop is already running from within `setup()`
+
+#### Scenario: Existing call site removed
+
+- GIVEN the previous code at `src/__main__.py` called `await monitor.start()` after `setup_youtube()`
+- WHEN the fix is applied
+- THEN that call is removed and the bot proceeds to serve without external YouTube lifecycle calls

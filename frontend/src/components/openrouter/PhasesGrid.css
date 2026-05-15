@@ -1,0 +1,168 @@
+.openrouter-phase-card {
+  background: rgba(250, 249, 246, 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-left: 4px solid var(--openrouter-primary, #75565e);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.openrouter-phase-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(168, 0, 33, 0.1);
+  border-left-color: var(--openrouter-secondary, #b71329);
+}
+
+.openrouter-phase-card--active {
+  border-left-color: var(--openrouter-secondary, #b71329);
+  box-shadow: 0 4px 14px rgba(168, 0, 33, 0.06);
+}
+
+.openrouter-phase-card--disabled {
+  opacity: 0.55;
+}
+
+html.dark .openrouter-phase-card {
+  background: rgba(34, 36, 34, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.openrouter-phase-card__top1 {
+  background: rgba(227, 226, 224, 0.4);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.6rem;
+}
+
+html.dark .openrouter-phase-card__top1 {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.openrouter-phase-card__toggle {
+  width: 2rem;
+  height: 1rem;
+  background: rgba(129, 116, 118, 0.35);
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+  flex-shrink: 0;
+}
+
+.openrouter-phase-card__toggle--on {
+  background: rgba(218, 50, 63, 0.85);
+}
+
+.openrouter-phase-card__toggle::after {
+  content: '';
+  position: absolute;
+  top: 0.1rem;
+  left: 0.1rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  background: white;
+  border-radius: 9999px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.openrouter-phase-card__toggle--on::after {
+  transform: translateX(1rem);
+}
+
+.openrouter-phase-card__btn {
+  flex: 1;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.18s ease, background-color 0.2s ease;
+  text-transform: uppercase;
+}
+
+.openrouter-phase-card__btn--secondary {
+  background: rgba(210, 195, 197, 0.3);
+  color: var(--openrouter-on-surface, #1a1c1a);
+}
+
+.openrouter-phase-card__btn--secondary:hover {
+  background: rgba(210, 195, 197, 0.5);
+  transform: translateY(-1px);
+}
+
+.openrouter-phase-card__btn--primary {
+  background: rgba(117, 86, 94, 0.12);
+  color: var(--openrouter-primary, #75565e);
+  border-color: rgba(117, 86, 94, 0.18);
+}
+
+.openrouter-phase-card__btn--primary:hover {
+  background: rgba(117, 86, 94, 0.22);
+  transform: translateY(-1px);
+}
+
+html.dark .openrouter-phase-card__btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgb(242, 241, 238);
+}
+
+html.dark .openrouter-phase-card__btn--primary {
+  background: rgba(227, 189, 197, 0.1);
+  color: rgb(227, 189, 197);
+}
+
+.openrouter-phase-card__send-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  width: 100%;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(88, 101, 242, 0.4);
+  background: rgba(88, 101, 242, 0.08);
+  color: #5865f2;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.18s ease;
+}
+
+.openrouter-phase-card__send-btn:hover {
+  background: rgba(88, 101, 242, 0.18);
+  transform: translateY(-1px);
+}
+
+html.dark .openrouter-phase-card__send-btn {
+  background: rgba(88, 101, 242, 0.12);
+  color: #a3aef9;
+}
+
+.openrouter-phase-card__crown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #facc15, #ca8a04);
+  color: #1a1c1a;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(250, 204, 21, 0.35);
+}
+
+.openrouter-phase-card__crown .material-symbols-outlined {
+  font-size: 0.85rem;
+  font-variation-settings: 'FILL' 1;
+}

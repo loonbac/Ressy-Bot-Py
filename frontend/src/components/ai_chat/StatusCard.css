@@ -1,0 +1,50 @@
+.ai-chat-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+}
+
+.ai-chat-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 9999px;
+  background: rgba(120, 113, 108, 0.35);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.ai-chat-toggle--on {
+  background: var(--ai-chat-secondary, #b71329);
+}
+
+.ai-chat-toggle__thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transform: translateX(0);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ai-chat-toggle--on .ai-chat-toggle__thumb {
+  transform: translateX(20px);
+}
+
+html.dark .ai-chat-toggle {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ai-chat-slider-value {
+  display: inline-block;
+  min-width: 2.5rem;
+  text-align: right;
+  font-weight: 700;
+  color: var(--ai-chat-secondary, #b71329);
+  font-variant-numeric: tabular-nums;
+}

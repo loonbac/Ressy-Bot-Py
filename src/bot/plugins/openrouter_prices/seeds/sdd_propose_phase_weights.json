@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "description": "SDD propose phase weights for benchmark ranking",
+    "rationale": "Fase donde el premium del frontier se paga solo: 5 fases downstream consumen el proposal. Prioriza razonamiento arquitectonico con commitment (aa_intelligence_index 30%), adherencia a schema strict + cap de 450 palabras (ifbench 25%), contract templated adherence (tau2_telecom 10%), razonamiento ajustable profundo con output corto (supports_reasoning_effort 15% + supports_verbosity 10%), lectura de exploracion + specs existentes (cache_ratio 5%), tool use ligero solo mem_save (bfcl_v3 5%). MultiChallenge multi-turn coherence, RULER long-context retention y LongBench reservados weight=0 porque AA API no los expone. GPQA Diamond, CritPt, MMLU-Pro, GDPval-AA del analisis original tampoco disponibles, pesos quedan en proxies. Capabilities NO importantes: SWE-bench, Terminal-Bench, multimodal, tool use complejo, context >256K.",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench",
+      "bfcl_parallel"
+    ]
+  },
+  "phase": "sdd_propose",
+  "description": "Perfil de ranking para la fase de propuesta SDD. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.25,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.30,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.05,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.15,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.10,
+      "is_feature_factor": true
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "description": "SDD tasks phase weights for benchmark ranking",
+    "rationale": "Fase mecanica con tres operaciones: topological sort del design en fases Foundation-Core-Integration-Testing-Cleanup, granularidad SACS (Specific Actionable Verifiable Small) bajo cap 530 palabras (mas agresivo del pipeline post-proposal), y Review Workload Forecast con estimacion empirica de lineas. Mas la cuarta operacion silenciosa: producir 4 lineas plain-text literales (Decision needed before apply / Chained PRs recommended / Chain strategy / 400-line budget risk) que el guard del orchestrator parsea exactamente. Si el modelo 'mejora' formato con markdown, el pipeline rompe silenciosamente. ifbench domina (30%) por triple razon: cap 530w agresivo, 4 contract lines literal, negative instructions complex 'NO agregar tasks porque seria prudente'. tau2_telecom 15% es el mas alto de todas las fases SDD porque tasks.md ES un contrato templated complejo (4-5 fases obligatorias, 4 plain lines, tabla forecast con campos exactos, hierarchical numbering 1.1 2.1). aa_intelligence_index 20% para non-hallucination en file paths + calibration general. bfcl_parallel 5% primer phase con peso ≠ 0 acá porque dependency-aware ordering es proxy parcial de multi-step tool sequencing. supports_reasoning_effort 10% medium porque deliberacion es sobre dependency order + line forecast no sobre arquitectura. supports_verbosity 10% para checklist sobre prose. cache_ratio 5% lectura moderada proposal+spec+design rara vez >10K. Capacidad CRITICA no benchmarkeable: empirical line-count estimation calibration (escala mal con tamano del modelo, escala con anchoring problem — modelos chicos sub-estiman). Reservados weight=0: multichallenge (multi-turn pipeline coherence), ruler (multi-archivo retention), longbench. Capabilities NO importantes: razonamiento arquitectonico (ya hecho), code generation (solo describe acciones), context >256K, multimodal, tool use complejo, creatividad (anti-productiva: NO inventar 'tasks utiles' que no se siguen del design).",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench"
+    ]
+  },
+  "phase": "sdd_tasks",
+  "description": "Perfil de ranking para la fase de breakdown de tasks SDD. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.30,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.05,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.10,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.10,
+      "is_feature_factor": true
+    }
+  ]
+}

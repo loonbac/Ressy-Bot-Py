@@ -1,0 +1,130 @@
+{
+  "status": 200,
+  "prompt_options": {
+    "parallel_queries": 1,
+    "prompt_length": "medium"
+  },
+  "data": [
+    {
+      "id": "uuid-1",
+      "name": "Claude 3 Haiku",
+      "slug": "claude-3-haiku",
+      "model_creator": {
+        "id": "uuid-openai",
+        "name": "Anthropic",
+        "slug": "anthropic"
+      },
+      "evaluations": {
+        "ifbench": 0.785,
+        "tau2": 0.652,
+        "artificial_analysis_intelligence_index": 44.0,
+        "hle": 0.265,
+        "gpqa": 0.817
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 1.925,
+        "price_1m_input_tokens": 1.1,
+        "price_1m_output_tokens": 4.4
+      },
+      "median_output_tokens_per_second": 153.831
+    },
+    {
+      "id": "uuid-2",
+      "name": "GPT-4o",
+      "slug": "gpt-4o",
+      "model_creator": {
+        "id": "uuid-openai",
+        "name": "OpenAI",
+        "slug": "openai"
+      },
+      "evaluations": {
+        "ifbench": 0.880,
+        "tau2": 0.910,
+        "artificial_analysis_intelligence_index": 78.5,
+        "mmlu_pro": null,
+        "livecodebench": 0.72
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 10.0,
+        "price_1m_input_tokens": 5.0,
+        "price_1m_output_tokens": 15.0
+      },
+      "median_output_tokens_per_second": 200.5
+    },
+    {
+      "id": "uuid-3",
+      "name": "Gemini 1.5 Pro",
+      "slug": "gemini-1-5-pro",
+      "model_creator": {
+        "id": "uuid-google",
+        "name": "Google",
+        "slug": "google"
+      },
+      "evaluations": {
+        "ifbench": null,
+        "tau2": null,
+        "artificial_analysis_intelligence_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 3.5,
+        "price_1m_input_tokens": 3.5,
+        "price_1m_output_tokens": 10.5
+      },
+      "median_output_tokens_per_second": 120.0
+    },
+    {
+      "id": "uuid-4",
+      "name": "ModeloCompletamenteDesconocidoXYZ9999",
+      "slug": "modelo-desconocido",
+      "model_creator": {
+        "id": "uuid-unknown",
+        "name": "Unknown",
+        "slug": "unknown"
+      },
+      "evaluations": {
+        "ifbench": 0.99,
+        "tau2": 0.99,
+        "artificial_analysis_intelligence_index": 99.9
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.0,
+        "price_1m_input_tokens": 0.0,
+        "price_1m_output_tokens": 0.0
+      },
+      "median_output_tokens_per_second": 1.0
+    },
+    {
+      "id": "uuid-5",
+      "name": "DeepSeek V3",
+      "slug": "deepseek-v3",
+      "model_creator": {
+        "id": "uuid-deepseek",
+        "name": "DeepSeek",
+        "slug": "deepseek"
+      },
+      "evaluations": {},
+      "pricing": null,
+      "median_output_tokens_per_second": 180.0
+    },
+    {
+      "id": "uuid-6",
+      "name": "Llama 3.1 405B",
+      "slug": "llama-3-1-405b",
+      "model_creator": {
+        "id": "uuid-meta",
+        "name": "Meta",
+        "slug": "meta"
+      },
+      "evaluations": {
+        "ifbench": 0.755,
+        "artificial_analysis_intelligence_index": 55.0
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 2.0,
+        "price_1m_input_tokens": 1.0,
+        "price_1m_output_tokens": 3.0
+      },
+      "median_output_tokens_per_second": 95.5
+    }
+  ]
+}

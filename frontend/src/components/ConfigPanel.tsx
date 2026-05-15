@@ -22,7 +22,16 @@ const LABEL_MAP: Record<string, { label: string; description: string; placeholde
     label: 'Versión del Bot',
     description: 'Versión actual del sistema.',
   },
+  minimax_api_key: {
+    label: 'MiniMax · API Key',
+    description:
+      'Credencial usada por el plugin Chat IA y los análisis de código. Se guarda cifrada en la configuración global.',
+    placeholder: 'mk-xxxxxxxxxxxxx',
+  },
 };
+
+// Keys que deben renderizarse con input enmascarado (password) y eye toggle.
+const SENSITIVE_KEYS = new Set<string>(['minimax_api_key']);
 
 function getDisplayInfo(key: string) {
   return (
@@ -56,6 +65,7 @@ export default function ConfigPanel({ configs, onUpdate, status }: ConfigPanelPr
   const [presenceFeedback, setPresenceFeedback] = useState<
     { kind: 'success' | 'error'; text: string } | null
   >(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
   const loadGuilds = useCallback(async () => {
     try {
@@ -171,13 +181,17 @@ export default function ConfigPanel({ configs, onUpdate, status }: ConfigPanelPr
     return JSON.stringify(cfg.value);
   };
 
-  const visibleConfigs = configs.filter(
-    (cfg) =>
-      cfg.key !== 'guild_id' &&
-      cfg.key !== 'bot_status' &&
-      cfg.key !== 'bot_activity_type' &&
-      cfg.key !== 'bot_activity_text',
-  );
+  // Keys gestionadas por widgets dedicados (presence, server) — no salen en
+  // la lista genérica. Las credenciales sensibles SÍ aparecen, pero el
+  // input se renderiza como password (ver SENSITIVE_KEYS).
+  const HIDDEN_KEYS = new Set([
+    'guild_id',
+    'bot_status',
+    'bot_activity_type',
+    'bot_activity_text',
+  ]);
+
+  const visibleConfigs = configs.filter((cfg) => !HIDDEN_KEYS.has(cfg.key));
 
   return (
     <section
@@ -234,16 +248,48 @@ export default function ConfigPanel({ configs, onUpdate, status }: ConfigPanelPr
                           >
                             {info.label}
                           </label>
-                          <input
-                            id={`config-${cfg.key}`}
-                            type="text"
-                            value={displayValue(cfg)}
-                            placeholder={info.placeholder ?? ''}
-                            onChange={(e) => handleChange(cfg.key, e.target.value)}
-                            disabled={isLoading}
-                            aria-label={cfg.key}
-                            className="input-zen w-full text-on-surface py-2"
-                          />
+                          {SENSITIVE_KEYS.has(cfg.key) ? (
+                            <div className="relative">
+                              <input
+                                id={`config-${cfg.key}`}
+                                type={revealed[cfg.key] ? 'text' : 'password'}
+                                value={displayValue(cfg)}
+                                placeholder={info.placeholder ?? ''}
+                                onChange={(e) => handleChange(cfg.key, e.target.value)}
+                                disabled={isLoading}
+                                aria-label={cfg.key}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                className="input-zen w-full text-on-surface py-2 pr-12 font-mono tracking-wider"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRevealed((prev) => ({ ...prev, [cfg.key]: !prev[cfg.key] }))
+                                }
+                                aria-label={revealed[cfg.key] ? 'Ocultar credencial' : 'Mostrar credencial'}
+                                tabIndex={-1}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-secondary transition-colors p-1"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">
+                                  {revealed[cfg.key] ? 'visibility_off' : 'visibility'}
+                                </span>
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              id={`config-${cfg.key}`}
+                              type="text"
+                              value={displayValue(cfg)}
+                              placeholder={info.placeholder ?? ''}
+                              onChange={(e) => handleChange(cfg.key, e.target.value)}
+                              disabled={isLoading}
+                              aria-label={cfg.key}
+                              className="input-zen w-full text-on-surface py-2"
+                            />
+                          )}
                           <p className="text-tertiary text-sm mt-2">{info.description}</p>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">

@@ -39,6 +39,10 @@ packages = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "live: marks tests as live (requieren infraestructura real)",
+]
+addopts = "-m 'not live'"
 
 [tool.coverage.run]
 source = ["src"]

@@ -32,6 +32,11 @@ lwc-react/dist/
 
 # Tool artifacts
 .atl/
+.pi/
+.pi-lens/
+
+# Design references (mockups locales, no necesarios en runtime)
+diseño/
 
 # Unrelated projects
 lwc-react/

@@ -1,0 +1,34 @@
+/* ── Code Runner animations ─────────────────────── */
+
+@keyframes cr-card-enter {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes cr-bloom { 0%{transform:scale(1);} 40%{transform:scale(1.08);} 100%{transform:scale(1);} }
+@keyframes cr-shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-4px);} 40%,80%{transform:translateX(4px);} }
+@keyframes cr-pulse-dot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.85);} }
+@keyframes cr-row-fade { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+@keyframes cr-toast-slide { 0%{opacity:0;transform:translateX(20px) scale(0.92);} 60%{opacity:1;transform:translateX(-2px) scale(1.02);} 100%{opacity:1;transform:translateX(0) scale(1);} }
+@keyframes cr-bar-grow { from{transform:scaleX(0.05);} to{transform:scaleX(1);} }
+@keyframes cr-glow { 0%,100%{box-shadow:0 0 0 0 rgba(218,50,63,0);} 50%{box-shadow:0 0 22px 2px rgba(218,50,63,0.25);} }
+@keyframes cr-chip-pop { 0%{transform:scale(0.6);opacity:0;} 60%{transform:scale(1.15);opacity:1;} 100%{transform:scale(1);opacity:1;} }
+
+.animate-cr-card-enter { animation: cr-card-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-cr-stagger-1 { animation-delay: 0.04s; }
+.animate-cr-stagger-2 { animation-delay: 0.10s; }
+.animate-cr-stagger-3 { animation-delay: 0.16s; }
+.animate-cr-stagger-4 { animation-delay: 0.22s; }
+.animate-cr-stagger-5 { animation-delay: 0.28s; }
+.animate-cr-stagger-6 { animation-delay: 0.34s; }
+.animate-cr-spin { animation: cr-spin 0.9s linear infinite; }
+.animate-cr-bloom { animation: cr-bloom 0.42s ease-out; }
+.animate-cr-shake { animation: cr-shake 0.42s ease-out; }
+.animate-cr-pulse-dot { animation: cr-pulse-dot 2s ease-in-out infinite; }
+.animate-cr-row-fade { animation: cr-row-fade 0.32s ease-out both; }
+.animate-cr-toast-slide { animation: cr-toast-slide 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-cr-bar-grow { animation: cr-bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left; }
+.animate-cr-glow { animation: cr-glow 1.6s ease-in-out infinite; }
+.animate-cr-chip-pop { animation: cr-chip-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }

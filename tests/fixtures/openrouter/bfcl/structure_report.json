@@ -1,0 +1,53 @@
+{
+  "latest_folder": "2025-12-16",
+  "model_count": 109,
+  "probed_models": [
+    "BitAgent_BitAgent-Bounty-8B",
+    "DeepSeek-V3.2-Exp-FC",
+    "DeepSeek-V3.2-Exp-thinking",
+    "MadeAgents_Hammer2.1-0.5b",
+    "MadeAgents_Hammer2.1-1.5b"
+  ],
+  "subdirs_found": [
+    "agentic",
+    "format_sensitivity",
+    "live",
+    "multi_turn",
+    "non_live"
+  ],
+  "file_patterns": [
+    "BFCL_v4_format_sensitivity_score.json",
+    "BFCL_v4_irrelevance_score.json",
+    "BFCL_v4_live_irrelevance_score.json",
+    "BFCL_v4_live_multiple_score.json",
+    "BFCL_v4_live_parallel_multiple_score.json",
+    "BFCL_v4_live_parallel_score.json",
+    "BFCL_v4_live_relevance_score.json",
+    "BFCL_v4_live_simple_score.json",
+    "BFCL_v4_multi_turn_base_score.json",
+    "BFCL_v4_multi_turn_long_context_score.json",
+    "BFCL_v4_multi_turn_miss_func_score.json",
+    "BFCL_v4_multi_turn_miss_param_score.json",
+    "BFCL_v4_multiple_score.json",
+    "BFCL_v4_parallel_multiple_score.json",
+    "BFCL_v4_parallel_score.json",
+    "BFCL_v4_simple_java_score.json",
+    "BFCL_v4_simple_javascript_score.json",
+    "BFCL_v4_simple_python_score.json",
+    "BFCL_v4_web_search_base_score.json",
+    "BFCL_v4_web_search_no_snippet_score.json"
+  ],
+  "ndjson_first_line_schema": {
+    "keys": [
+      "accuracy",
+      "correct_count",
+      "total_count"
+    ],
+    "type": "dict",
+    "sample": {
+      "accuracy": 0.9830316742081447,
+      "correct_count": 869,
+      "total_count": 884
+    }
+  }
+}

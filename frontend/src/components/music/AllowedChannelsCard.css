@@ -1,0 +1,78 @@
+.music-channels-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.music-channel-row {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.music-channel-row:hover {
+  background: rgba(247, 207, 216, 0.18);
+  transform: translateX(2px);
+}
+
+.music-channel-row--active {
+  background: rgba(247, 207, 216, 0.32);
+  border-color: var(--color-secondary);
+}
+
+.music-channel-row__check {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--color-outline-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-container-lowest);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.music-channel-row--active .music-channel-row__check {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  transform: scale(1.05);
+}
+
+.music-channels-card__scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-outline-variant) transparent;
+}
+
+.music-channels-card__scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.music-channels-card__scroll::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 6px;
+}
+
+html.dark .music-channels-card {
+  background: rgba(34, 36, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.dark .music-channel-row {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+html.dark .music-channel-row:hover {
+  background: rgba(255, 217, 225, 0.08);
+}
+
+html.dark .music-channel-row--active {
+  background: rgba(255, 217, 225, 0.15);
+  border-color: var(--color-secondary);
+}
+
+html.dark .music-channel-row__check {
+  background: var(--color-surface-container);
+}

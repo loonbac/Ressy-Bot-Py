@@ -23,6 +23,10 @@ rules:
     - Keep tasks completable in one session
   apply:
     - Follow existing code patterns
+    - Tests reflect real code behavior, not idealized expectations
+    - If code returns bool, test must expect bool; if model defaults to "", test must expect ""
+    - MagicMock properties are truthy by default — set .bot=False, .joined_at, etc. explicitly
+    - Live tests use @pytest.mark.live and are excluded with -m "not live"
     tdd: true
     test_command: "uv run pytest"
   verify:

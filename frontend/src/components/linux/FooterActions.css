@@ -1,0 +1,33 @@
+.linux-footer {
+  background: rgba(244, 243, 240, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
+}
+
+.linux-footer__feedback {
+  background: var(--color-surface-container-highest);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.linux-footer__discard {
+  color: var(--color-tertiary);
+}
+
+.linux-footer__discard:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: rgba(117, 86, 94, 0.06);
+}
+
+html.dark .linux-footer {
+  background: rgba(29, 31, 29, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+html.dark .linux-footer__feedback {
+  background: var(--color-surface-container-high);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-footer__discard:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}

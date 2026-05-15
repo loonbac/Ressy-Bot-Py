@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "description": "SDD apply phase weights for benchmark ranking",
+    "rationale": "Fase estructuralmente distinta a todas las anteriores: tool use es CENTRAL (no ligero como en propose/spec/design/tasks que solo hacian mem_save + Read). Apply ejecuta loop completo: read multiples fuentes (specs + design + tasks + existing code + apply-progress previo) → write production code → write tests → execute tests → iterate. En Strict TDD el loop tiene gates literales: GATE no avanzar a GREEN sin test escrito primero, GATE no avanzar a TRIANGULATE sin GREEN confirmado por ejecucion, GATE tests green despues de CADA refactor step. aa_intelligence_index 25% como mejor proxy SWE-bench Verified/Pro + non-hallucination paths/APIs + pattern fidelity. bfcl_v3 20% es el primer gran salto desde 0.05 de fases previas — tool use single-step (read/write/execute) es core. tau2_telecom 15% match exacto para TDD loop multi-turn execution con state RED→GREEN→TRIANGULATE→REFACTOR. bfcl_parallel 10% para multi-source reading paralelizable (la skill enfatiza parallel_tool_calls=true CRITICO acá). ifbench 10% para gates negative instructions 'Do NOT write production code before test' + Banned Assertion Patterns rules + evidence table format strict. input_cache_read_ratio 10% porque compounds MAS que en ninguna fase (analisis explicito: cache hit baja costo de $1.50 a $0.30 por batch, mismo apply puede correr 3-5 veces por change en engram-mode). supports_reasoning_effort 8% para deliberacion intra-cycle (triangulation cases, refactor preserva behavior?). supports_verbosity 2% el mas bajo del pipeline porque code outputs son largos por naturaleza, restringir hurts. Failure modes especificos detectados: Helpful Hijack (escribir codigo primero, despues tests), trivial assertion infiltration (toBeDefined sin valor), ghost loop sin notarlo, pattern abandono mid-batch, mock proliferation 15+ mocks, apply-progress overwrite destructivo, silent design deviation. Benchmarks ideales reservados sin data: SWE-bench Pro (code production-grade multi-archivo), CursorBench, RULER (multi-archivo retention), MultiChallenge (multi-turn coherence over batches). Capacidades NO importantes: razonamiento arquitectonico (ya hecho), ADRs, line estimation (ya tasks), multimodal, math/proof.",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench"
+    ]
+  },
+  "phase": "sdd_apply",
+  "description": "Perfil de ranking para la fase de implementacion SDD. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.25,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.10,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.08,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.02,
+      "is_feature_factor": true
+    }
+  ]
+}

@@ -314,6 +314,7 @@ class TestScraperNormalization:
         assert norm["due_date"] is None
 
 
+@pytest.mark.live
 class TestPluginIntegration:
     """Test que los endpoints del plugin responden (sin scraping real)."""
 

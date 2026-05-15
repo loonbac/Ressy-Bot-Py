@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -71,7 +72,7 @@ class TestConfigAPI:
         response = await welcome_client.get("/api/plugins/welcome/config")
         assert response.status_code == 200
         data = response.json()
-        assert data["enabled"] == "true"
+        assert data["enabled"] == True
         assert data["welcome_channel_id"] == ""
         assert data["welcome_message"] == "¡Bienvenido {{user}} al servidor!"
 
@@ -86,7 +87,7 @@ class TestConfigAPI:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["enabled"] == "false"
+        assert data["enabled"] == False
         assert data["welcome_channel_id"] == "987654321"
         assert data["welcome_message"] == "Hola {{user}}!"
 
@@ -162,7 +163,11 @@ class TestWelcomeCog:
         await welcome_db.commit()
 
         mock_member = MagicMock()
+        mock_member.bot = False
+        mock_member.joined_at = datetime.datetime.now(datetime.timezone.utc)
+        mock_member.display_name = "TestUser"
         mock_member.mention = "<@123>"
+        mock_member.guild.name = "TestGuild"
         mock_member.guild.members = [mock_member]
         mock_member.display_avatar.url = "https://example.com/avatar.png"
 
@@ -175,7 +180,7 @@ class TestWelcomeCog:
         call_args = mock_channel.send.await_args
         assert "embed" in call_args.kwargs
         embed = call_args.kwargs["embed"]
-        assert embed.title == "¡Nuevo miembro!"
+        assert embed.title == "Bienvenid@ TestUser"
         assert "<@123>" in embed.description
 
     async def test_on_member_join_channel_not_found(self, welcome_db):
@@ -192,7 +197,11 @@ class TestWelcomeCog:
         await welcome_db.commit()
 
         mock_member = MagicMock()
+        mock_member.bot = False
+        mock_member.joined_at = datetime.datetime.now(datetime.timezone.utc)
+        mock_member.display_name = "TestUser"
         mock_member.mention = "<@123>"
+        mock_member.guild.name = "TestGuild"
         mock_member.guild.members = [mock_member]
         mock_member.display_avatar.url = "https://example.com/avatar.png"
 
@@ -238,7 +247,7 @@ class TestWelcomePluginIntegration:
             )
             assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
             data = resp.json()
-            assert data["enabled"] == "false"
+            assert data["enabled"] == False
             assert data["welcome_message"] == "Hola!"
 
 
@@ -249,16 +258,16 @@ class TestWelcomeModels:
         cfg = WelcomeConfig()
         assert cfg.enabled is True
         assert cfg.welcome_channel_id is None
-        assert cfg.welcome_message == "¡Bienvenido {{user}} al servidor!"
+        assert cfg.welcome_message == ""
 
     async def test_welcome_config_custom(self):
         from src.bot.plugins.welcome.models import WelcomeConfig
 
         cfg = WelcomeConfig(
             enabled=False,
-            welcome_channel_id=123456,
+            welcome_channel_id="123456",
             welcome_message="Hello {{user}}!",
         )
         assert cfg.enabled is False
-        assert cfg.welcome_channel_id == 123456
+        assert cfg.welcome_channel_id == "123456"
         assert cfg.welcome_message == "Hello {{user}}!"

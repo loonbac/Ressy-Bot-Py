@@ -1,0 +1,55 @@
+.linux-save-btn {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  box-shadow: 0 4px 14px rgba(218, 50, 63, 0.22);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.linux-save-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.4), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.linux-save-btn:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.linux-save-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(218, 50, 63, 0.32);
+}
+
+.linux-save-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.linux-save-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.linux-save-btn--saving {
+  background: var(--color-tertiary);
+  box-shadow: none;
+}
+
+.linux-save-btn--success {
+  background: #10b981;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  animation: linux-success-flash 0.6s ease-out;
+}
+
+.linux-save-btn--error {
+  background: var(--color-error);
+  animation: linux-error-shake 0.55s ease-in-out;
+}
+
+html.dark .linux-save-btn {
+  box-shadow: 0 4px 14px rgba(218, 50, 63, 0.4);
+}

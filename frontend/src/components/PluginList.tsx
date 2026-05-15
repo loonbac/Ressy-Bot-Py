@@ -1,6 +1,10 @@
 /**
  * Lista de plugins con diseño glassmorphism zen.
- * Unifica cogs dinámicos (loaded_cogs) y plugins con UI propia (welcome, youtube).
+ *
+ * Registry-driven: PLUGIN_REGISTRY es la única fuente de verdad para los
+ * plugins con UI propia (card + ruta + cog names a ocultar). Añadir un
+ * plugin nuevo = añadir UNA entrada aquí (más el case correspondiente en
+ * App.tsx). Cogs sueltos sin UI propia caen al fallback COG_META.
  */
 import './PluginList.css';
 
@@ -18,7 +22,13 @@ interface PluginCard {
   order: number;
 }
 
-const STATIC_PLUGINS: PluginCard[] = [
+interface PluginRegistryEntry extends PluginCard {
+  section: string;
+  /** Nombres de cog (lowercase) que NO deben aparecer como card aparte. */
+  cogAliases: string[];
+}
+
+export const PLUGIN_REGISTRY: PluginRegistryEntry[] = [
   {
     key: 'welcome',
     title: 'Bienvenida',
@@ -26,6 +36,7 @@ const STATIC_PLUGINS: PluginCard[] = [
     description: 'Saludo automático a nuevos miembros con embed personalizable.',
     section: 'welcome',
     order: 10,
+    cogAliases: ['welcomecog', 'welcome'],
   },
   {
     key: 'blackboard',
@@ -34,6 +45,7 @@ const STATIC_PLUGINS: PluginCard[] = [
     description: 'Notificaciones de tareas y asignaciones de Blackboard.',
     section: 'blackboard',
     order: 15,
+    cogAliases: ['blackboardcog', 'blackboard'],
   },
   {
     key: 'youtube',
@@ -42,65 +54,99 @@ const STATIC_PLUGINS: PluginCard[] = [
     description: 'Notificaciones de nuevos videos de YouTube con PubSubHubbub.',
     section: 'youtube',
     order: 20,
+    cogAliases: ['youtubecog', 'youtube', 'youtubenotifier', 'youtubenotifiercog'],
+  },
+  {
+    key: 'ai-chat',
+    title: 'Chat IA · MiniMax',
+    icon: 'auto_awesome',
+    description:
+      'Asistente conversacional con MiniMax: responde menciones, mantiene contexto y modera el tono.',
+    section: 'ai-chat',
+    order: 25,
+    cogAliases: ['aichatcog', 'ai_chat', 'ai-chat'],
+  },
+  {
+    key: 'music',
+    title: 'Música',
+    icon: 'library_music',
+    description: 'Reproductor de YouTube en canales de voz con cola y comandos slash.',
+    section: 'music',
+    order: 30,
+    cogAliases: ['musiccog', 'music', 'musicplayer', 'musicplayercog'],
+  },
+  {
+    key: 'openrouter',
+    title: 'OpenRouter · Precios',
+    icon: 'paid',
+    description: 'Catálogo de modelos OpenRouter, ranking SDD y embeds bi-semanales en Discord.',
+    section: 'openrouter',
+    order: 35,
+    cogAliases: ['openrouterpricescog', 'openrouter_prices', 'openrouterprices', 'openrouter'],
+  },
+  {
+    key: 'linux',
+    title: 'Linux Updates',
+    icon: 'terminal',
+    description: 'Monitor de releases de distribuciones Linux con timeline y notificaciones.',
+    section: 'linux',
+    order: 40,
+    cogAliases: ['linux', 'linuxcog', 'linuxupdates', 'linuxupdatescog'],
+  },
+  {
+    key: 'code-runner',
+    title: 'Code Runner',
+    icon: 'play_circle',
+    description: 'Sesiones efímeras Discord para ejecutar snippets en sandbox Piston con análisis de seguridad.',
+    section: 'code-runner',
+    order: 45,
+    cogAliases: ['coderunnercog', 'code_runner', 'coderunner'],
   },
 ];
 
+/**
+ * Cogs sueltos (sin UI propia) — placeholders informativos solo.
+ * No agregues aquí plugins con dashboard; va en PLUGIN_REGISTRY.
+ */
 const COG_META: Record<string, { title: string; icon: string; description: string; order: number }> = {
   moderation: {
     title: 'Moderación',
     icon: 'gavel',
     description: 'Herramientas de protección y orden.',
-    order: 40,
-  },
-  music: {
-    title: 'Música',
-    icon: 'library_music',
-    description: 'Armonía sonora para canales de voz.',
-    order: 50,
+    order: 80,
   },
   economy: {
     title: 'Economía',
     icon: 'payments',
     description: 'Sistema de moneda virtual y recompensas.',
-    order: 60,
+    order: 81,
   },
   roles: {
     title: 'Roles',
     icon: 'label',
     description: 'Asignación automática de roles.',
-    order: 70,
+    order: 82,
   },
 };
 
-const HIDDEN_COGS = new Set([
-  'welcomecog',
-  'welcome',
-  'youtubecog',
-  'youtube',
-  'youtubenotifier',
-  'blackboardcog',
-  'blackboard',
-]);
+const HIDDEN_COGS: Set<string> = new Set(
+  PLUGIN_REGISTRY.flatMap((p) => p.cogAliases.map((a) => a.toLowerCase())),
+);
 
 function buildCards(plugins: string[]): PluginCard[] {
-  const cards = [...STATIC_PLUGINS];
+  const cards: PluginCard[] = PLUGIN_REGISTRY.map(({ cogAliases: _aliases, ...rest }) => rest);
   for (const name of plugins) {
-    if (HIDDEN_COGS.has(name.toLowerCase())) continue;
-    const meta = COG_META[name.toLowerCase()];
+    const lower = name.toLowerCase();
+    if (HIDDEN_COGS.has(lower)) continue;
+    const meta = COG_META[lower];
     if (meta) {
-      cards.push({
-        key: name,
-        title: meta.title,
-        icon: meta.icon,
-        description: meta.description,
-        order: meta.order,
-      });
+      cards.push({ key: name, ...meta });
     } else {
       cards.push({
         key: name,
         title: name.charAt(0).toUpperCase() + name.slice(1),
         icon: 'extension',
-        description: 'Módulo funcional activo.',
+        description: 'Módulo funcional activo sin panel dedicado.',
         order: 100,
       });
     }
@@ -113,7 +159,10 @@ export default function PluginList({ plugins, onNavigate }: PluginListProps) {
 
   if (cards.length === 0) {
     return (
-      <section aria-label="Plugins" className="min-h-[calc(100vh-7rem)] -mx-margin-desktop -mt-8 px-margin-desktop pt-12 pb-20">
+      <section
+        aria-label="Plugins"
+        className="min-h-[calc(100vh-7rem)] -mx-margin-desktop -mt-8 px-margin-desktop pt-12 pb-20"
+      >
         <div className="flex flex-col items-center justify-center text-center py-20">
           <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">
             extension_off
@@ -130,12 +179,15 @@ export default function PluginList({ plugins, onNavigate }: PluginListProps) {
   }
 
   return (
-    <section aria-label="Plugins" className="min-h-[calc(100vh-7rem)] -mx-margin-desktop -mt-8 px-margin-desktop pt-12 pb-20">
+    <section
+      aria-label="Plugins"
+      className="min-h-[calc(100vh-7rem)] -mx-margin-desktop -mt-8 px-margin-desktop pt-12 pb-20"
+    >
       <div className="max-w-container-max mx-auto">
         <div className="mb-10">
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
-            Gestiona los módulos activos de tu comunidad. Cada plugin está
-            diseñado para ofrecer una experiencia equilibrada y eficiente.
+            Gestiona los módulos activos de tu comunidad. Cada plugin está diseñado para ofrecer una
+            experiencia equilibrada y eficiente.
           </p>
         </div>
 

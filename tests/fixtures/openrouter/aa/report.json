@@ -1,0 +1,206 @@
+{
+  "table_count": 0,
+  "testid_elements": [
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.0",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.1",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.2",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.3",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.4",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.5",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.6",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.7",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.8",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.9",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.10",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.0",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.1",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.2",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.3",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.4",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.5",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.6",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.7",
+      "classes": "",
+      "childCount": 0
+    },
+    {
+      "tag": "rect",
+      "testid": "bar.item.value.8",
+      "classes": "",
+      "childCount": 0
+    }
+  ],
+  "nextjs_data": {
+    "found": true,
+    "source": "__next_f",
+    "length": 32
+  },
+  "model_container_candidates": [
+    {
+      "modelHint": "Claude",
+      "tag": "SECTION",
+      "classes": "flex flex-col gap-4 bg-white p-4 rounded-lg justify-between",
+      "childCount": 2,
+      "depth": 3
+    },
+    {
+      "modelHint": "Gemini",
+      "tag": "SECTION",
+      "classes": "flex flex-col gap-4 bg-white p-4 rounded-lg justify-between",
+      "childCount": 2,
+      "depth": 3
+    },
+    {
+      "modelHint": "Llama",
+      "tag": "SECTION",
+      "classes": "flex flex-col gap-4 bg-white p-4 rounded-lg justify-between",
+      "childCount": 2,
+      "depth": 3
+    }
+  ],
+  "benchmark_mentions": [
+    {
+      "term": "IFBench",
+      "tag": "SPAN",
+      "text": "Artificial Analysis Intelligence Index v4.0 incorporates 10 evaluations: GDPval-AA, 𝜏²-Bench Teleco",
+      "parentTag": "DIV",
+      "parentClass": "text-xs text-neutral-500 inline-flex items-baseline gap-0 max-w-[60ch]"
+    },
+    {
+      "term": "Omniscience",
+      "tag": "SPAN",
+      "text": "Artificial Analysis Omniscience",
+      "parentTag": "A",
+      "parentClass": "group flex gap-2"
+    },
+    {
+      "term": "tau",
+      "tag": "SCRIPT",
+      "text": "self.__next_f.push([1,\"2f:[\\\"$\\\",\\\"div\\\",null,{\\\"className\\\":\\\"pt-8 pb-40\\\",\\\"children\\\":[[\\\"$\\\",\\\"s",
+      "parentTag": "BODY",
+      "parentClass": "h-full overscroll-y-none relative font-brand-sans text-black bg-background"
+    },
+    {
+      "term": "Intelligence Index",
+      "tag": "DIV",
+      "text": "Artificial Analysis Intelligence Index · Higher is better",
+      "parentTag": "DIV",
+      "parentClass": "border rounded-lg p-4"
+    }
+  ],
+  "selector_candidates": [
+    {
+      "selector": "div.col-span-full",
+      "children": 12,
+      "sampleChild": ""
+    },
+    {
+      "selector": "div.mt-2",
+      "children": 13,
+      "sampleChild": "mb-4 mt-6 w-full md:mt-0 lg:w-1/2 text-left text-s"
+    },
+    {
+      "selector": "div.text-sm",
+      "children": 13,
+      "sampleChild": "cursor-pointer"
+    },
+    {
+      "selector": "div.text-sm",
+      "children": 13,
+      "sampleChild": "cursor-pointer"
+    }
+  ],
+  "script_models": null
+}

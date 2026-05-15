@@ -1,0 +1,267 @@
+.or-weights-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(26, 28, 26, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: openrouter-modal-fade 0.25s ease-out;
+}
+
+@keyframes or-weights-modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.or-weights-modal {
+  background: rgba(250, 249, 246, 0.97);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 1.25rem;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(168, 0, 33, 0.18);
+  animation: or-weights-modal-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+html.dark .or-weights-modal {
+  background: rgba(34, 36, 34, 0.97);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.or-weights-modal__header {
+  padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid rgba(210, 195, 197, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+html.dark .or-weights-modal__header {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.or-weights-modal__close {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(210, 195, 197, 0.4);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--openrouter-on-surface-variant, #4f4446);
+  transition: background-color 0.2s ease, transform 0.18s ease;
+}
+
+.or-weights-modal__close:hover {
+  background: rgba(218, 50, 63, 0.1);
+  transform: rotate(90deg);
+}
+
+html.dark .or-weights-modal__close {
+  color: rgb(210, 200, 200);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.or-weights-modal__sum-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.or-weights-modal__sum-pill--ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgb(21, 128, 61);
+}
+
+.or-weights-modal__sum-pill--bad {
+  background: rgba(186, 26, 26, 0.18);
+  color: rgb(159, 18, 57);
+}
+
+html.dark .or-weights-modal__sum-pill--ok {
+  background: rgba(34, 197, 94, 0.22);
+  color: rgb(134, 239, 172);
+}
+
+html.dark .or-weights-modal__sum-pill--bad {
+  background: rgba(186, 26, 26, 0.25);
+  color: rgb(255, 180, 171);
+}
+
+.or-weights-modal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.or-weights-modal__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  background: rgba(244, 243, 240, 0.5);
+  border: 1px solid rgba(210, 195, 197, 0.3);
+  border-radius: 0.65rem;
+  transition: background-color 0.2s ease;
+}
+
+.or-weights-modal__row:hover {
+  background: rgba(247, 207, 216, 0.15);
+}
+
+.or-weights-modal__row--feature {
+  border-left: 3px solid var(--openrouter-primary, #75565e);
+}
+
+.or-weights-modal__row--reserved {
+  opacity: 0.55;
+}
+
+html.dark .or-weights-modal__row {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.or-weights-modal__slug {
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.or-weights-modal__slug-badge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.or-weights-modal__slug-badge--feature {
+  background: rgba(117, 86, 94, 0.15);
+  color: var(--openrouter-primary, #75565e);
+}
+
+.or-weights-modal__slug-badge--reserved {
+  background: rgba(186, 26, 26, 0.15);
+  color: rgb(159, 18, 57);
+}
+
+.or-weights-modal__slider {
+  width: 14rem;
+  appearance: none;
+  height: 0.4rem;
+  background: rgba(210, 195, 197, 0.5);
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--openrouter-secondary, #b71329);
+}
+
+.or-weights-modal__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--openrouter-secondary, #b71329);
+  min-width: 3rem;
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.or-weights-modal__footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid rgba(210, 195, 197, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(244, 243, 240, 0.3);
+}
+
+html.dark .or-weights-modal__footer {
+  background: rgba(255, 255, 255, 0.03);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.or-weights-modal__btn {
+  padding: 0.55rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: transform 0.18s ease, background-color 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.or-weights-modal__btn--primary {
+  background: var(--openrouter-secondary, #b71329);
+  color: white;
+  border-color: var(--openrouter-secondary, #b71329);
+}
+
+.or-weights-modal__btn--primary:hover:not(:disabled) {
+  background: #da323f;
+  transform: scale(1.02);
+}
+
+.or-weights-modal__btn--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.or-weights-modal__btn--secondary {
+  background: transparent;
+  border-color: rgba(129, 116, 118, 0.4);
+  color: var(--openrouter-on-surface-variant, #4f4446);
+}
+
+.or-weights-modal__btn--secondary:hover {
+  background: rgba(218, 50, 63, 0.08);
+  border-color: rgba(218, 50, 63, 0.4);
+  color: var(--openrouter-secondary, #b71329);
+}
+
+html.dark .or-weights-modal__btn--secondary {
+  color: rgb(210, 200, 200);
+  border-color: rgba(255, 255, 255, 0.15);
+}

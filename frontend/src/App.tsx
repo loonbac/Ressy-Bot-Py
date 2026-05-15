@@ -7,6 +7,11 @@ import SystemStatus from '@/components/SystemStatus';
 import YouTubeConfig from '@/components/YouTubeConfig';
 import WelcomeConfig from '@/components/WelcomeConfig';
 import BlackboardConfig from '@/components/BlackboardConfig';
+import AIChatConfig from '@/components/AIChatConfig';
+import MusicConfig from '@/components/MusicConfig';
+import LinuxConfig from '@/components/LinuxConfig';
+import OpenRouterConfig from '@/components/OpenRouterConfig';
+import CodeRunnerConfig from '@/components/CodeRunnerConfig';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import SakuraPetals from '@/components/SakuraPetals';
 import { fetchConfig, updateConfig, fetchStatus } from '@/api/config';
@@ -19,6 +24,11 @@ const sectionTitles: Record<string, string> = {
   youtube: 'YouTube',
   welcome: 'Bienvenida',
   blackboard: 'Blackboard',
+  'ai-chat': 'Chat IA · MiniMax',
+  music: 'Música',
+  linux: 'Linux Updates',
+  openrouter: 'OpenRouter · Precios',
+  'code-runner': 'Code Runner',
 };
 
 export default function App() {
@@ -119,6 +129,25 @@ export default function App() {
             botName={status?.bot_name}
             botAvatarUrl={status?.bot_avatar_url}
           />
+        )}
+        {activeSection === 'ai-chat' && (
+          <AIChatConfig onNavigate={setActiveSection} />
+        )}
+        {activeSection === 'music' && (
+          <MusicConfig onNavigate={setActiveSection} />
+        )}
+        {activeSection === 'linux' && (
+          <LinuxConfig onNavigate={setActiveSection} />
+        )}
+        {activeSection === 'openrouter' && (
+          <OpenRouterConfig
+            onNavigate={setActiveSection}
+            botName={status?.bot_name}
+            botAvatarUrl={status?.bot_avatar_url}
+          />
+        )}
+        {activeSection === 'code-runner' && (
+          <CodeRunnerConfig onNavigate={setActiveSection} />
         )}
       </DashboardLayout>
     </WebSocketProvider>

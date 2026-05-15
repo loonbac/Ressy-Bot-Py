@@ -33,6 +33,12 @@ class TestCRUD:
         all_config = config_manager.get_all()
         assert "bot_prefix" in all_config
         assert "version" in all_config
+        assert "minimax_api_key" in all_config
+
+    async def test_minimax_api_key_is_global_persistent_config(self, config_manager):
+        assert config_manager.get("minimax_api_key") == ""
+        await config_manager.update("minimax_api_key", "sk-minimax")
+        assert config_manager.get("minimax_api_key") == "sk-minimax"
 
     async def test_update_existing_key(self, config_manager):
         await config_manager.update("bot_prefix", "!")
@@ -57,6 +63,22 @@ class TestPersistence:
         cm2 = ConfigManager()
         await cm2.load(db_path)
         assert cm2.get("bot_prefix") == "Reloaded"
+        assert "minimax_api_key" in cm2.get_all()
+        await cm2._db.close()
+        ConfigManager.reset_instance()
+
+    async def test_minimax_api_key_survives_reload(self, tmp_path):
+        db_path = str(tmp_path / "config.db")
+        ConfigManager.reset_instance()
+        cm1 = ConfigManager()
+        await cm1.load(db_path)
+        await cm1.update("minimax_api_key", "sk-persisted")
+        await cm1._db.close()
+
+        ConfigManager.reset_instance()
+        cm2 = ConfigManager()
+        await cm2.load(db_path)
+        assert cm2.get("minimax_api_key") == "sk-persisted"
         await cm2._db.close()
         ConfigManager.reset_instance()
 

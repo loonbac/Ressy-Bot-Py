@@ -1,0 +1,158 @@
+.linux-settings {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(117, 86, 94, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.linux-settings::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l20 20-20 20L0 20 20 0z' fill='%2375565e' fill-opacity='0.025' fill-rule='evenodd'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.linux-settings > * {
+  position: relative;
+  z-index: 1;
+}
+
+.linux-settings__select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.linux-settings__select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface);
+  font-weight: 600;
+  padding: 10px 40px 10px 14px;
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease;
+  font-size: 14px;
+}
+
+.linux-settings__select:hover {
+  border-color: color-mix(in srgb, var(--color-secondary) 35%, transparent);
+}
+
+.linux-settings__select:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.linux-settings__select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-on-surface-variant);
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.linux-settings__select:focus ~ .linux-settings__select-chevron {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--color-secondary);
+}
+
+.linux-settings__refresh-result {
+  border: 1px solid;
+}
+
+.linux-settings__refresh-result--ok {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #047857;
+}
+
+.linux-settings__refresh-result--warn {
+  background: rgba(218, 50, 63, 0.08);
+  border-color: rgba(218, 50, 63, 0.3);
+  color: var(--color-secondary);
+}
+
+.linux-settings__activity {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.linux-settings__activity thead {
+  background: color-mix(in srgb, var(--color-surface-container-high) 60%, transparent);
+}
+
+.linux-settings__activity-row {
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
+}
+
+.linux-settings__activity-row:hover {
+  background: color-mix(in srgb, var(--color-secondary) 5%, transparent);
+}
+
+.linux-settings__pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.linux-settings__pill--ok {
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+}
+
+.linux-settings__pill--sent {
+  background: color-mix(in srgb, var(--color-secondary) 18%, transparent);
+  color: var(--color-secondary);
+}
+
+.linux-settings__pill--error {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  color: var(--color-error);
+}
+
+html.dark .linux-settings {
+  background: rgba(34, 36, 34, 0.7);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-settings__channels,
+html.dark .linux-settings__activity {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-settings__select {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-on-surface);
+}
+
+html.dark .linux-settings__select option {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+}
+
+html.dark .linux-settings__refresh-result--ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+html.dark .linux-settings__pill--ok {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}

@@ -69,4 +69,12 @@ async def setup(bot: Bot, config_manager: ConfigManager, app):
     app.state.welcome_db = db
     app.state.welcome_cog = cog
 
+    # Teardown callback — cierra la conexion a la DB en shutdown
+    async def _teardown() -> None:
+        await db.close()
+
+    if not hasattr(app.state, "teardown_callbacks"):
+        app.state.teardown_callbacks = []
+    app.state.teardown_callbacks.append(_teardown)
+
     return db

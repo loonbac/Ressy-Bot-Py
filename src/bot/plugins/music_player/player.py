@@ -70,6 +70,10 @@ class GuildPlayer:
                 await self.voice_client.disconnect()
             except Exception:
                 pass
+            try:
+                self.voice_client.cleanup()
+            except Exception:
+                pass
             self.voice_client = None
         self._is_playing = False
         self._is_paused = False

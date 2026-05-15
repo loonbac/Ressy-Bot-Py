@@ -1,0 +1,74 @@
+.linux-status-bar {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 10px 30px rgba(168, 0, 33, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.linux-status-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l20 20-20 20L0 20 20 0z' fill='%2375565e' fill-opacity='0.04' fill-rule='evenodd'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.linux-status-bar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.linux-status-bar__stat-default {
+  color: var(--color-primary);
+}
+
+.linux-status-bar__stat-warning {
+  color: var(--color-secondary);
+}
+
+.linux-status-bar__stat-error {
+  color: var(--color-error);
+}
+
+.linux-status-bar__refresh {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 2px 8px rgba(117, 86, 94, 0.18);
+}
+
+.linux-status-bar__refresh:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(117, 86, 94, 0.3);
+  background: color-mix(in srgb, var(--color-primary) 92%, white);
+}
+
+.linux-status-bar__refresh:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.linux-status-bar__configure {
+  background: transparent;
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
+}
+
+.linux-status-bar__configure:hover {
+  background: rgba(183, 19, 41, 0.06);
+  transform: translateY(-1px);
+}
+
+.linux-status-bar__configure:active {
+  transform: translateY(0) scale(0.97);
+}
+
+html.dark .linux-status-bar {
+  background: rgba(34, 36, 34, 0.7);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-status-bar__configure:hover {
+  background: rgba(218, 50, 63, 0.12);
+}

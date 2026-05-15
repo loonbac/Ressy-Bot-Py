@@ -1,0 +1,123 @@
+.openrouter-scrape-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(210, 195, 197, 0.3);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.openrouter-scrape-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(168, 0, 33, 0.08);
+}
+
+html.dark .openrouter-scrape-card {
+  background: rgba(34, 36, 34, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.openrouter-scrape-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.openrouter-scrape-card__badge--ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: rgb(21, 128, 61);
+}
+
+html.dark .openrouter-scrape-card__badge--ok {
+  background: rgba(34, 197, 94, 0.18);
+  color: rgb(134, 239, 172);
+}
+
+.openrouter-scrape-card__badge--warn {
+  background: rgba(234, 179, 8, 0.15);
+  color: rgb(161, 98, 7);
+}
+
+html.dark .openrouter-scrape-card__badge--warn {
+  background: rgba(234, 179, 8, 0.2);
+  color: rgb(253, 224, 71);
+}
+
+.openrouter-scrape-card__badge--error {
+  background: rgba(186, 26, 26, 0.12);
+  color: rgb(159, 18, 57);
+}
+
+html.dark .openrouter-scrape-card__badge--error {
+  background: rgba(186, 26, 26, 0.22);
+  color: rgb(255, 180, 171);
+}
+
+.openrouter-scrape-card__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+}
+
+.openrouter-scrape-card__dot--ok { background: rgb(34, 197, 94); }
+.openrouter-scrape-card__dot--warn { background: rgb(234, 179, 8); }
+.openrouter-scrape-card__dot--error { background: rgb(186, 26, 26); }
+
+.openrouter-scrape-card__btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(129, 116, 118, 0.5);
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--openrouter-on-surface, #1a1c1a);
+  transition: background-color 0.2s ease, transform 0.18s ease, border-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.openrouter-scrape-card__btn:hover:not(:disabled) {
+  background: rgba(218, 50, 63, 0.08);
+  border-color: rgba(218, 50, 63, 0.45);
+  transform: translateY(-1px);
+}
+
+html.dark .openrouter-scrape-card__btn {
+  color: rgb(242, 241, 238);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.openrouter-scrape-card__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.openrouter-scrape-card__error {
+  font-size: 0.7rem;
+  background: rgba(186, 26, 26, 0.08);
+  border: 1px solid rgba(186, 26, 26, 0.18);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  color: rgb(159, 18, 57);
+  max-height: 4rem;
+  overflow-y: auto;
+}
+
+html.dark .openrouter-scrape-card__error {
+  background: rgba(186, 26, 26, 0.18);
+  color: rgb(255, 180, 171);
+}

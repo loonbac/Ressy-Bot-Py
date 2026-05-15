@@ -195,3 +195,15 @@ Flujo:
 - Cada endpoint que devuelve IDs Discord → strings.
 - Cada error backend devuelve `{detail: "mensaje claro en español neutro"}` con código HTTP correcto.
 - Layout fit-screen: `fixed top-20 bottom-0 left-64 right-0` + grid rows + cards `min-h-0 overflow-hidden`.
+
+## Filosofía de testing
+
+Los tests son **copias del comportamiento real del código**, no idealizaciones de cómo debería funcionar.
+
+| Principio | Explicación |
+|-----------|-------------|
+| **El código manda** | Si el código real devuelve `bool`, el test debe esperar `bool`. Si el modelo real tiene default `""`, el test debe esperar `""`. |
+| **El test está mal, no el código** | Cuando un test falla porque el código real se comporta distinto a lo que el test espera, el que está mal es el test. Nunca se "parchea" el código para que un test pase. |
+| **Mock preciso** | `MagicMock` devuelve `MagicMock()` (truthy) por defecto. Propiedades como `member.bot`, `member.joined_at`, `member.display_name` deben setearse explícitamente si el código real las evalua. |
+| **Live tests son explícitos** | Tests que requieren infraestructura real (bot corriendo, Playwright, DB en disco) usan `@pytest.mark.live` y se excluyen por defecto con `-m "not live"`. |
+| **No forzar el código** | Si el código real cambió (refactor, migración, new feature), los tests se actualizan para reflejar el nuevo comportamiento — no se revierte el código. |

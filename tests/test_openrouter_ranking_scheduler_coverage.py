@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -77,7 +78,7 @@ class TestIsScraping:
         self, db, bfcl_scraper, aa_scraper, mock_client, embed_publisher
     ):
         sched = _make_scheduler(db, bfcl_scraper, aa_scraper, mock_client, embed_publisher)
-        sched._active_scrapes.add("bfcl")
+        sched._active_scrapes["bfcl"] = int(time.time())
         assert sched.is_scraping("bfcl") is True
 
     @pytest.mark.timeout(5)
@@ -129,7 +130,7 @@ class TestTriggerScrape:
         self, db, bfcl_scraper, aa_scraper, mock_client, embed_publisher
     ):
         sched = _make_scheduler(db, bfcl_scraper, aa_scraper, mock_client, embed_publisher)
-        sched._active_scrapes.add("bfcl")
+        sched._active_scrapes["bfcl"] = int(time.time())
         result = await sched.trigger_scrape("bfcl")
         assert result is False
         bfcl_scraper.scrape.assert_not_called()

@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "description": "SDD explore phase weights for benchmark ranking",
+    "rationale": "Prioriza comprension arquitectonica multi-archivo (aa_intelligence_index), adherencia a instrucciones negativas y envelope estricto (ifbench), razonamiento ajustable profundo con salida concisa (supports_reasoning_effort + supports_verbosity), y cache de lectura barato (input_cache_read_ratio) porque la fase es input-pesada. Tool use es ligero (solo mem_save + lectura) por eso bfcl bajo. tau2_telecom no aplica. Long-context y multi-file code comprehension genuina caen en benchmarks reservados (ruler, longbench, multichallenge) sin datos en AA API hoy; pesos quedan en proxies disponibles.",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench",
+      "tau2_telecom"
+    ]
+  },
+  "phase": "sdd_explore",
+  "description": "Perfil de ranking para la fase de exploracion SDD. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.30,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.15,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.15,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.10,
+      "is_feature_factor": true
+    }
+  ]
+}

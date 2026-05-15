@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "description": "Orchestrator phase weights for benchmark ranking",
+    "rationale": "Prioriza seguimiento de instrucciones, uso de herramientas y costo operativo para elegir modelos adecuados como orquestadores.",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench"
+    ]
+  },
+  "phase": "orchestrator",
+  "description": "Perfil de ranking para la fase de orquestacion. Pesos activos suman 1.0 tras renormalizacion.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.25,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.05,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.03,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.02,
+      "is_feature_factor": true
+    }
+  ]
+}

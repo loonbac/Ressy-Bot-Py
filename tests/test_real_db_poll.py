@@ -27,6 +27,7 @@ async def real_client(real_monitor: YouTubeMonitor):
         yield client
 
 
+@pytest.mark.live
 class TestRealDBIntegration:
     async def test_get_config_returns_api_key(self, real_client: AsyncClient):
         resp = await real_client.get("/api/plugins/youtube/config")

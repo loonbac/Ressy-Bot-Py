@@ -13,12 +13,21 @@ _STAUS_MAP = {
     "invisible": discord.Status.invisible,
 }
 
-_ACTIVITY_MAP = {
-    "playing": lambda t: discord.Game(name=t),
-    "watching": lambda t: discord.Activity(type=discord.ActivityType.watching, name=t),
-    "listening": lambda t: discord.Activity(type=discord.ActivityType.listening, name=t),
-    "competing": lambda t: discord.Activity(type=discord.ActivityType.competing, name=t),
-}
+def _build_activity(activity_type: str, text: str, start):
+    """Construye la Activity. `start` (datetime) habilita el cronómetro
+    elapsed que Discord muestra como "hace HH:MM" bajo el bot. Custom no
+    soporta timestamps (Discord lo ignora ahí)."""
+    if activity_type == "custom":
+        return discord.CustomActivity(name=text)
+    type_map = {
+        "playing": discord.ActivityType.playing,
+        "watching": discord.ActivityType.watching,
+        "listening": discord.ActivityType.listening,
+        "competing": discord.ActivityType.competing,
+    }
+    a_type = type_map.get(activity_type, discord.ActivityType.playing)
+    timestamps = {"start": int(start.timestamp() * 1000)} if start else None
+    return discord.Activity(type=a_type, name=text, timestamps=timestamps)
 
 
 class Bot(commands.Bot):
@@ -26,6 +35,7 @@ class Bot(commands.Bot):
         intents = discord.Intents.default()
         intents.members = True  # required for on_member_join + guild.members iteration
         intents.voice_states = True  # required for voice channel state tracking
+        intents.message_content = True  # required: code_runner lee message.content en canales de sesión
         super().__init__(command_prefix="/", intents=intents)
         self.config_manager = config_manager
 
@@ -42,8 +52,9 @@ class Bot(commands.Bot):
             activity_text = self.config_manager.get("bot_activity_text") or ""
 
             status = _STAUS_MAP.get(status_str, discord.Status.online)
-            activity_fn = _ACTIVITY_MAP.get(activity_type, _ACTIVITY_MAP["playing"])
-            activity = activity_fn(activity_text) if activity_text else None
+            # start = arranque del bot → Discord muestra "hace HH:MM" elapsed.
+            start = getattr(self, "start_time", None) or discord.utils.utcnow()
+            activity = _build_activity(activity_type, activity_text, start) if activity_text else None
 
             await self.change_presence(status=status, activity=activity)
         except Exception as exc:

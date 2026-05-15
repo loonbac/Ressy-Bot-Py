@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './PresenceCard.css';
 
 export type PresenceStatus = 'online' | 'idle' | 'dnd' | 'invisible';
-export type PresenceActivityType = 'playing' | 'watching' | 'listening' | 'competing';
+export type PresenceActivityType = 'playing' | 'watching' | 'listening' | 'competing' | 'custom';
 
 interface Props {
   status: PresenceStatus;
@@ -35,6 +35,7 @@ const ACTIVITY_OPTIONS: Array<{
   icon: string;
   prefix: string;
 }> = [
+  { id: 'custom', label: 'Personalizado', icon: 'chat', prefix: '' },
   { id: 'playing', label: 'Jugando', icon: 'sports_esports', prefix: 'Jugando' },
   { id: 'watching', label: 'Viendo', icon: 'visibility', prefix: 'Viendo' },
   { id: 'listening', label: 'Escuchando', icon: 'headphones', prefix: 'Escuchando' },

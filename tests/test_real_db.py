@@ -3,6 +3,7 @@ import aiosqlite
 
 
 @pytest.mark.anyio
+@pytest.mark.live
 async def test_real_db_has_api_key():
     """Test the user's actual database file."""
     db_path = "data/plugins/youtube.db"

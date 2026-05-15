@@ -1,0 +1,87 @@
+.linux-distro-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-left: 4px solid var(--distro-color, #75565e);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease,
+              border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.linux-distro-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(117, 86, 94, 0.12);
+}
+
+.linux-distro-card:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.linux-distro-card--selected {
+  box-shadow: 0 0 0 2px var(--distro-color, #b71329),
+              0 10px 24px rgba(117, 86, 94, 0.18);
+}
+
+.linux-distro-card:hover .linux-distro-card__icon {
+  animation: linux-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.linux-distro-card:hover .linux-distro-card__cta {
+  text-decoration: underline;
+}
+
+.linux-distro-card:hover .linux-distro-card__cta .material-symbols-outlined {
+  animation: linux-arrow-slide 0.6s ease-in-out infinite;
+}
+
+.linux-distro-card__bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.linux-distro-card__bar-fill {
+  transition: width 0.4s ease;
+}
+
+.linux-distro-card__days--safe { color: #10b981; }
+.linux-distro-card__days--warning { color: var(--color-secondary); }
+.linux-distro-card__days--error {
+  color: var(--color-error);
+  animation: linux-warning-pulse 1.8s ease-in-out infinite;
+}
+.linux-distro-card__days--unknown { color: var(--color-on-surface-variant); }
+.linux-distro-card__days--rolling { color: var(--distro-color, var(--color-primary)); }
+
+.linux-distro-card__bar-fill--rolling {
+  background: linear-gradient(
+    90deg,
+    var(--distro-color, var(--color-primary)) 0%,
+    color-mix(in srgb, var(--distro-color, var(--color-primary)) 40%, transparent) 50%,
+    var(--distro-color, var(--color-primary)) 100%
+  );
+  background-size: 200% 100%;
+  animation: linux-rolling-flow 3.5s linear infinite;
+}
+
+@keyframes linux-rolling-flow {
+  from { background-position: 0% 0%; }
+  to { background-position: 200% 0%; }
+}
+
+.linux-distro-card__count {
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+
+html.dark .linux-distro-card {
+  background: rgba(34, 36, 34, 0.7);
+  border-color: rgba(255, 255, 255, 0.06);
+  border-left-color: var(--distro-color, #75565e);
+}
+
+html.dark .linux-distro-card__bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .linux-distro-card:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}

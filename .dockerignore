@@ -1,0 +1,43 @@
+# Secrets — NUNCA al build context
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+frontend/node_modules/
+node_modules/
+
+# Datos persistentes (van por volumen en Coolify, no en la imagen)
+data/
+
+# Git / IDE / OS
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+
+# Material de diseño y planificación (no necesario en runtime)
+diseño/
+openspec/
+.pi/
+.pi-lens/
+.atl/
+
+# Tests y scripts de debug
+tests/
+scripts/test_*.py
+scripts/probe_*.py
+scripts/debug_*.py
+
+# Docs sueltas
+*.md
+!src/**/*.md

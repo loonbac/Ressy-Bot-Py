@@ -22,6 +22,9 @@ ALLOWED_KINDS = {
     "scrape",
     "system",
     "music",
+    "code_runner",
+    "openrouter",
+    "ai_chat",
 }
 
 

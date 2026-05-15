@@ -1,0 +1,89 @@
+/* ── AI Chat (MiniMax) animations ─────────────────────── */
+
+@keyframes ai-chat-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ai-chat-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ai-chat-bloom {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ai-chat-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+@keyframes ai-chat-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
+}
+
+@keyframes ai-chat-msg-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ai-chat-typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes ai-chat-toast-slide {
+  0% { opacity: 0; transform: translateX(20px) scale(0.92); }
+  60% { opacity: 1; transform: translateX(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes ai-chat-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(218, 50, 63, 0); }
+  50% { box-shadow: 0 0 22px 2px rgba(218, 50, 63, 0.25); }
+}
+
+.animate-ai-chat-card-enter {
+  animation: ai-chat-card-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-ai-chat-stagger-1 { animation-delay: 0.04s; }
+.animate-ai-chat-stagger-2 { animation-delay: 0.10s; }
+.animate-ai-chat-stagger-3 { animation-delay: 0.16s; }
+.animate-ai-chat-stagger-4 { animation-delay: 0.22s; }
+.animate-ai-chat-stagger-5 { animation-delay: 0.28s; }
+
+.animate-ai-chat-spin { animation: ai-chat-spin 0.9s linear infinite; }
+.animate-ai-chat-bloom { animation: ai-chat-bloom 0.42s ease-out; }
+.animate-ai-chat-shake { animation: ai-chat-shake 0.42s ease-out; }
+.animate-ai-chat-pulse-dot { animation: ai-chat-pulse-dot 2s ease-in-out infinite; }
+.animate-ai-chat-msg-in { animation: ai-chat-msg-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-ai-chat-toast-slide { animation: ai-chat-toast-slide 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-ai-chat-glow { animation: ai-chat-glow 1.6s ease-in-out infinite; }
+
+.ai-chat-typing span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: ai-chat-typing-bounce 1.1s infinite ease-in-out;
+}
+.ai-chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+.ai-chat-typing span:nth-child(3) { animation-delay: 0.3s; }

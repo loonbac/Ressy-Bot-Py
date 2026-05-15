@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "description": "SDD verify phase weights for benchmark ranking",
+    "rationale": "Fase adversarial audit, perfil cognitivo OPUESTO a apply. Ocho operaciones: reading multi-artefacto + cross-referencing 5 fuentes (proposal/spec/design/tasks/apply-progress), mapeo spec scenarios → tests reales con verificacion ejecutada (no asumida), TDD Cycle Evidence audit forense (RED archivo existe? GREEN pasa AHORA? TRIANGULATE 3 casos distintos?), Assertion Quality Audit la mas exigente semanticamente (tautologias / empty collections / type-only / ghost loops / incomplete cycles / smoke-only / CSS class / mock-heavy), test layer classification por imports, coverage analysis filtrado, severity classification CRITICAL/WARNING/SUGGESTION con reglas concretas, verdict binario-ternario PASS/PASS_WITH_WARNINGS/FAIL sin hedging. Asimetria critica detectada en analisis: LLMs tienen sesgo entrenado hacia 'be helpful' y 'find positive interpretations' que en verify es ESTRUCTURALMENTE DESTRUCTIVO (test pasa sintacticamente → tentado a aceptar; smoke-only → tentado a aceptar; triangulation 2 casos identicos → tentado a aceptar). Modelo correcto resiste activamente confirmation bias. Provider diversity con apply ES RECOMENDACION EXPLICITA del analisis ('verify idealmente NO debería ser el mismo que apply' — blind spots compartidos, assertion quality requires perspectiva externa). aa_intelligence_index 25% como mejor proxy non-hallucination evidence + code reading semantico + general quality. ifbench 20% MAS ALTO que apply (0.10) porque severity classification rules + structured report adherence con 6+ tablas + strict verdict no hedging son contractuales. tau2_telecom 15% para multi-step execution con state + report templated complejo. bfcl_v3 15% ligeramente MAS BAJO que apply (0.20) porque verify lee/audita mas que escribe/itera. bfcl_parallel 10% CRITICO por analisis: parallel tool calls de lint + coverage + typecheck simultaneamente. supports_reasoning_effort 8% para assertion quality audit semantic depth. input_cache_read_ratio 5% para multiples corridas por change en engram-mode. supports_verbosity 2% porque reportes son largos por design (cap bajo trunca findings). Benchmarks ideales reservados sin data: RULER (cross-reference multi-artefacto preciso seria IDEAL), CyberGym (vulnerability reproduction estructuralmente similar a defect detection), CritPt (adversarial pattern detection), SWE-bench Pro (code reading semantico profundo), GDPval-AA (strict verdict commitment no hedging), MultiChallenge (multi-turn audit coherence), LongBench. Capabilities NO importantes: code generation a escala (verifica, no escribe), razonamiento arquitectonico (ya decidido), creatividad, multimodal, pattern fidelity (le toco a apply).",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench"
+    ]
+  },
+  "phase": "sdd_verify",
+  "description": "Perfil de ranking para la fase de validacion SDD adversarial. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.25,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.05,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.08,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.02,
+      "is_feature_factor": true
+    }
+  ]
+}

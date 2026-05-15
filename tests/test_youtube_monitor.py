@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -175,11 +176,9 @@ class TestRSSRemoval:
         """T3: fetch_recent_videos must not exist after RSS removal."""
         assert not hasattr(monitor, "fetch_recent_videos")
 
-    async def test_start_is_noop_or_removed(self, monitor: YouTubeMonitor):
-        """T3: start() should be a no-op or removed."""
-        if hasattr(monitor, "start"):
-            await monitor.start()
-            # Should not raise and should not create a polling task
+    async def test_start_method_removed(self, monitor: YouTubeMonitor):
+        """T3: start() is not part of the public monitor contract."""
+        assert not hasattr(monitor, "start")
 
     async def test_http_headers_no_xml_accept(self, monitor: YouTubeMonitor):
         """T3: httpx client should not send Accept: text/xml."""
@@ -1093,6 +1092,11 @@ class TestPendingHubSubscribeAPI:
 
 
 class TestInit:
+    def test_main_does_not_call_monitor_start(self):
+        """Startup must not invoke phantom YouTube monitor lifecycle methods."""
+        main_source = Path("src/__main__.py").read_text()
+        assert "monitor.start(" not in main_source
+
     async def test_init_starts_hub_renewal_loop(self):
         """T12: setup() starts the hub renewal loop."""
         from src.web.app import create_app

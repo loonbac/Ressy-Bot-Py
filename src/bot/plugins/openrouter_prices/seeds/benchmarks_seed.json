@@ -1,0 +1,67 @@
+{
+  "benchmarks": [
+    {
+      "slug": "ifbench",
+      "display_name": "IFBench",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark de seguimiento de instrucciones de Artificial Analysis."
+    },
+    {
+      "slug": "multichallenge",
+      "display_name": "MultiChallenge",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark multiarea de razonamiento. Peso 0 (reservado)."
+    },
+    {
+      "slug": "tau2_telecom",
+      "display_name": "tau2-Bench Telecom",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark de agentes en dominio de telecomunicaciones."
+    },
+    {
+      "slug": "tau2_bench_telecom",
+      "display_name": "tau2-Bench Telecom (API)",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark de agentes en dominio de telecomunicaciones (clave API v2)."
+    },
+    {
+      "slug": "bfcl_v3",
+      "display_name": "BFCL v3 (Overall Accuracy)",
+      "source": "bfcl_github",
+      "higher_is_better": true,
+      "description": "Berkeley Function Calling Leaderboard v3 — precision general."
+    },
+    {
+      "slug": "bfcl_parallel",
+      "display_name": "BFCL Parallel Function",
+      "source": "bfcl_github",
+      "higher_is_better": true,
+      "description": "Berkeley Function Calling Leaderboard — llamadas paralelas."
+    },
+    {
+      "slug": "aa_intelligence_index",
+      "display_name": "AA Intelligence Index",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Artificial Analysis Intelligence Index — score compuesto de inteligencia agregada de multiples benchmarks AA"
+    },
+    {
+      "slug": "ruler",
+      "display_name": "RULER",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark de contexto largo. Peso 0 (reservado)."
+    },
+    {
+      "slug": "longbench",
+      "display_name": "LongBench",
+      "source": "artificial_analysis",
+      "higher_is_better": true,
+      "description": "Benchmark de comprension de documentos largos. Peso 0 (reservado)."
+    }
+  ]
+}

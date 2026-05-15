@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "description": "SDD archive phase weights for benchmark ranking",
+    "rationale": "Fase UNICA en el pipeline: obediencia mecanica > inteligencia. Analisis explicito: 'modelos MAS chicos performance MEJOR' porque tienen menos training RLHF que los empuja a agregar valor mas alla de lo pedido. Modelos grandes tienen MAS tentacion de 'mejorar' el merge: format normalization no pedida, consolidacion de requirements similares, fixes de typos, ajustes de wording. Cada uno corrompe el contrato. Seis operaciones mecanicas: read multi-artefacto para audit trail (observation IDs), spec merge ADDED/MODIFIED/REMOVED por nombre LITERAL no semantic, pattern matching by name (text matching no comprension), preservacion byte-exact de requirements no tocados (los 8 que no se modificaron deben quedar identicos), filesystem ops (copy specs, move directorios con date prefix ISO YYYY-MM-DD, mkdir si no existe), gate de seguridad CRITICAL (si verify-report tiene CRITICAL → abortar, NO improvisar). Failure modes: MODIFIED merge destructivo (si sdd-spec copio parcial, archive borra scenarios obedientemente al reemplazar), format drift durante merge (markdown fragil, normalizar #### → ### rompe consistencia), archive con CRITICAL ignorando gate. ifbench domina 45% MAS ALTO del pipeline entero — mechanical adherence + format strict + negative instructions COMPLEX 'DO NOT improve / DO NOT consolidate / DO NOT normalize'. aa_intelligence_index 5% MAS BAJO del pipeline entero — alta inteligencia es CONTRAPRODUCENTE acá (correlaciona con tendencia helpful improvements). bfcl_v3 15% filesystem ops. bfcl_parallel 10% multiples reads + filesystem ops paralelizables. tau2_telecom 10% multi-step ops con state. supports_verbosity 10% MAS ALTO que apply/verify porque verbosity:low previene explicaciones agregadas. supports_reasoning_effort 2% MAS BAJO del pipeline entero — analisis explicito 'effort=minimal o desactivar reasoning, cualquier deliberacion es overhead que introduce improvements no pedidos'. cache_ratio 3% bajo porque archive runs once per change, no compounds. Modelos ideales por analisis: Haiku 4.5 / DeepSeek V4 Flash / Gemini Flash Latest (cheap, fast, obedient). Modelos contraindicados: Opus 4.7 / GPT-5.5 / Grok 4.3 / Sonnet 4.6 (overkill + tendencia a improve). Benchmarks ideales reservados sin data: multichallenge (multi-turn coherence), ruler, longbench (no relevantes acá tampoco). Capacidades NO importantes: razonamiento arquitectonico, code generation, long context profundo, creatividad (CONTRAPRODUCENTE), adversarial reasoning (eso fue verify), pattern detection codebase, multimodal, math.",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench"
+    ]
+  },
+  "phase": "sdd_archive",
+  "description": "Perfil de ranking para la fase de archivado SDD. Obediencia mecanica domina. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.45,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.15,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.10,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.03,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.02,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.10,
+      "is_feature_factor": true
+    }
+  ]
+}

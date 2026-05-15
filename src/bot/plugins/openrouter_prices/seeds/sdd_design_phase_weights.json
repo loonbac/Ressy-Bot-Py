@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "description": "SDD design phase weights for benchmark ranking",
+    "rationale": "Fase con cuatro tensiones simultaneas: razonamiento arquitectonico profundo, lectura precisa multi-archivo del codebase real (rompe 4-file rule del orquestador deliberadamente), subordinacion a patterns existentes sobre best-practices canonicas, y cap 800 palabras. aa_intelligence_index domina (35%) como mejor proxy para razonamiento arquitectonico + non-hallucination en file paths/imports/APIs. supports_reasoning_effort 20% es el mas alto de todas las fases porque las decisiones tocan codigo real (15K-25K tokens internos deliberando ADRs con 3 campos obligatorios: Choice + Alternatives considered + Rationale). input_cache_read_ratio 10% mas alto que otras fases porque hay lectura masiva del codebase para detectar patterns implicitos. ifbench 20% para adherencia al cap + template strict + regla negativa complex 'follow existing pattern even if you would recommend different'. supports_verbosity 5% mas bajo que sdd_spec porque design tiene secciones legitimas multiples (ADRs + Data Flow + File Changes + Interfaces + Testing Strategy), no es solo cap. tau2_telecom 5% para contract templated del design.md (7 secciones, 3 tablas). bfcl_v3 5% para tool use ligero solo mem_save + Read. Benchmarks ideales reservados sin data: RULER (multi-archivo retention para pattern detection cross-module), SWE-bench Pro (code comprehension multi-archivo profunda), CritPt (counterfactual reasoning en arquitectura), GPQA Diamond, TestEval (test strategy stratification), RepoBench. Si AA API expone esos benchmarks, redistribuir. Capabilities NO importantes: code gen escala (solo interfaces clave), tool use complejo, multimodal, math/proof, context >256K (a menos codebase gigante).",
+    "reserved_zero": [
+      "multichallenge",
+      "ruler",
+      "longbench",
+      "bfcl_parallel"
+    ]
+  },
+  "phase": "sdd_design",
+  "description": "Perfil de ranking para la fase de diseno SDD. Pesos activos suman 1.0.",
+  "weights": [
+    {
+      "benchmark_slug": "ifbench",
+      "weight": 0.20,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "multichallenge",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "tau2_telecom",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_v3",
+      "weight": 0.05,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "bfcl_parallel",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "aa_intelligence_index",
+      "weight": 0.35,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "ruler",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "longbench",
+      "weight": 0.0,
+      "is_feature_factor": false
+    },
+    {
+      "benchmark_slug": "input_cache_read_ratio",
+      "weight": 0.10,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_reasoning_effort",
+      "weight": 0.20,
+      "is_feature_factor": true
+    },
+    {
+      "benchmark_slug": "supports_verbosity",
+      "weight": 0.05,
+      "is_feature_factor": true
+    }
+  ]
+}

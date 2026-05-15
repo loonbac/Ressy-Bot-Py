@@ -1,0 +1,454 @@
+.linux-timeline-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(117, 86, 94, 0.06);
+  height: 100%;
+  min-height: 320px;
+  max-height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.linux-timeline-card__inner {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.linux-timeline-card__body {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 78%,
+    rgba(0, 0, 0, 0.2) 96%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 78%,
+    rgba(0, 0, 0, 0.2) 96%,
+    transparent 100%
+  );
+}
+
+.linux-timeline-card__overflow-hint {
+  position: absolute;
+  right: 12px;
+  bottom: 4px;
+  z-index: 5;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.linux-timeline-card--empty {
+  min-height: 200px;
+}
+
+.linux-timeline-card__inner {
+  position: relative;
+  overflow-y: auto;
+}
+
+.linux-timeline-card__watermark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0.06;
+  color: var(--distro-color, #75565e);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.linux-timeline-card__line {
+  position: absolute;
+  left: 15px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    var(--distro-color, #75565e) 0%,
+    color-mix(in srgb, var(--distro-color, #75565e) 15%, transparent) 100%
+  );
+  border-radius: 2px;
+}
+
+.linux-timeline-card__dot {
+  background: var(--color-surface-container-highest);
+  border: 3px solid var(--distro-color, #75565e);
+  color: var(--distro-color, #75565e);
+  transition: transform 0.2s ease;
+}
+
+.linux-timeline-card__dot--upcoming {
+  background: var(--color-surface-container-highest);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.linux-timeline-card__dot--active {
+  background: var(--distro-color, var(--color-primary));
+  border-color: rgba(255, 255, 255, 0.7);
+  color: white;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--distro-color, #b71329) 30%, transparent);
+  animation: linux-pulse-ring 2s ease-out infinite;
+}
+
+.linux-timeline-card__dot--past {
+  background: var(--color-surface-container-high);
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+}
+
+.linux-timeline-card__chip {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.linux-timeline-card__chip--upcoming {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+}
+
+.linux-timeline-card__chip--active {
+  background: color-mix(in srgb, var(--distro-color, var(--color-secondary)) 18%, transparent);
+  color: var(--distro-color, var(--color-secondary));
+}
+
+.linux-timeline-card__chip--past {
+  background: var(--color-surface-container-highest);
+  color: var(--color-on-surface-variant);
+}
+
+.linux-timeline-card__nav-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-secondary) 12%, transparent);
+  color: var(--color-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-secondary) 22%, transparent);
+  transition: transform 0.18s ease, background 0.2s ease;
+}
+
+.linux-timeline-card__nav-btn:hover {
+  background: color-mix(in srgb, var(--color-secondary) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.linux-timeline-card__nav-btn:active {
+  transform: translateY(0) scale(0.92);
+}
+
+.linux-timeline-card__counter {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface-variant);
+  min-width: 36px;
+  text-align: center;
+}
+
+.linux-timeline-card__play-state {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-on-surface-variant);
+  margin-left: 4px;
+}
+
+.linux-timeline-card__play-state--paused {
+  color: var(--color-secondary);
+}
+
+.linux-timeline-card__row {
+  opacity: 0;
+  animation: linux-row-fade-in 0.4s ease-out forwards;
+}
+
+.linux-timeline-card__batch {
+  animation: linux-batch-slide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes linux-batch-slide {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.linux-timeline-card__footer {
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 50%, transparent);
+  background: color-mix(in srgb, var(--distro-color, var(--color-secondary)) 4%, transparent);
+  flex-shrink: 0;
+}
+
+.linux-timeline-card__dot-nav {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-secondary) 22%, transparent);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.25s ease, background 0.25s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.linux-timeline-card__dot-nav:hover {
+  transform: scale(1.35);
+}
+
+.linux-timeline-card__dot-nav--active {
+  background: var(--color-secondary);
+  width: 22px;
+  border-radius: 999px;
+}
+
+.linux-timeline-card__progress {
+  position: relative;
+  height: 3px;
+  background: color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
+  overflow: hidden;
+}
+
+.linux-timeline-card__progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: var(--color-secondary);
+  animation: linux-progress-grow linear forwards;
+}
+
+.linux-timeline-card__progress-fill--paused {
+  animation-play-state: paused;
+}
+
+@keyframes linux-progress-grow {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.linux-timeline-card__rolling-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  min-height: 220px;
+  padding: 28px 24px;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      color-mix(in srgb, var(--distro-color, var(--color-secondary)) 18%, transparent) 0%,
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--distro-color, var(--color-secondary)) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--distro-color, var(--color-secondary)) 35%, transparent);
+  overflow: hidden;
+  animation: linux-batch-slide 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.linux-timeline-card__rolling-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 30% 20%,
+      color-mix(in srgb, var(--distro-color, var(--color-secondary)) 22%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 75% 85%,
+      color-mix(in srgb, var(--distro-color, var(--color-secondary)) 18%, transparent) 0%,
+      transparent 60%
+    );
+  opacity: 0.7;
+  pointer-events: none;
+  animation: linux-rolling-glow-pulse 5s ease-in-out infinite;
+}
+
+@keyframes linux-rolling-glow-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+.linux-timeline-card__rolling-icon {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--distro-color, var(--color-secondary));
+  color: white;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--distro-color, var(--color-secondary)) 18%, transparent),
+    0 12px 28px color-mix(in srgb, var(--distro-color, var(--color-secondary)) 35%, transparent);
+  margin-bottom: 14px;
+  z-index: 1;
+  animation: linux-rolling-bounce 2.4s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.linux-timeline-card__rolling-icon .material-symbols-outlined {
+  font-size: 44px;
+  display: inline-block;
+  transform-origin: 50% 50%;
+  animation: linux-rolling-spin-icon 4.5s linear infinite;
+}
+
+@keyframes linux-rolling-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes linux-rolling-spin-icon {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.linux-timeline-card__rolling-title {
+  font-size: 32px;
+  line-height: 1.1;
+  color: var(--distro-color, var(--color-secondary));
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 12px color-mix(in srgb, var(--distro-color, var(--color-secondary)) 25%, transparent);
+}
+
+.linux-timeline-card__rolling-subtitle {
+  font-size: 13px;
+  color: var(--color-on-surface);
+  margin: 0 0 6px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.linux-timeline-card__rolling-tagline {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  max-width: 380px;
+  line-height: 1.55;
+  margin: 0 0 14px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.linux-timeline-card__rolling-code {
+  background: var(--color-surface-container-high);
+  color: var(--distro-color, var(--color-secondary));
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.linux-timeline-card__rolling-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.linux-timeline-card__rolling-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--distro-color, var(--color-secondary)) 14%, transparent);
+  color: var(--distro-color, var(--color-secondary));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--distro-color, var(--color-secondary)) 25%, transparent);
+}
+
+.linux-timeline-card__empty-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 20px;
+  gap: 8px;
+  animation: linux-batch-slide 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.linux-timeline-card__empty-icon {
+  font-size: 56px;
+  color: var(--color-on-surface-variant);
+  opacity: 0.5;
+  animation: linux-rolling-bounce 2.6s ease-in-out infinite;
+}
+
+.linux-timeline-card__empty-title {
+  font-size: 22px;
+  color: var(--color-on-surface-variant);
+  margin: 0;
+}
+
+.linux-timeline-card__empty-subtitle {
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+html.dark .linux-timeline-card__rolling-code {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-timeline-card__rolling-subtitle {
+  color: var(--color-on-surface);
+}
+
+html.dark .linux-timeline-card {
+  background: rgba(34, 36, 34, 0.72);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-timeline-card__dot--past {
+  background: var(--color-surface-container);
+}
+
+html.dark .linux-timeline-card__chip--past {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-timeline-card__progress {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .linux-timeline-card__footer {
+  background: rgba(255, 255, 255, 0.02);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}

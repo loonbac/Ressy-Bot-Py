@@ -13,6 +13,7 @@ SCHEMA = {
     "bot_status": {"type": "string", "default": "online"},
     "bot_activity_type": {"type": "string", "default": "playing"},
     "bot_activity_text": {"type": "string", "default": "con el santuario digital"},
+    "minimax_api_key": {"type": "string", "default": ""},
 }
 
 
