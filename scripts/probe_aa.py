@@ -2,7 +2,8 @@
 """Probe Artificial Analysis API — verifica conectividad y estructura de respuesta.
 
 Uso:
-    uv run python scripts/probe_aa.py
+    AA_API_KEY=aa_xxx uv run python scripts/probe_aa.py
+    uv run python scripts/probe_aa.py --api-key aa_xxx
 
 Output:
   /tmp/aa_api_probe.json  — respuesta cruda truncada para inspeccion
@@ -11,12 +12,12 @@ Output:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import httpx
 
 API_URL = "https://artificialanalysis.ai/api/v2/data/llms/models"
-API_KEY = "aa_PauXVRbbLpzJqdcIZiofepBrIalOFLvp"
 OUT = Path("/tmp")
 RAW_RESPONSE = OUT / "aa_api_probe.json"
 REPORT = OUT / "aa_api_report.json"
@@ -25,14 +26,16 @@ REPORT = OUT / "aa_api_report.json"
 async def probe(
     dump_fields: bool = False,
     http_client: httpx.AsyncClient | None = None,
+    api_key: str | None = None,
 ) -> dict | None:
     print(f"\n=== GET {API_URL} ===")
+    key = (api_key or os.environ.get("AA_API_KEY", "")).strip()
     client = http_client or httpx.AsyncClient(timeout=60.0)
     close_client = http_client is None
     try:
         response = await client.get(
             API_URL,
-            headers={"x-api-key": API_KEY},
+            headers={"x-api-key": key},
         )
         print(f"  Status: {response.status_code}")
         response.raise_for_status()
@@ -127,5 +130,17 @@ if __name__ == "__main__":
         action="store_true",
         help="List all evaluation keys from AA API with model counts and example values",
     )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="AA API key. Falls back to the AA_API_KEY env var.",
+    )
     args = parser.parse_args()
-    asyncio.run(probe(dump_fields=args.dump_fields))
+
+    resolved_key = (args.api_key or os.environ.get("AA_API_KEY", "")).strip()
+    if not resolved_key:
+        parser.error(
+            "Falta API key. Usa --api-key aa_xxx o exporta AA_API_KEY."
+        )
+
+    asyncio.run(probe(dump_fields=args.dump_fields, api_key=resolved_key))

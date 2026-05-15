@@ -29,6 +29,10 @@ from src.bot.plugins.openrouter_prices.scrapers.artificial_analysis import (
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "openrouter" / "aa"
 
+# A non-empty key so the scraper actually performs the (mocked) HTTP call.
+# The mock client ignores the key value entirely.
+VALID_KEY = "aa_test_key"
+
 
 def _load_fixture() -> dict:
     with open(FIXTURES_DIR / "api_response.json") as f:
@@ -125,7 +129,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         assert result.status == "ok"
@@ -138,7 +142,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -154,7 +158,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -171,7 +175,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -188,7 +192,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         runs = await db_with_models.list_scrape_runs(source="artificial_analysis")
@@ -201,7 +205,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         assert result.rows_updated >= 3
@@ -212,7 +216,7 @@ class TestAAScrapeSuccess:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         client.aclose.assert_not_called()
@@ -229,7 +233,7 @@ class TestAABenchmarkMapping:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -246,7 +250,7 @@ class TestAABenchmarkMapping:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -262,7 +266,7 @@ class TestAABenchmarkMapping:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         benchmarks = await db_with_models.list_model_benchmarks(
@@ -285,7 +289,7 @@ class TestAANullEvaluations:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         await scraper.scrape(db_with_models)
 
         # Gemini no esta en db_with_models, pero si estuviera, nulls se saltan.
@@ -303,7 +307,7 @@ class TestAANullEvaluations:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         assert result.status == "ok"
@@ -319,7 +323,7 @@ class TestAANullEvaluations:
         resp = _make_mock_response({"data": []})
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db)
 
         assert result.status == "ok"
@@ -333,7 +337,7 @@ class TestAANullEvaluations:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         assert result.status == "ok"
@@ -351,7 +355,7 @@ class TestAAAliasResolution:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         assert result.status == "ok"
@@ -367,7 +371,7 @@ class TestAAAliasResolution:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db)
 
         assert result.status == "ok"
@@ -385,18 +389,31 @@ class TestAAHTTPError:
         resp = _make_mock_response(status_code=401)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db)
 
         assert result.status == "error"
-        assert "401" in result.error or "Unauthorized" in result.error
+        # 401 is normalized to the canonical token the dashboard warning
+        # logic (api.py) matches against to surface "Clave API de AA faltante".
+        assert result.error == "unauthorized"
+
+    @pytest.mark.timeout(5)
+    async def test_http_403_normalized_to_unauthorized(self, db):
+        resp = _make_mock_response(status_code=403)
+        client = _make_mock_client(resp)
+
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
+        result = await scraper.scrape(db)
+
+        assert result.status == "error"
+        assert result.error == "unauthorized"
 
     @pytest.mark.timeout(5)
     async def test_http_429_returns_error_with_message(self, db):
         resp = _make_mock_response(status_code=429)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db)
 
         assert result.status == "error"
@@ -407,7 +424,7 @@ class TestAAHTTPError:
         resp = _make_mock_response(status_code=500)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db)
 
         assert result.status == "error"
@@ -422,6 +439,71 @@ class TestAARegression:
     def test_old_page_factory_interface_removed(self):
         with pytest.raises(TypeError):
             ArtificialAnalysisScraper(page_factory=lambda: None)
+
+    @pytest.mark.timeout(5)
+    def test_no_hardcoded_api_key_constant(self):
+        """The leaked/revoked hardcoded key must not live in the source.
+
+        Regression for prod 401: API_KEY = "aa_Pau..." was committed and
+        later revoked by Artificial Analysis. There must be NO class-level
+        credential fallback — the key comes only from config.
+        """
+        assert not hasattr(ArtificialAnalysisScraper, "API_KEY")
+
+
+# ---------------------------------------------------------------------------
+# 8. Missing / blank API key — no doomed network call, clear error token
+# ---------------------------------------------------------------------------
+
+class TestAAMissingKey:
+    @pytest.mark.timeout(5)
+    async def test_no_api_key_returns_unauthorized_without_http_call(self, db):
+        """No key configured → short-circuit before any HTTP request."""
+        resp = _make_mock_response({"data": []})
+        client = _make_mock_client(resp)
+
+        scraper = ArtificialAnalysisScraper(http_client=client)
+        result = await scraper.scrape(db)
+
+        assert result.status == "error"
+        assert result.error == "unauthorized"
+        client.get.assert_not_called()
+
+    @pytest.mark.timeout(5)
+    async def test_empty_string_key_treated_as_missing(self, db):
+        resp = _make_mock_response({"data": []})
+        client = _make_mock_client(resp)
+
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key="")
+        result = await scraper.scrape(db)
+
+        assert result.status == "error"
+        assert result.error == "unauthorized"
+        client.get.assert_not_called()
+
+    @pytest.mark.timeout(5)
+    async def test_whitespace_key_treated_as_missing(self, db):
+        resp = _make_mock_response({"data": []})
+        client = _make_mock_client(resp)
+
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key="   ")
+        result = await scraper.scrape(db)
+
+        assert result.status == "error"
+        assert result.error == "unauthorized"
+        client.get.assert_not_called()
+
+    @pytest.mark.timeout(5)
+    async def test_missing_key_still_records_scrape_run(self, db):
+        """The failed run must be persisted so the dashboard health/warning
+        logic (api.py) can surface 'aa_api_key_missing'."""
+        scraper = ArtificialAnalysisScraper(api_key="")
+        await scraper.scrape(db)
+
+        runs = await db.list_scrape_runs(source="artificial_analysis")
+        assert runs
+        assert runs[0]["status"] == "error"
+        assert runs[0]["error"] == "unauthorized"
 
 
 # ---------------------------------------------------------------------------
@@ -443,7 +525,7 @@ class TestAAAliasesMissed:
         resp = _make_mock_response(fixture)
         client = _make_mock_client(resp)
 
-        scraper = ArtificialAnalysisScraper(http_client=client)
+        scraper = ArtificialAnalysisScraper(http_client=client, api_key=VALID_KEY)
         result = await scraper.scrape(db_with_models)
 
         # Should have aliases_missed > 0 (the 3 unknown models)

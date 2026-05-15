@@ -22,7 +22,11 @@ class ArtificialAnalysisScraper:
     """Scraper usando la API oficial de Artificial Analysis (sin navegador)."""
 
     API_URL = "https://artificialanalysis.ai/api/v2/data/llms/models"
-    API_KEY = "aa_PauXVRbbLpzJqdcIZiofepBrIalOFLvp"
+
+    # Canonical error token persisted on auth failure. The dashboard health
+    # logic (openrouter_prices/api.py) matches this exact value to surface the
+    # actionable "Clave API de AA faltante" warning.
+    AUTH_ERROR = "unauthorized"
 
     # Mapeo: clave de evaluacion en la API → benchmark_slug en DB
     EVAL_KEY_MAP = {
@@ -37,7 +41,7 @@ class ArtificialAnalysisScraper:
         api_key: str | None = None,
     ) -> None:
         self._client = http_client
-        self._api_key = api_key or self.API_KEY
+        self._api_key = (api_key or "").strip()
 
     async def scrape(self, db) -> ScrapeResult:
         """Ejecuta el ciclo completo de scrape de Artificial Analysis.
@@ -49,21 +53,51 @@ class ArtificialAnalysisScraper:
             ScrapeResult con status "ok" o "error".
         """
         started_at = int(time.time())
-        client = self._client or httpx.AsyncClient(timeout=60.0)
-        try:
-            result = await self._do_scrape(db, client, started_at)
-        except Exception as exc:
+
+        if not self._api_key:
+            # No key configured: a request would just 401. Fail fast with the
+            # canonical token so the dashboard surfaces the actionable warning
+            # instead of a raw httpx 401 string nobody can act on.
             result = ScrapeResult(
                 source="artificial_analysis",
                 rows_updated=0,
                 started_at=started_at,
                 finished_at=int(time.time()),
                 status="error",
-                error=str(exc),
+                error=self.AUTH_ERROR,
             )
-        finally:
-            if self._client is None and not getattr(client, "is_closed", False):
-                await client.aclose()
+        else:
+            client = self._client or httpx.AsyncClient(timeout=60.0)
+            try:
+                result = await self._do_scrape(db, client, started_at)
+            except httpx.HTTPStatusError as exc:
+                code = (
+                    exc.response.status_code
+                    if exc.response is not None
+                    else None
+                )
+                result = ScrapeResult(
+                    source="artificial_analysis",
+                    rows_updated=0,
+                    started_at=started_at,
+                    finished_at=int(time.time()),
+                    status="error",
+                    error=self.AUTH_ERROR if code in (401, 403) else str(exc),
+                )
+            except Exception as exc:
+                result = ScrapeResult(
+                    source="artificial_analysis",
+                    rows_updated=0,
+                    started_at=started_at,
+                    finished_at=int(time.time()),
+                    status="error",
+                    error=str(exc),
+                )
+            finally:
+                if self._client is None and not getattr(
+                    client, "is_closed", False
+                ):
+                    await client.aclose()
 
         await db.record_scrape_run(
             source="artificial_analysis",
