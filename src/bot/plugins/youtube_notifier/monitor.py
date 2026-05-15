@@ -343,7 +343,7 @@ class YouTubeMonitor:
 
         Bypasses content filters so the user can preview the embed regardless
         of shorts/premiere settings. Does NOT dedupe — re-sends even if the
-        video was already notified.
+        video was already notified. Requires a Google API key.
         """
         if self._db is None:
             raise RuntimeError("DB no inicializada")
@@ -373,7 +373,7 @@ class YouTubeMonitor:
             }
 
             try:
-                videos = await self.fetch_recent_videos(channel_id)
+                videos = await self._seed_via_api(channel_id, config.google_api_key)
             except httpx.HTTPStatusError as exc:
                 diag["status"] = "error"
                 diag["error"] = f"HTTP {exc.response.status_code}"

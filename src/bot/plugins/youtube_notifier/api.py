@@ -36,10 +36,10 @@ async def add_subscription(request: Request, body: dict[str, Any]) -> dict[str, 
     thumbnail_url = body.get("thumbnail_url", "")
     if not channel_id:
         raise HTTPException(status_code=400, detail="channel_id es requerido")
-    success = await monitor.add_subscription(channel_id, channel_name, thumbnail_url)
-    if not success:
-        raise HTTPException(status_code=500, detail="No se pudo agregar la suscripción")
-    return {"channel_id": channel_id, "channel_name": channel_name or channel_id}
+    result = await monitor.add_subscription(channel_id, channel_name, thumbnail_url)
+    if result.get("error"):
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result
 
 
 @router.delete("/subscriptions/{channel_id}")
@@ -47,19 +47,6 @@ async def remove_subscription(channel_id: str, request: Request) -> dict[str, st
     monitor = _get_monitor(request)
     await monitor.remove_subscription(channel_id)
     return {"detail": f"Canal {channel_id} eliminado"}
-
-
-@router.delete("/subscriptions/failed")
-async def remove_failed_subscriptions(request: Request) -> dict[str, Any]:
-    """Remove all subscriptions that return errors on RSS check."""
-    monitor = _get_monitor(request)
-    removed: list[str] = []
-    subs = await monitor.list_subscriptions()
-    for sub in subs:
-        if sub["active"] and not await monitor.check_rss(sub["channel_id"]):
-            await monitor.remove_subscription(sub["channel_id"])
-            removed.append(sub["channel_id"])
-    return {"removed": removed, "count": len(removed)}
 
 
 @router.get("/videos")
@@ -199,39 +186,17 @@ async def handle_verification(request: Request):
     return PlainTextResponse("OK")
 
 
-@router.post("/poll")
-async def trigger_poll(request: Request) -> dict:
-    """Manually trigger a channel poll (for testing)."""
-    monitor = _get_monitor(request)
-    config = await monitor.get_config()
-    result = await monitor.poll_channels_with_diagnostics()
-    new_videos = result["videos"]
-    return {
-        "new_videos": len(new_videos),
-        "has_api_key": bool(config.google_api_key),
-        "diagnostics": result.get("diagnostics", []),
-        "channels_checked": result.get("channels_checked", 0),
-        "videos": [
-            {
-                "video_id": v.video_id,
-                "channel_id": v.channel_id,
-                "title": v.title,
-                "url": v.url,
-                "published_at": v.published_at,
-            }
-            for v in new_videos
-        ],
-    }
-
-
 @router.post("/test-notify")
 async def test_notify(request: Request, body: dict[str, Any]) -> dict[str, Any]:
     """Send a test notification for the N most recent videos of each subscribed channel.
 
     Bypasses content filters so the embed can be previewed in Discord
-    regardless of shorts/premiere settings.
+    regardless of shorts/premiere settings. Requires a Google API key.
     """
     monitor = _get_monitor(request)
+    cfg = await monitor.get_config()
+    if not cfg.google_api_key:
+        raise HTTPException(status_code=400, detail="Google API Key no configurada")
     raw_count = body.get("count", 1)
     try:
         count = int(raw_count)

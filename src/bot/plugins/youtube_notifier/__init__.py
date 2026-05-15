@@ -17,11 +17,21 @@ async def setup(bot: Bot, config_manager: ConfigManager, app):
     # Crear monitor
     monitor = YouTubeMonitor(db_path, config_manager, bot)
     await monitor.init_db()
+    await monitor.start_hub_renewal_loop()
 
     # Montar rutas API
     app.include_router(youtube_router, prefix="/api/plugins/youtube")
 
     # Guardar monitor en app.state para acceso desde la API
     app.state.youtube_monitor = monitor
+
+    # Teardown callback
+    async def _teardown() -> None:
+        await monitor.stop()
+        await monitor.close_db()
+
+    if not hasattr(app.state, "teardown_callbacks"):
+        app.state.teardown_callbacks = []
+    app.state.teardown_callbacks.append(_teardown)
 
     return monitor

@@ -883,3 +883,180 @@ class TestCallbackServer:
         assert rows[0]["video_id"] == "CB123"
         assert rows[0]["title"] == "Callback Video"
         assert rows[0]["notified"] == 0
+
+
+class TestAPIRemoval:
+    async def test_poll_endpoint_removed(self, youtube_client: AsyncClient):
+        """T10: POST /poll must return 404 after removal."""
+        resp = await youtube_client.post("/api/plugins/youtube/poll")
+        assert resp.status_code == 404
+
+    async def test_remove_failed_subscriptions_removed(self, youtube_client: AsyncClient, monitor: YouTubeMonitor):
+        """T10: DELETE /subscriptions/failed no longer performs bulk RSS removal."""
+        await monitor.add_subscription("failed", "Canal Failed")
+        resp = await youtube_client.delete("/api/plugins/youtube/subscriptions/failed")
+        # It now matches /subscriptions/{channel_id} and treats "failed" as a channel ID
+        assert resp.status_code == 200
+        sub = await monitor.get_subscription("failed")
+        assert sub is not None
+        assert sub["active"] is False
+
+    async def test_test_notify_without_api_key_returns_400(self, youtube_client: AsyncClient):
+        """T10: POST /test-notify without API key must return 400."""
+        resp = await youtube_client.post("/api/plugins/youtube/test-notify", json={"count": 1})
+        assert resp.status_code == 400
+        assert "Google API Key no configurada" in resp.json()["detail"]
+
+    async def test_test_notify_with_api_key(self, youtube_client: AsyncClient, monitor: YouTubeMonitor):
+        """T10: POST /test-notify with API key works."""
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        cfg = YouTubePluginConfig(google_api_key="AIzaSyTest", discord_channel_id=None)
+        await monitor.update_config(cfg)
+        await monitor.add_subscription("UC_test", "Canal Test")
+
+        with patch.object(monitor, "_seed_via_api", return_value=[]) as mock_seed:
+            resp = await youtube_client.post("/api/plugins/youtube/test-notify", json={"count": 1})
+
+        assert resp.status_code == 200
+        mock_seed.assert_awaited()
+
+
+class TestCallbackServerCutoff:
+    async def test_callback_server_ignores_video_before_added_at(self, tmp_path):
+        """T11: Callback server stores old videos with notified=1."""
+        import src.bot.plugins.youtube_notifier.callback_server as cs
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+
+        db_path = str(tmp_path / "test_cb.db")
+        cs.DB_PATH = db_path
+        await cs._init_db()
+
+        # Seed subscription with added_at in the future relative to video
+        import aiosqlite
+        db = await aiosqlite.connect(db_path)
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS youtube_subscriptions (
+                channel_id TEXT PRIMARY KEY,
+                channel_name TEXT DEFAULT '',
+                thumbnail_url TEXT DEFAULT '',
+                added_at TEXT NOT NULL,
+                last_checked TEXT,
+                active INTEGER DEFAULT 1,
+                notifications_enabled INTEGER DEFAULT 1,
+                pending_hub_subscribe INTEGER DEFAULT 0,
+                hub_subscribed_at TEXT
+            )
+            """
+        )
+        await db.execute(
+            "INSERT INTO youtube_subscriptions (channel_id, channel_name, added_at, active) VALUES (?, ?, ?, 1)",
+            ("UC_cb", "Canal CB", "2025-01-01T00:00:00+00:00"),
+        )
+        await db.commit()
+        await db.close()
+
+        transport = ASGITransport(app=app, client=("127.0.0.1", 50000))
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            atom_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>OLD_CB</yt:videoId>
+    <yt:channelId>UC_cb</yt:channelId>
+    <title>Old Callback Video</title>
+    <published>2020-06-01T12:00:00+00:00</published>
+  </entry>
+</feed>
+"""
+            resp = await client.post("/api/plugins/youtube/callback", content=atom_xml)
+            assert resp.status_code == 200
+
+        db = await aiosqlite.connect(db_path)
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall("SELECT * FROM youtube_videos")
+        await db.close()
+        assert len(rows) == 1
+        assert rows[0]["video_id"] == "OLD_CB"
+        assert rows[0]["notified"] == 1
+
+    async def test_callback_server_notifies_video_after_added_at(self, tmp_path):
+        """T11: Callback server stores new videos with notified=0."""
+        import src.bot.plugins.youtube_notifier.callback_server as cs
+        from src.bot.plugins.youtube_notifier.callback_server import app
+        from httpx import ASGITransport, AsyncClient
+
+        db_path = str(tmp_path / "test_cb.db")
+        cs.DB_PATH = db_path
+        await cs._init_db()
+
+        import aiosqlite
+        db = await aiosqlite.connect(db_path)
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS youtube_subscriptions (
+                channel_id TEXT PRIMARY KEY,
+                channel_name TEXT DEFAULT '',
+                thumbnail_url TEXT DEFAULT '',
+                added_at TEXT NOT NULL,
+                last_checked TEXT,
+                active INTEGER DEFAULT 1,
+                notifications_enabled INTEGER DEFAULT 1,
+                pending_hub_subscribe INTEGER DEFAULT 0,
+                hub_subscribed_at TEXT
+            )
+            """
+        )
+        await db.execute(
+            "INSERT INTO youtube_subscriptions (channel_id, channel_name, added_at, active) VALUES (?, ?, ?, 1)",
+            ("UC_cb", "Canal CB", "2020-01-01T00:00:00+00:00"),
+        )
+        await db.commit()
+        await db.close()
+
+        transport = ASGITransport(app=app, client=("127.0.0.1", 50000))
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            atom_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>NEW_CB</yt:videoId>
+    <yt:channelId>UC_cb</yt:channelId>
+    <title>New Callback Video</title>
+    <published>2025-06-01T12:00:00+00:00</published>
+  </entry>
+</feed>
+"""
+            resp = await client.post("/api/plugins/youtube/callback", content=atom_xml)
+            assert resp.status_code == 200
+
+        db = await aiosqlite.connect(db_path)
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall("SELECT * FROM youtube_videos")
+        await db.close()
+        assert len(rows) == 1
+        assert rows[0]["video_id"] == "NEW_CB"
+        assert rows[0]["notified"] == 0
+
+
+class TestInit:
+    async def test_init_starts_hub_renewal_loop(self):
+        """T12: setup() starts the hub renewal loop."""
+        from src.web.app import create_app
+        from src.bot.core.config import ConfigManager
+        from unittest.mock import MagicMock
+
+        ConfigManager.reset_instance()
+        cm = ConfigManager()
+        await cm.load(":memory:")
+
+        app = create_app(config_manager=cm, bot=MagicMock())
+
+        from src.bot.plugins.youtube_notifier import setup as setup_youtube
+        monitor = await setup_youtube(MagicMock(), cm, app)
+
+        assert monitor._task is not None
+        assert not monitor._task.done()
+        await monitor.stop()

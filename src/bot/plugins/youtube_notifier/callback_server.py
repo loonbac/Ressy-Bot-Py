@@ -99,18 +99,43 @@ async def handle_notification(request: Request):
             published_elem = entry.find("atom:published", ns)
 
             title = html.unescape(title_elem.text) if title_elem is not None and title_elem.text else "Unknown"
-            published = published_elem.text if published_elem is not None else datetime.now(timezone.utc).isoformat()
+            published_str = published_elem.text if published_elem is not None else datetime.now(timezone.utc).isoformat()
+
+            # Parse published date for cutoff check
+            published_at = datetime.now(timezone.utc)
+            try:
+                published_at = datetime.fromisoformat(published_str.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
+            # Check subscription added_at if table exists
+            notified = 0
+            try:
+                sub_rows = await db.execute_fetchall(
+                    "SELECT added_at FROM youtube_subscriptions WHERE channel_id = ? AND active = 1",
+                    (channel_id,),
+                )
+                if sub_rows:
+                    try:
+                        added_at = datetime.fromisoformat(sub_rows[0][0])
+                        if published_at < added_at:
+                            notified = 1
+                    except ValueError:
+                        pass
+            except Exception:
+                pass  # table may not exist yet
 
             await db.execute(
                 """INSERT OR IGNORE INTO youtube_videos
                    (video_id, channel_id, title, url, published_at, notified)
-                   VALUES (?, ?, ?, ?, ?, 0)""",
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     video_id,
                     channel_id,
                     title,
                     f"https://www.youtube.com/watch?v={video_id}",
-                    published,
+                    published_str,
+                    notified,
                 ),
             )
             await db.commit()
