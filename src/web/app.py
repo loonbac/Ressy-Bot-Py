@@ -31,6 +31,13 @@ def create_app(config_manager: ConfigManager | None = None, bot: Any = None) -> 
     app.state.config_manager = config_manager
     app.state.bot = bot
 
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz() -> dict[str, str]:
+        """Liveness probe. Estático, sin lógica ni dependencias: si el proceso
+        atiende HTTP, está vivo. Desacoplado de /api/status a propósito para
+        que cambios futuros en plugins no rompan el healthcheck de Coolify."""
+        return {"status": "ok"}
+
     from src.web.routes.config import router as config_router
     from src.web.routes.ws import router as ws_router
     from src.web.routes.activity import router as activity_router, get_log

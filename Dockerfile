@@ -65,11 +65,12 @@ VOLUME ["/app/data"]
 
 EXPOSE 8000
 
-# Healthcheck: GET /api/status (responde 200 aunque el bot aún no esté
-# conectado a Discord — sirve para que Coolify marque el contenedor healthy).
-# python:slim no trae curl/wget → usamos urllib. Respeta $PORT.
+# Healthcheck: GET /healthz — liveness dedicado, estático, sin lógica de
+# plugins/bot. Si el proceso atiende HTTP está vivo (200). Desacoplado de
+# /api/status para que features futuras no causen falsos unhealthy.
+# python:slim no trae curl/wget → urllib. Respeta $PORT.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/api/status', timeout=4).status==200 else 1)"
+    CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/healthz', timeout=4).status==200 else 1)"
 
 # Arranque: bot Discord + uvicorn en el mismo event loop.
 CMD ["uv", "run", "ressy-bot"]
