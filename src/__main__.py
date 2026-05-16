@@ -92,9 +92,16 @@ async def main_async() -> None:
     # Mount SPA static files *after* all API routes are registered
     mount_static_files(app)
 
-    # Arrancar Uvicorn como tarea asíncrona (NO uvicorn.run que es sync)
+    # Arrancar Uvicorn como tarea asíncrona (NO uvicorn.run que es sync).
+    # proxy_headers + forwarded_allow_ips="*": detrás de un reverse proxy
+    # (Coolify/Traefik, Tailscale serve, etc.) uvicorn debe confiar en
+    # X-Forwarded-Proto/Host para resolver bien el esquema del handshake
+    # WebSocket. Sin esto, el upgrade ws/wss puede fallar al entrar por
+    # un host/puerto distinto al de bind. La IP del proxy es dinámica
+    # (red del contenedor / tailnet) → "*".
     config = uvicorn.Config(app, host=os.getenv("HOST", "0.0.0.0"),
-                            port=int(os.getenv("PORT", "8000")), log_level="info")
+                            port=int(os.getenv("PORT", "8000")), log_level="info",
+                            proxy_headers=True, forwarded_allow_ips="*")
     server = uvicorn.Server(config)
 
     # Shutdown event
