@@ -44,3 +44,8 @@ lwc-react/
 # OS
 .DS_Store
 Thumbs.db
+
+# Discord MCP — token vive en env var, nunca en el repo.
+# El wizard `init` puede reescribir .mcp.json con el token crudo:
+# ignorarlo evita filtrar la credencial de admin del server.
+.mcp.json
