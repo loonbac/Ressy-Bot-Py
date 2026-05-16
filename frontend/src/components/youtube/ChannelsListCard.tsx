@@ -20,7 +20,7 @@ export default function ChannelsListCard({
   onAddChannel,
 }: Props) {
   return (
-    <section className="bg-surface-container-lowest/60 backdrop-blur-md rounded-xl border border-white/40 shadow-sm flex flex-col flex-1 min-h-0">
+    <section className="relative z-20 bg-surface-container-lowest/60 backdrop-blur-md rounded-xl border border-white/40 shadow-sm flex flex-col flex-1 min-h-0">
       <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-outline-variant/10 flex-shrink-0">
         <h3 className="font-headline-md text-headline-md flex items-center gap-2">
           <span className="material-symbols-outlined text-secondary text-[22px]">subscriptions</span>
