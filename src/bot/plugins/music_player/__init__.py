@@ -1,12 +1,21 @@
+import json
 import os
 
 from src.bot.core.bot import Bot
 from src.bot.core.config import ConfigManager
 
+# Comandos de música disponibles (espejo de ALL_COMMANDS en el frontend).
+ALL_COMMANDS = [
+    "play", "skip", "pause", "resume", "stop", "queue",
+    "clear", "remove", "nowplaying", "join", "leave",
+]
 
 DEFAULTS = {
     "enabled": "true",
     "default_volume": "50",
+    "audio_quality": "high",
+    "allowed_channel_ids": json.dumps([]),
+    "enabled_commands": json.dumps(ALL_COMMANDS),
 }
 
 

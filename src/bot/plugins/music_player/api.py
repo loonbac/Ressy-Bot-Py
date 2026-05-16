@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -6,9 +7,18 @@ from src.web.routes.activity import push_event
 
 router = APIRouter()
 
-ALLOWED_KEYS = {"enabled", "default_volume"}
+ALLOWED_KEYS = {
+    "enabled",
+    "default_volume",
+    "audio_quality",
+    "allowed_channel_ids",
+    "enabled_commands",
+}
 BOOL_KEYS = {"enabled"}
 INT_KEYS = {"default_volume"}
+# Claves cuyo valor es una lista: se persisten como JSON en la columna TEXT.
+LIST_KEYS = {"allowed_channel_ids", "enabled_commands"}
+VALID_QUALITY = {"standard", "medium", "high"}
 
 VALID_ACTIONS = {"pause", "resume", "skip", "stop"}
 
@@ -39,6 +49,12 @@ def _serialize_config(rows: list[tuple[str, str]]) -> dict[str, Any]:
                 out[key] = int(val)
             except (TypeError, ValueError):
                 out[key] = 0
+        elif key in LIST_KEYS:
+            try:
+                parsed = json.loads(val)
+                out[key] = parsed if isinstance(parsed, list) else []
+            except (TypeError, ValueError):
+                out[key] = []
         else:
             out[key] = val
     return out
@@ -81,9 +97,17 @@ async def update_config(request: Request, body: dict[str, Any]) -> dict[str, Any
                 value = max(1, min(200, int(value)))
             except (TypeError, ValueError):
                 value = 50
+        if key == "audio_quality" and value not in VALID_QUALITY:
+            value = "high"
+        if key in LIST_KEYS:
+            # IDs Discord (snowflakes 64-bit) → string siempre, sin int().
+            items = value if isinstance(value, list) else []
+            stored = json.dumps([str(v) for v in items])
+        else:
+            stored = _normalize(value)
         await db.execute(
             "INSERT OR REPLACE INTO music_config (key, value) VALUES (?, ?)",
-            (key, _normalize(value)),
+            (key, stored),
         )
     await db.commit()
     rows = await db.execute_fetchall("SELECT key, value FROM music_config")
