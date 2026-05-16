@@ -16,6 +16,7 @@ from datetime import date
 from typing import Any, Callable
 
 from .client import EndOfLifeClient
+from .cog import _ROLLING_SLUGS
 from .database import LinuxUpdatesDatabase
 from .embeds import build_eol_notification_embed
 
@@ -113,6 +114,11 @@ class LinuxUpdatesScheduler:
 
         for product in products:
             slug = product["slug"]
+
+            # Los productos rolling release no se fetchean de endoflife.date
+            if slug in _ROLLING_SLUGS:
+                continue
+
             last_check = product.get("last_check_at")
 
             # Si no tiene last_check_at o paso el intervalo, refrescar
@@ -151,14 +157,8 @@ class LinuxUpdatesScheduler:
         if not channel_id:
             return
 
-        display_name = {
-            "ubuntu": "Ubuntu",
-            "debian": "Debian",
-            "fedora": "Fedora",
-            "rocky-linux": "Rocky Linux",
-            "linuxmint": "Linux Mint",
-            "linux": "Linux Kernel",
-        }.get(slug, slug)
+        from .cog import _PRODUCT_DISPLAY
+        display_name = _PRODUCT_DISPLAY.get(slug, slug)
 
         releases = await self._db.get_active_releases(slug)
         metadata = await self._db.get_metadata()

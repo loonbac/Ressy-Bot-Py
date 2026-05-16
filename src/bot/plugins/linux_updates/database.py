@@ -15,12 +15,25 @@ import aiosqlite
 logger = logging.getLogger(__name__)
 
 _PRODUCTS = [
+    # Distribuciones originales (trackean EOL)
     ("ubuntu", "Ubuntu"),
     ("debian", "Debian"),
     ("fedora", "Fedora"),
     ("rocky-linux", "Rocky Linux"),
     ("linuxmint", "Linux Mint"),
     ("linux", "Linux Kernel"),
+    # Distribuciones EOL adicionales (trackean EOL via endoflife.date)
+    ("opensuse", "openSUSE"),
+    ("almalinux", "AlmaLinux"),
+    ("alpine-linux", "Alpine Linux"),
+    ("pop-os", "Pop!_OS"),
+    ("rhel", "RHEL"),
+    # Distribuciones rolling release (solo seed, NUNCA fetchear de endoflife.date)
+    ("arch", "Arch Linux"),
+    ("bazzite", "Bazzite"),
+    ("manjaro", "Manjaro"),
+    ("endeavouros", "EndeavourOS"),
+    ("cachyos", "CachyOS"),
 ]
 
 _DEFAULTS: dict[str, str] = {

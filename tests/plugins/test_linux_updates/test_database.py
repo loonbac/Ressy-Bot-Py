@@ -68,10 +68,17 @@ async def test_connect_creates_indexes(db: LinuxUpdatesDatabase):
 
 @pytest.mark.asyncio
 async def test_connect_seeds_products(db: LinuxUpdatesDatabase):
-    """Deben existir los 6 productos semilla."""
+    """Deben existir los 16 productos semilla (6 originales + 5 EOL + 5 rolling)."""
     products = await db.get_products()
     slugs = {p["slug"] for p in products}
-    expected = {"ubuntu", "debian", "fedora", "rocky-linux", "linuxmint", "linux"}
+    expected = {
+        # Originales
+        "ubuntu", "debian", "fedora", "rocky-linux", "linuxmint", "linux",
+        # EOL tracked
+        "opensuse", "almalinux", "alpine-linux", "pop-os", "rhel",
+        # Rolling (seed only, never fetched)
+        "arch", "bazzite", "manjaro", "endeavouros", "cachyos",
+    }
     assert slugs == expected
 
 
@@ -91,7 +98,7 @@ async def test_connect_idempotent(db: LinuxUpdatesDatabase):
     await db.connect()
     products = await db.get_products()
     config = await db.get_config()
-    assert len(products) == 6
+    assert len(products) == 16
     # Config sigue teniendo solo las 4 claves default (más cualquier custom no existe)
     assert len(config) == 4
 
@@ -117,7 +124,41 @@ async def test_get_product_not_found(db: LinuxUpdatesDatabase):
 @pytest.mark.asyncio
 async def test_get_products_returns_all(db: LinuxUpdatesDatabase):
     products = await db.get_products()
-    assert len(products) == 6
+    assert len(products) == 16
+
+
+@pytest.mark.asyncio
+async def test_rolling_products_seeded(db: LinuxUpdatesDatabase):
+    """Los productos rolling deben estar en la DB con sus nombres correctos."""
+    products = await db.get_products()
+    product_map = {p["slug"]: p["display_name"] for p in products}
+    rolling_expected = {
+        "arch": "Arch Linux",
+        "bazzite": "Bazzite",
+        "manjaro": "Manjaro",
+        "endeavouros": "EndeavourOS",
+        "cachyos": "CachyOS",
+    }
+    for slug, name in rolling_expected.items():
+        assert slug in product_map, f"Producto rolling '{slug}' no encontrado"
+        assert product_map[slug] == name
+
+
+@pytest.mark.asyncio
+async def test_eol_products_seeded(db: LinuxUpdatesDatabase):
+    """Los 5 productos EOL adicionales deben estar en la DB con sus nombres correctos."""
+    products = await db.get_products()
+    product_map = {p["slug"]: p["display_name"] for p in products}
+    eol_expected = {
+        "opensuse": "openSUSE",
+        "almalinux": "AlmaLinux",
+        "alpine-linux": "Alpine Linux",
+        "pop-os": "Pop!_OS",
+        "rhel": "RHEL",
+    }
+    for slug, name in eol_expected.items():
+        assert slug in product_map, f"Producto EOL '{slug}' no encontrado"
+        assert product_map[slug] == name
 
 
 # ---------------------------------------------------------------------------

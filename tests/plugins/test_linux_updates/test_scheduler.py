@@ -502,3 +502,55 @@ async def test_tick_loop_executes_tick(scheduler, db, mock_client):
 
     assert len(tick_calls) >= 1
     assert tick_calls[0].get("enabled") == "true"
+
+
+# ---------------------------------------------------------------------------
+# Rolling slugs — never fetched
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_rolling_slugs_never_fetched(scheduler, db, mock_client):
+    """Los productos rolling NO deben llamar a fetch_product en ningun tick."""
+    sched, clock = scheduler
+
+    # Dejar todos los productos sin last_check_at (overdue), para que el scheduler
+    # intente refrescarlos. Los rolling deben ser omitidos.
+    await sched._tick(await db.get_config())
+
+    fetched_slugs = {call.args[0] for call in mock_client.fetch_product.call_args_list}
+    rolling_slugs = {"arch", "bazzite", "manjaro", "endeavouros", "cachyos"}
+    for slug in rolling_slugs:
+        assert slug not in fetched_slugs, f"Slug rolling '{slug}' no debe ser fetcheado"
+
+
+@pytest.mark.asyncio
+async def test_rolling_slugs_keep_ok_status(scheduler, db, mock_client):
+    """Despues de un tick, los productos rolling mantienen last_check_status='ok'."""
+    sched, clock = scheduler
+
+    await sched._tick(await db.get_config())
+
+    fetched_slugs = {call.args[0] for call in mock_client.fetch_product.call_args_list}
+    rolling_slugs = {"arch", "bazzite", "manjaro", "endeavouros", "cachyos"}
+    for slug in rolling_slugs:
+        # El tick corrio y omitio el slug (no crasheo antes de llegar al rolling)
+        assert slug not in fetched_slugs
+        product = await db.get_product(slug)
+        assert product is not None
+        assert product["last_check_status"] == "ok", (
+            f"Producto rolling '{slug}' no debe tener status 'error'"
+        )
+
+
+@pytest.mark.asyncio
+async def test_rolling_slugs_have_zero_releases(scheduler, db, mock_client):
+    """Los productos rolling nunca tienen releases (no se fetchean)."""
+    sched, clock = scheduler
+
+    await sched._tick(await db.get_config())
+
+    rolling_slugs = {"arch", "bazzite", "manjaro", "endeavouros", "cachyos"}
+    for slug in rolling_slugs:
+        releases = await db.get_releases(slug)
+        assert releases == [], f"Producto rolling '{slug}' no debe tener releases"

@@ -11,8 +11,17 @@ from .embeds import _days_until, build_check_embed, build_status_embed
 
 logger = logging.getLogger(__name__)
 
-# Slugs de productos para autocomplete
-_PRODUCT_SLUGS = ["ubuntu", "debian", "fedora", "rocky-linux", "linuxmint", "linux"]
+# Slugs rolling release — se seedean en DB pero NUNCA se fetchean de endoflife.date
+_ROLLING_SLUGS = {"arch", "bazzite", "manjaro", "endeavouros", "cachyos"}
+
+# Slugs fetcheables de endoflife.date (excluye rolling)
+_PRODUCT_SLUGS = [
+    "ubuntu", "debian", "fedora", "rocky-linux", "linuxmint", "linux",
+    "opensuse", "almalinux", "alpine-linux", "pop-os", "rhel",
+]
+
+# Todos los slugs del catalogo (fetcheables + rolling) — para autocomplete
+_ALL_SLUGS = _PRODUCT_SLUGS + sorted(_ROLLING_SLUGS)
 
 _PRODUCT_DISPLAY = {
     "ubuntu": "Ubuntu",
@@ -21,6 +30,16 @@ _PRODUCT_DISPLAY = {
     "rocky-linux": "Rocky Linux",
     "linuxmint": "Linux Mint",
     "linux": "Linux Kernel",
+    "opensuse": "openSUSE",
+    "almalinux": "AlmaLinux",
+    "alpine-linux": "Alpine Linux",
+    "pop-os": "Pop!_OS",
+    "rhel": "RHEL",
+    "arch": "Arch Linux",
+    "bazzite": "Bazzite",
+    "manjaro": "Manjaro",
+    "endeavouros": "EndeavourOS",
+    "cachyos": "CachyOS",
 }
 
 
@@ -29,12 +48,12 @@ async def _autocomplete_product(
 ) -> list[app_commands.Choice[str]]:
     matches = [
         app_commands.Choice(name=_PRODUCT_DISPLAY.get(s, s), value=s)
-        for s in _PRODUCT_SLUGS
+        for s in _ALL_SLUGS
         if current.lower() in s.lower()
     ]
     if not current:
         return matches
-    return matches[:5]
+    return matches[:25]
 
 
 class LinuxCog(commands.Cog, name="Linux"):
@@ -90,7 +109,7 @@ class LinuxCog(commands.Cog, name="Linux"):
         product = await self.db.get_product(producto)
         if product is None:
             await interaction.followup.send(
-                f"Producto '{producto}' no encontrado. Opciones: {', '.join(_PRODUCT_SLUGS)}",
+                f"Producto '{producto}' no encontrado. Opciones: {', '.join(_ALL_SLUGS)}",
                 ephemeral=True,
             )
             return

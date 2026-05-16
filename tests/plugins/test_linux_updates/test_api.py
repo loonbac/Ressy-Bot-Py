@@ -42,7 +42,8 @@ class TestListProducts:
         response = await client.get("/api/plugins/linux-updates/products")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 6
+        assert len(data) == 16
+        rolling_slugs = {"arch", "cachyos", "bazzite", "manjaro", "endeavouros"}
         for p in data:
             assert "slug" in p
             assert "display_name" in p
@@ -51,8 +52,23 @@ class TestListProducts:
             assert p["expiring_soon_count"] == 0
             assert p["last_check_at"] is None
             assert p["last_check_status"] == "ok"
-            assert p["stale"] is True
             assert p["updated_at"] == "Nunca"
+            # Sin fetch previo: los EOL-tracked son stale; los rolling nunca
+            if p["slug"] in rolling_slugs:
+                assert p["stale"] is False
+            else:
+                assert p["stale"] is True
+
+    async def test_rolling_products_not_stale(self, client):
+        """Productos rolling no deben aparecer como stale=True (nunca se fetchean)."""
+        response = await client.get("/api/plugins/linux-updates/products")
+        assert response.status_code == 200
+        data = response.json()
+        rolling_slugs = {"arch", "cachyos", "bazzite", "manjaro", "endeavouros"}
+        for p in data:
+            if p["slug"] in rolling_slugs:
+                assert p["stale"] is False, f"Producto rolling {p['slug']} no debe ser stale"
+                assert p["last_check_status"] == "ok"
 
     async def test_list_products_with_data(self, client, db):
         releases = [

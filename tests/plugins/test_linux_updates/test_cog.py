@@ -173,13 +173,16 @@ class TestAutocomplete:
 
     @pytest.mark.asyncio
     async def test_autocomplete_empty_current(self):
-        """'' -> todos los slugs."""
-        from src.bot.plugins.linux_updates.cog import _autocomplete_product, _PRODUCT_SLUGS
+        """'' -> todos los slugs (fetcheables + rolling)."""
+        from src.bot.plugins.linux_updates.cog import _autocomplete_product, _ALL_SLUGS
 
         interaction = AsyncMock()
         result = await _autocomplete_product(interaction, "")
         values = [c.value for c in result]
-        for slug in _PRODUCT_SLUGS:
+        for slug in _ALL_SLUGS:
+            assert slug in values
+        # Los slugs rolling tambien deben aparecer en autocomplete
+        for slug in ("arch", "bazzite", "manjaro", "endeavouros", "cachyos"):
             assert slug in values
 
 

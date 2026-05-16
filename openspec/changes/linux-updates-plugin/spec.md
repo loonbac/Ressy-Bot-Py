@@ -2,7 +2,7 @@
 
 ## Purpose
 
-New plugin that consumes the public [endoflife.date](https://endoflife.date) API to track EOL dates of Linux distributions (Ubuntu, Debian, Fedora, Rocky Linux, Linux Mint, Linux kernel). Provides REST endpoints, Discord slash commands, periodic refresh scheduler, and follows the project plugin pattern.
+New plugin that consumes the public [endoflife.date](https://endoflife.date) API to track EOL dates of Linux distributions. Tracks 16 distros total: 11 EOL-tracked (Ubuntu, Debian, Fedora, Rocky Linux, Linux Mint, Linux Kernel, openSUSE, AlmaLinux, Alpine Linux, Pop!_OS, RHEL) + 5 rolling-release (Arch Linux, Bazzite, Manjaro, EndeavourOS, CachyOS) that are seeded but never fetched. Provides REST endpoints, Discord slash commands, periodic refresh scheduler, and follows the project plugin pattern.
 
 ## Defaults
 
@@ -17,15 +17,15 @@ New plugin that consumes the public [endoflife.date](https://endoflife.date) API
 
 ### Requirement: REQ-PROD-01 — Product catalog seed
 
-The plugin MUST seed 6 fixed products via `INSERT OR IGNORE` on first boot: ubuntu, debian, fedora, rocky-linux, linuxmint, linux. Each product has `slug` (PK), `display_name`, `last_check_at` (nullable), `last_check_status` (`ok`|`error`), `last_check_error` (nullable). Repeated setup MUST NOT overwrite existing data.
+The plugin MUST seed 16 products via `INSERT OR IGNORE` on first boot. **11 EOL-tracked** (fetched from endoflife.date): ubuntu, debian, fedora, rocky-linux, linuxmint, linux, opensuse, almalinux, alpine-linux, pop-os, rhel. **5 rolling-release** (never fetched): arch, bazzite, manjaro, endeavouros, cachyos. Each product has `slug` (PK), `display_name`, `last_check_at` (nullable), `last_check_status` (`ok`|`error`), `last_check_error` (nullable). Repeated setup MUST NOT overwrite existing data.
 
 - **GIVEN** a fresh DB
 - **WHEN** `connect()` runs
-- **THEN** `products` contains 6 rows with `last_check_at=NULL`, `last_check_status='ok'`
+- **THEN** `products` contains 16 rows with `last_check_at=NULL`, `last_check_status='ok'`
 
 - **GIVEN** products already seeded with custom data
 - **WHEN** `connect()` runs again
-- **THEN** no rows are overwritten; `INSERT OR IGNORE` skips all 6
+- **THEN** no rows are overwritten; `INSERT OR IGNORE` skips all 16
 
 ### Requirement: REQ-PROD-02 — Product status tracking
 
@@ -214,9 +214,21 @@ Discord slash command showing embed summary per product. Embed color: green (0x5
 - **WHEN** `/linux status` is invoked
 - **THEN** embed says "Plugin sin datos. Los datos se descargan automaticamente cada 12 horas"
 
+### Requirement: REQ-PROD-03 — Rolling-release products
+
+Rolling-release products (arch, bazzite, manjaro, endeavouros, cachyos) MUST be seeded in the DB so `GET /products` returns them. The scheduler MUST NEVER call `fetch_product` for these slugs (they are not tracked by endoflife.date and would 404). Their `last_check_status` MUST remain `'ok'` and `stale` MUST be `false` in the API response — `last_check_at=NULL` is their normal permanent state, not a staleness signal.
+
+- **GIVEN** a fresh DB after `connect()`
+- **WHEN** scheduler tick fires
+- **THEN** `fetch_product` is NOT called for any rolling slug
+
+- **GIVEN** rolling products in DB with `last_check_at=NULL`
+- **WHEN** `GET /products` is called
+- **THEN** each rolling product has `stale=false`, `last_check_status='ok'`, `release_count=0`
+
 ### Requirement: REQ-COG-02 — /linux check {producto}
 
-Discord slash command with autocomplete for the 6 slugs. Shows detailed embed: active releases, recent historical, dates. If no data, instructs user to refresh.
+Discord slash command with autocomplete for all 16 slugs. Shows detailed embed: active releases, recent historical, dates. Rolling-release distros show "sin datos" (expected — they have no releases). If no data, instructs user to refresh.
 
 - **GIVEN** Ubuntu has data with 3 active releases
 - **WHEN** `/linux check ubuntu` is invoked
@@ -264,11 +276,11 @@ When the scheduler detects releases entering the EOL warning window (`days_until
 
 ### Requirement: REQ-EDGE-01 — Empty DB first use
 
-All endpoints MUST handle empty state gracefully: `GET /products` returns 6 products with zero counts, `GET /summary` returns zeros, `/linux status` shows "sin datos" message.
+All endpoints MUST handle empty state gracefully: `GET /products` returns 16 products with zero counts, `GET /summary` returns zeros, `/linux status` shows "sin datos" message.
 
 - **GIVEN** fresh DB with only seeded products, no releases
 - **WHEN** `GET /products` is called
-- **THEN** 6 products returned, each with `release_count: 0`, `active_count: 0`, `last_check_at: null`
+- **THEN** 16 products returned, each with `release_count: 0`, `active_count: 0`, `last_check_at: null`
 
 ### Requirement: REQ-EDGE-02 — Plugin setup contract
 

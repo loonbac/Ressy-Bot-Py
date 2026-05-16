@@ -14,6 +14,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from .cog import _ROLLING_SLUGS
+
 router = APIRouter(tags=["linux-updates"])
 
 _CONFIG_KEYS = {
@@ -125,15 +127,19 @@ async def list_products(request: Request) -> list[dict[str, Any]]:
             if (days := _days_until(r.get("eol_date"))) is not None
             and days <= warning_days
         ]
+        slug = p["slug"]
+        # Los productos rolling nunca se fetchean, por lo que last_check_at=None
+        # es su estado normal — no deben reportarse como stale.
+        is_rolling = slug in _ROLLING_SLUGS
         result.append({
-            "slug": p["slug"],
+            "slug": slug,
             "display_name": p["display_name"],
             "release_count": len(releases),
             "active_count": len(active),
             "expiring_soon_count": len(expiring),
             "last_check_at": p.get("last_check_at"),
             "last_check_status": p.get("last_check_status", "ok"),
-            "stale": _is_stale(p.get("last_check_at"), config),
+            "stale": False if is_rolling else _is_stale(p.get("last_check_at"), config),
             "updated_at": _humanize_time(p.get("last_check_at")),
         })
     return result
