@@ -81,13 +81,21 @@ async def setup(bot, config_manager, app) -> None:
     async def _publish(channel_id: str, embed) -> bool:
         return await publish_embed_to_channel(bot, channel_id, embed)
 
+    async def _aa_scraper_factory() -> ArtificialAnalysisScraper:
+        # Releer la config en CADA scrape: la aa_api_key puede configurarse
+        # desde el dashboard despues del arranque del bot. Un snapshot tomado
+        # aqui en setup() quedaria viejo y el scrape fallaria con
+        # error="unauthorized" pese a estar la key persistida en la DB.
+        current = await db.get_config()
+        return ArtificialAnalysisScraper(
+            api_key=current.get("aa_api_key", ""),
+        )
+
     scheduler = PluginScheduler(
         bot=bot,
         db=db,
         openrouter_client=client,
-        aa_scraper_factory=lambda: ArtificialAnalysisScraper(
-            api_key=config.get("aa_api_key", ""),
-        ),
+        aa_scraper_factory=_aa_scraper_factory,
         bfcl_scraper=bfcl_scraper,
         embed_publisher=_publish,
     )

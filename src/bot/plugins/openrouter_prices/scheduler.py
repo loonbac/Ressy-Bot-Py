@@ -21,6 +21,7 @@ Notas PR2:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import time as _time
@@ -297,8 +298,16 @@ class PluginScheduler:
         await self._bfcl.scrape(self._db)
 
     async def _job_aa_scrape(self) -> None:
-        """Ejecuta el scraper de Artificial Analysis."""
+        """Ejecuta el scraper de Artificial Analysis.
+
+        El factory puede ser sincrono (tests) o una corutina (produccion:
+        relee aa_api_key de la DB en cada scrape). Se await-ea si es awaitable
+        para que la key configurada tras el arranque llegue al scraper sin
+        reiniciar el bot.
+        """
         aa_scraper = self._aa_factory()
+        if inspect.isawaitable(aa_scraper):
+            aa_scraper = await aa_scraper
         await aa_scraper.scrape(self._db)
 
     async def _job_weekly_report(self) -> None:
