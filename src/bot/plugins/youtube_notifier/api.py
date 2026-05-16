@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from typing import Any
 
 import httpx
@@ -209,9 +211,36 @@ async def test_notify(request: Request, body: dict[str, Any]) -> dict[str, Any]:
 
 @router.post("/callback")
 async def handle_notification(request: Request):
-    """Handle PubSubHubbub notification (POST with Atom XML)."""
+    """Handle PubSubHubbub notification (POST with Atom XML).
+
+    The callback path is the only endpoint exposed to the public internet.
+    Every notification MUST carry a valid X-Hub-Signature (HMAC-SHA1 of the
+    raw body, keyed by the per-install hub secret). Per WebSub 11.2 a failed
+    verification still returns 2xx but the payload is dropped, so a forged
+    POST can never reach process_pubsub_notification (which fans out to
+    Discord with @everyone).
+    """
     body = await request.body()
     monitor = getattr(request.app.state, "youtube_monitor", None)
-    if monitor is not None:
-        await monitor.process_pubsub_notification(body)
+    if monitor is None or not body:
+        return {"status": "ok"}
+
+    secret = (await monitor.get_config()).callback_secret
+    header = request.headers.get("X-Hub-Signature", "")
+    expected = "sha1=" + hmac.new(secret.encode(), body, hashlib.sha1).hexdigest()
+
+    if not hmac.compare_digest(expected, header):
+        try:
+            from src.web.routes.activity import push_event
+
+            push_event(
+                kind="youtube",
+                title="Notificación de YouTube rechazada",
+                detail="Firma X-Hub-Signature inválida o ausente. POST descartado.",
+            )
+        except Exception:
+            pass
+        return {"status": "ok"}
+
+    await monitor.process_pubsub_notification(body)
     return {"status": "ok"}

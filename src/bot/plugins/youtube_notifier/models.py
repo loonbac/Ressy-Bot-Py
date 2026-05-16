@@ -35,6 +35,7 @@ class YouTubePluginConfig(BaseModel):
     # the frontend never loses precision.
     discord_channel_id: int | None = None
     callback_url: str = ""  # public URL for PubSubHubbub callbacks
+    callback_secret: str = ""  # HMAC secret for X-Hub-Signature; server-generated
     google_api_key: str = ""  # YouTube Data API v3 key
     announcement_message: str = "@everyone ¡Hay un nuevo video en {canal}!"
     filter_shorts: bool = False

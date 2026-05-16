@@ -1,5 +1,6 @@
 import asyncio
 import html
+import secrets
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
@@ -435,12 +436,14 @@ class YouTubeMonitor:
         topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
         hub_url = "https://pubsubhubbub.appspot.com/subscribe"
         base = callback_url.rstrip("/")
+        secret = (await self.get_config()).callback_secret
 
         data = {
             "hub.callback": f"{base}/api/plugins/youtube/callback",
             "hub.topic": topic_url,
             "hub.mode": "subscribe",
             "hub.verify": "async",
+            "hub.secret": secret,
         }
 
         try:
@@ -457,12 +460,14 @@ class YouTubeMonitor:
         topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
         hub_url = "https://pubsubhubbub.appspot.com/subscribe"
         base = callback_url.rstrip("/")
+        secret = (await self.get_config()).callback_secret
 
         data = {
             "hub.callback": f"{base}/api/plugins/youtube/callback",
             "hub.topic": topic_url,
             "hub.mode": "unsubscribe",
             "hub.verify": "async",
+            "hub.secret": secret,
         }
 
         try:
@@ -695,12 +700,31 @@ class YouTubeMonitor:
             raise RuntimeError("DB no inicializada")
         rows = await self._db.execute_fetchall("SELECT key, value FROM youtube_config")
         cfg: dict[str, Any] = {r[0]: r[1] for r in rows}
+
+        if not cfg.get("callback_secret"):
+            candidate = secrets.token_urlsafe(32)
+            await self._db.execute(
+                "INSERT OR IGNORE INTO youtube_config (key, value) VALUES (?, ?)",
+                ("callback_secret", candidate),
+            )
+            # New secret invalidates signatures of pre-existing hub subscriptions;
+            # null their lease so the renewal loop re-subscribes them signed.
+            await self._db.execute(
+                "UPDATE youtube_subscriptions SET hub_subscribed_at = NULL WHERE active = 1"
+            )
+            await self._db.commit()
+            secret_rows = await self._db.execute_fetchall(
+                "SELECT value FROM youtube_config WHERE key = 'callback_secret'"
+            )
+            cfg["callback_secret"] = secret_rows[0][0] if secret_rows else candidate
+
         return YouTubePluginConfig(
             enabled=cfg.get("enabled", "true").lower() == "true",
             discord_channel_id=int(cfg["discord_channel_id"])
             if cfg.get("discord_channel_id", "")
             else None,
             callback_url=cfg.get("callback_url", ""),
+            callback_secret=cfg.get("callback_secret", ""),
             google_api_key=cfg.get("google_api_key", ""),
             announcement_message=cfg.get("announcement_message", "@everyone ¡Hay un nuevo video en {canal}!"),
             filter_shorts=cfg.get("filter_shorts", "false").lower() == "true",
@@ -728,6 +752,10 @@ class YouTubeMonitor:
         await self._db.execute(
             "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
             ("callback_url", config.callback_url),
+        )
+        await self._db.execute(
+            "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",
+            ("callback_secret", config.callback_secret or old_config.callback_secret),
         )
         await self._db.execute(
             "INSERT OR REPLACE INTO youtube_config (key, value) VALUES (?, ?)",

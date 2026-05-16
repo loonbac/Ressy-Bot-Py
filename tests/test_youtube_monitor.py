@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -157,6 +159,58 @@ class TestDatabaseOperations:
         assert loaded.filter_shorts is True
         assert loaded.filter_premieres is True
         assert loaded.filter_min_duration == 300
+
+    async def test_get_config_generates_callback_secret(self, monitor: YouTubeMonitor):
+        cfg = await monitor.get_config()
+        assert cfg.callback_secret
+        assert len(cfg.callback_secret) >= 32
+        # Stable across calls (persisted, not regenerated)
+        again = await monitor.get_config()
+        assert again.callback_secret == cfg.callback_secret
+
+    async def test_update_config_preserves_secret_when_empty(self, monitor: YouTubeMonitor):
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        original = (await monitor.get_config()).callback_secret
+        assert original
+        await monitor.update_config(YouTubePluginConfig(callback_url="https://x.test"))
+        assert (await monitor.get_config()).callback_secret == original
+
+    async def test_secret_generation_nulls_hub_subscribed_at(self, monitor: YouTubeMonitor):
+        from src.bot.plugins.youtube_notifier.models import YouTubePluginConfig
+
+        # Subscribe a channel and force a hub_subscribed_at timestamp
+        with patch.object(monitor, "subscribe_to_hub", return_value=True):
+            await monitor.add_subscription("UC_resub", "Chan")
+        await monitor._db.execute(
+            "UPDATE youtube_subscriptions SET hub_subscribed_at = ? WHERE channel_id = ?",
+            (datetime.now(timezone.utc).isoformat(), "UC_resub"),
+        )
+        await monitor._db.execute("DELETE FROM youtube_config WHERE key = 'callback_secret'")
+        await monitor._db.commit()
+
+        # First get_config after secret wiped must regenerate AND reset leases
+        await monitor.get_config()
+        rows = await monitor._db.execute_fetchall(
+            "SELECT hub_subscribed_at FROM youtube_subscriptions WHERE channel_id = ?",
+            ("UC_resub",),
+        )
+        assert rows[0][0] is None
+
+    async def test_subscribe_to_hub_includes_secret(self, monitor: YouTubeMonitor):
+        captured = {}
+
+        async def fake_post(url, data=None, timeout=None):
+            captured.update(data)
+            resp = MagicMock()
+            resp.status_code = 202
+            return resp
+
+        with patch.object(monitor._http, "post", side_effect=fake_post):
+            ok = await monitor.subscribe_to_hub("UC_sec", "https://example.com")
+        assert ok is True
+        assert captured["hub.secret"]
+        assert captured["hub.callback"] == "https://example.com/api/plugins/youtube/callback"
 
 
 class TestRSSRemoval:
@@ -638,12 +692,46 @@ class TestCallbackAPI:
   </entry>
 </feed>
 """
+        cfg = await monitor.get_config()
+        sig = hmac.new(cfg.callback_secret.encode(), atom_xml, hashlib.sha1).hexdigest()
         with patch.object(monitor, "process_pubsub_notification", new_callable=AsyncMock) as mock_process:
-            response = await youtube_client.post("/api/plugins/youtube/callback", content=atom_xml)
+            response = await youtube_client.post(
+                "/api/plugins/youtube/callback",
+                content=atom_xml,
+                headers={"X-Hub-Signature": f"sha1={sig}"},
+            )
 
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
         mock_process.assert_awaited_once()
+
+    async def test_callback_rejects_invalid_signature(
+        self, youtube_client: AsyncClient, monitor: YouTubeMonitor
+    ):
+        atom_xml = b"<feed><entry><id>forged</id></entry></feed>"
+        with patch.object(monitor, "process_pubsub_notification", new_callable=AsyncMock) as mock_process:
+            response = await youtube_client.post(
+                "/api/plugins/youtube/callback",
+                content=atom_xml,
+                headers={"X-Hub-Signature": "sha1=deadbeef"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
+        mock_process.assert_not_awaited()
+
+    async def test_callback_rejects_missing_signature(
+        self, youtube_client: AsyncClient, monitor: YouTubeMonitor
+    ):
+        atom_xml = b"<feed><entry><id>forged</id></entry></feed>"
+        with patch.object(monitor, "process_pubsub_notification", new_callable=AsyncMock) as mock_process:
+            response = await youtube_client.post(
+                "/api/plugins/youtube/callback", content=atom_xml
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
+        mock_process.assert_not_awaited()
 
 
 class TestSubscriptionNotifications:
