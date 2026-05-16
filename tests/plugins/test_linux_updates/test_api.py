@@ -12,7 +12,7 @@ from src.bot.plugins.linux_updates.api import router
 async def app(db):
     app = FastAPI()
     app.state.linux_updates_db = db
-    app.include_router(router)
+    app.include_router(router, prefix="/api/plugins/linux-updates")
     return app
 
 
@@ -26,7 +26,7 @@ async def client(app):
 @pytest.fixture
 async def client_no_db():
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(router, prefix="/api/plugins/linux-updates")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

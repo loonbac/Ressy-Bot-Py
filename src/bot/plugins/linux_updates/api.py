@@ -14,7 +14,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-router = APIRouter(prefix="/api/plugins/linux-updates", tags=["linux-updates"])
+router = APIRouter(tags=["linux-updates"])
 
 _CONFIG_KEYS = {
     "enabled",
