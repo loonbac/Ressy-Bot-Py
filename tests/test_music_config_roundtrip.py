@@ -70,7 +70,7 @@ async def test_snowflake_precision_preserved(music_client: AsyncClient):
 
 async def test_enabled_commands_roundtrip(music_client: AsyncClient):
     """enabled_commands (lista) también debe persistir."""
-    cmds = ["play", "skip", "queue"]
+    cmds = ["play", "stop", "queue"]
     await music_client.put(
         "/api/plugins/music/config", json={"enabled_commands": cmds}
     )

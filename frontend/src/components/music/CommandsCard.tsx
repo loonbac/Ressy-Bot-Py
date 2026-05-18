@@ -18,17 +18,10 @@ interface CommandMeta {
 }
 
 const COMMAND_META: Record<string, CommandMeta> = {
-  play:       { name: 'play',       icon: 'play_circle',         description: 'Reproduce música desde una URL o búsqueda.' },
-  skip:       { name: 'skip',       icon: 'skip_next',           description: 'Salta a la siguiente pista en la cola.' },
-  pause:      { name: 'pause',      icon: 'pause_circle',        description: 'Pausa la pista actual.' },
-  resume:     { name: 'resume',     icon: 'play_arrow',          description: 'Reanuda la reproducción pausada.' },
-  stop:       { name: 'stop',       icon: 'stop_circle',         description: 'Detiene la reproducción y limpia la cola.' },
-  queue:      { name: 'queue',      icon: 'queue_music',         description: 'Muestra la cola de canciones.' },
-  clear:      { name: 'clear',      icon: 'playlist_remove',     description: 'Limpia toda la cola.' },
-  remove:     { name: 'remove',     icon: 'playlist_add_check',  description: 'Quita una canción por posición.' },
-  nowplaying: { name: 'nowplaying', icon: 'graphic_eq',          description: 'Muestra la canción actual con detalles.' },
-  join:       { name: 'join',       icon: 'login',               description: 'Une el bot al canal de voz del usuario.' },
-  leave:      { name: 'leave',      icon: 'logout',              description: 'Desconecta el bot del canal de voz.' },
+  play:       { name: 'play',       icon: 'play_circle', description: 'Reproduce música desde una URL o búsqueda.' },
+  stop:       { name: 'stop',       icon: 'stop_circle', description: 'Detiene la reproducción y limpia la cola.' },
+  queue:      { name: 'queue',      icon: 'queue_music', description: 'Muestra la cola de canciones.' },
+  nowplaying: { name: 'nowplaying', icon: 'graphic_eq',  description: 'Muestra la canción actual con detalles.' },
 };
 
 export default function CommandsCard({

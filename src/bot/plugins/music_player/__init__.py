@@ -5,10 +5,7 @@ from src.bot.core.bot import Bot
 from src.bot.core.config import ConfigManager
 
 # Comandos de música disponibles (espejo de ALL_COMMANDS en el frontend).
-ALL_COMMANDS = [
-    "play", "skip", "pause", "resume", "stop", "queue",
-    "clear", "remove", "nowplaying", "join", "leave",
-]
+ALL_COMMANDS = ["play", "stop", "queue", "nowplaying"]
 
 DEFAULTS = {
     "enabled": "true",

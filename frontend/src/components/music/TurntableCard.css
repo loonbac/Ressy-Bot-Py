@@ -360,13 +360,15 @@
 .music-turntable-card__waveform {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: 3px;
   height: 36px;
   margin-top: 8px;
+  width: 100%;
 }
 
 .music-turntable-card__bar {
-  width: 4px;
+  flex: 1 1 0;
+  min-width: 2px;
   border-radius: 4px;
   background: linear-gradient(180deg, var(--color-secondary) 0%, var(--color-primary) 100%);
   opacity: 0.85;

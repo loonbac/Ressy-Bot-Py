@@ -41,21 +41,7 @@ export interface MusicNowPlaying {
   volume: number;
 }
 
-export type MusicControlAction = 'pause' | 'resume' | 'skip' | 'stop';
-
-export const ALL_COMMANDS: string[] = [
-  'play',
-  'skip',
-  'pause',
-  'resume',
-  'stop',
-  'queue',
-  'clear',
-  'remove',
-  'nowplaying',
-  'join',
-  'leave',
-];
+export const ALL_COMMANDS: string[] = ['play', 'stop', 'queue', 'nowplaying'];
 
 const DEFAULTS: MusicConfig = {
   enabled: true,
@@ -142,20 +128,4 @@ export async function fetchMusicQueue(guildId: string): Promise<MusicQueueRespon
     throw new Error(`Error al consultar cola: ${res.status}`);
   }
   return res.json() as Promise<MusicQueueResponse>;
-}
-
-export async function sendMusicControl(
-  action: MusicControlAction,
-  guildId: string,
-): Promise<{ ok: boolean; action: string }> {
-  const res = await apiFetch(`/api/plugins/music/control/${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ guild_id: guildId }),
-  });
-  if (!res.ok) {
-    const detail = await readDetail(res);
-    throw new Error(detail || `Error al ejecutar ${action}: ${res.status}`);
-  }
-  return res.json() as Promise<{ ok: boolean; action: string }>;
 }

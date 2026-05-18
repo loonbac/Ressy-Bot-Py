@@ -22,7 +22,7 @@ const PETALS = [
   { left: '20%', top: '60%', delay: '3.5s', duration: '7s'  },
 ];
 
-const BAR_COUNT = 12;
+const BAR_COUNT = 32;
 const PROGRESS_TICK_MS = 500;
 
 export default function TurntableCard({ nowPlaying, guildName }: Props) {
@@ -195,7 +195,11 @@ export default function TurntableCard({ nowPlaying, guildName }: Props) {
               </div>
               <div className="music-turntable-card__waveform" aria-hidden>
                 {Array.from({ length: BAR_COUNT }).map((_, i) => (
-                  <span key={i} className="music-turntable-card__bar" />
+                  <span
+                    key={i}
+                    className="music-turntable-card__bar"
+                    style={{ animationDelay: `${(i % 12) * 0.09}s` }}
+                  />
                 ))}
               </div>
             </div>
@@ -217,7 +221,7 @@ export default function TurntableCard({ nowPlaying, guildName }: Props) {
                   <span
                     key={i}
                     className="music-turntable-card__bar"
-                    style={{ opacity: 0.25 }}
+                    style={{ opacity: 0.25, animationDelay: `${(i % 12) * 0.09}s` }}
                   />
                 ))}
               </div>

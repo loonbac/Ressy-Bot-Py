@@ -3,8 +3,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from src.web.routes.activity import push_event
-
 router = APIRouter()
 
 ALLOWED_KEYS = {
@@ -19,8 +17,6 @@ INT_KEYS = {"default_volume"}
 # Claves cuyo valor es una lista: se persisten como JSON en la columna TEXT.
 LIST_KEYS = {"allowed_channel_ids", "enabled_commands"}
 VALID_QUALITY = {"standard", "medium", "high"}
-
-VALID_ACTIONS = {"pause", "resume", "skip", "stop"}
 
 
 def _get_db(request: Request):
@@ -58,13 +54,6 @@ def _serialize_config(rows: list[tuple[str, str]]) -> dict[str, Any]:
         else:
             out[key] = val
     return out
-
-
-def _push_activity(kind: str, title: str, detail: str = "", meta: dict[str, Any] | None = None) -> None:
-    try:
-        push_event(kind=kind, title=title, detail=detail, meta=meta or {})
-    except Exception:
-        pass
 
 
 def _track_to_dict(track: Any) -> dict[str, Any]:
@@ -200,56 +189,6 @@ async def get_nowplaying(
         "is_paused": player.is_paused,
         "volume": player.volume,
     }
-
-
-@router.post("/control/{action}")
-async def post_control(
-    request: Request,
-    action: str,
-    body: dict[str, Any],
-) -> dict[str, Any]:
-    if action not in VALID_ACTIONS:
-        raise HTTPException(status_code=400, detail=f"Accion invalida: {action}")
-
-    guild_id_raw = body.get("guild_id")
-    if not guild_id_raw:
-        raise HTTPException(status_code=400, detail="guild_id es requerido")
-
-    try:
-        guild_id = int(guild_id_raw)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="guild_id invalido")
-
-    manager = getattr(request.app.state, "music_player_manager", None)
-    if manager is None:
-        raise HTTPException(status_code=503, detail="Music player no disponible")
-
-    player = manager.get(guild_id)
-    if player is None:
-        raise HTTPException(status_code=404, detail="No hay reproductor activo para este servidor")
-
-    if action == "pause":
-        player.pause()
-    elif action == "resume":
-        player.resume()
-    elif action == "skip":
-        player.skip()
-        _push_activity(
-            kind="music",
-            title="Cancion saltada",
-            detail=f"Saltada en servidor {guild_id}",
-            meta={"guild_id": str(guild_id), "action": "skip"},
-        )
-    elif action == "stop":
-        await player.stop()
-        _push_activity(
-            kind="music",
-            title="Reproduccion detenida",
-            detail=f"Detenida en servidor {guild_id}",
-            meta={"guild_id": str(guild_id), "action": "stop"},
-        )
-
-    return {"ok": True, "action": action}
 
 
 @router.get("/discord-channels")

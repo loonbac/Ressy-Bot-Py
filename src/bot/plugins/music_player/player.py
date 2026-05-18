@@ -82,13 +82,24 @@ class GuildPlayer:
         with yt_dlp.YoutubeDL(YTDL_OPTIONS) as ydl:
             return ydl.extract_info(url, download=False)
 
-    async def play(self, url: str) -> TrackInfo:
-        """Extract track info and start playback."""
+    async def extract(self, url: str) -> tuple[TrackInfo, str]:
+        """Resolve track metadata and a playable stream URL.
+
+        Does NOT touch the voice client or start playback. The caller
+        decides whether to enqueue the track or stream it immediately.
+        """
         info = await asyncio.to_thread(self._extract_info_sync, url)
+
+        # A search query (ytsearch1:...) or a playlist resolves to a wrapper
+        # whose real video lives in entries[]. Unwrap to the first entry so
+        # title/url/duration come from the actual track, not the search term.
+        entries = info.get("entries")
+        if entries:
+            info = entries[0]
 
         track = TrackInfo(
             title=info.get("title", "Unknown"),
-            url=info.get("webpage_url", url),
+            url=info.get("webpage_url") or info.get("original_url") or url,
             requester_id="",
             requester_name="",
             duration_seconds=info.get("duration") or 0,
@@ -102,13 +113,13 @@ class GuildPlayer:
                     stream_url = fmt["url"]
                     break
 
-        if self.voice_client is not None and stream_url:
-            self._play_stream(stream_url, track)
+        return track, stream_url
 
-        return track
+    def start_stream(self, stream_url: str, track: TrackInfo) -> None:
+        """Start FFmpeg playback for an already-resolved track.
 
-    def _play_stream(self, stream_url: str, track: TrackInfo) -> None:
-        """Start FFmpeg playback with the given stream URL."""
+        Assumes nothing is currently playing on the voice client.
+        """
         if self.voice_client is None:
             return
 
@@ -150,30 +161,13 @@ class GuildPlayer:
                 await self.disconnect()
             return
 
-        track_info = await self.play(next_track.url)
+        track_info, stream_url = await self.extract(next_track.url)
         # Preserve requester info from queue track
         track_info.requester_id = next_track.requester_id
         track_info.requester_name = next_track.requester_name
+        if self.voice_client is not None and stream_url:
+            self.start_stream(stream_url, track_info)
         self._current_track = track_info
-
-    def pause(self) -> None:
-        """Pause current playback."""
-        if self.voice_client is not None and self.voice_client.is_playing():
-            self.voice_client.pause()
-            self._is_paused = True
-
-    def resume(self) -> None:
-        """Resume paused playback."""
-        if self.voice_client is not None and self.voice_client.is_paused():
-            self.voice_client.resume()
-            self._is_paused = False
-
-    def skip(self) -> None:
-        """Stop current track and play next."""
-        if self.voice_client is not None:
-            self._is_playing = False
-            self.voice_client.stop()
-            self.bot.loop.create_task(self.play_from_queue())
 
     async def stop(self) -> None:
         """Stop playback, clear queue, and disconnect."""
@@ -185,10 +179,6 @@ class GuildPlayer:
         self._is_paused = False
         self._current_track = None
         await self.disconnect()
-
-    def set_volume(self, volume: int) -> None:
-        """Set volume level (1-200)."""
-        self.volume = max(1, min(200, volume))
 
     async def after_callback(self, error: Optional[Exception]) -> None:
         """Called when a track finishes. Auto-play next."""
