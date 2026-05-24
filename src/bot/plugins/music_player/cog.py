@@ -1,5 +1,6 @@
 import asyncio
 from typing import Optional
+from urllib.parse import urlparse, parse_qs
 
 import discord
 from discord import app_commands
@@ -7,6 +8,27 @@ from discord.ext import commands
 
 from src.bot.plugins.music_player.player import GuildPlayerManager
 from src.bot.plugins.music_player.queue_manager import Track
+
+
+def _is_playlist_only_url(url: str) -> bool:
+    """True when the URL points at a playlist/album with no single video.
+
+    A bare ``list=`` is not enough: ``youtube.com/watch?v=ID&list=RD…`` and the
+    short ``youtu.be/ID?list=RD…`` carry a video id (in the query or the path
+    respectively) and must play that single track, not the radio mix. Only URLs
+    that have a ``list`` and no resolvable video id are treated as playlists.
+    """
+    if not url.startswith(("http://", "https://")):
+        return False
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    if not qs.get("list"):
+        return False
+    if qs.get("v"):
+        return False
+    if parsed.netloc.endswith("youtu.be") and parsed.path.strip("/"):
+        return False  # short link: video id is the path
+    return True
 
 
 class MusicCog(commands.Cog):
@@ -65,10 +87,12 @@ class MusicCog(commands.Cog):
             url = f"ytsearch1:{query}"
 
         # Album/playlist link (e.g. music.youtube.com/playlist?list=OLAK…):
-        # carries a list but no single video id → enqueue every track. A
-        # watch URL with ?list=RD… (radio) keeps v= and is handled as a
-        # single track below.
-        is_playlist = url.startswith("http") and "list=" in url and "v=" not in url
+        # carries a list but NO single video → enqueue every track. A watch
+        # URL that also carries a video id (youtube.com/watch?v=…&list=RD…
+        # OR the youtu.be/<id>?list=RD… short form) is a single track + radio
+        # mix and is handled below. Detect the video id properly: it lives in
+        # the ?v= param on youtube.com but in the path on youtu.be.
+        is_playlist = _is_playlist_only_url(url)
         if is_playlist:
             try:
                 tracks = await asyncio.wait_for(

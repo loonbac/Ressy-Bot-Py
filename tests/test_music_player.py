@@ -179,6 +179,41 @@ class TestTrackQueue:
         assert q.loop is True
 
 
+class TestPlaylistDetection:
+    def test_youtu_be_short_link_with_radio_is_single(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        # video id lives in the path, not ?v= — must NOT be treated as a list.
+        assert _is_playlist_only_url(
+            "https://youtu.be/c56TpxfO9q0?list=RDc56TpxfO9q0"
+        ) is False
+
+    def test_watch_url_with_radio_is_single(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        assert _is_playlist_only_url(
+            "https://www.youtube.com/watch?v=abc&list=RDabc"
+        ) is False
+
+    def test_album_link_is_playlist(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        assert _is_playlist_only_url(
+            "https://music.youtube.com/playlist?list=OLAK5uy_abc"
+        ) is True
+
+    def test_plain_playlist_is_playlist(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        assert _is_playlist_only_url(
+            "https://www.youtube.com/playlist?list=PLxxxx"
+        ) is True
+
+    def test_plain_video_is_single(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        assert _is_playlist_only_url("https://youtu.be/c56TpxfO9q0") is False
+
+    def test_search_query_is_not_playlist(self):
+        from src.bot.plugins.music_player.cog import _is_playlist_only_url
+        assert _is_playlist_only_url("ytsearch1:foo bar") is False
+
+
 class TestActivityAllowedKinds:
     def test_music_kind_is_allowed(self):
         from src.web.routes.activity import ALLOWED_KINDS
