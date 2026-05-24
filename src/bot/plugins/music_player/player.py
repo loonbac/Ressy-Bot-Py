@@ -16,6 +16,13 @@ YTDL_OPTIONS = {
     "quiet": True,
     "no_warnings": True,
     "extract_flat": False,
+    # A watch URL can carry a playlist param (e.g. ?list=RD… radio mixes).
+    # Without this, yt-dlp resolves the ENTIRE playlist — radio lists are
+    # effectively endless, so extraction hangs forever and /play never
+    # answers. noplaylist forces resolving just the single video.
+    "noplaylist": True,
+    # Fail fast instead of hanging if YouTube stalls the connection.
+    "socket_timeout": 20,
 }
 
 # Cache of the resolved cookies file path. Written once from the env secret

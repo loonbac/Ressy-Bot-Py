@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 import discord
@@ -64,7 +65,14 @@ class MusicCog(commands.Cog):
             url = f"ytsearch1:{query}"
 
         try:
-            info, stream_url = await player.extract(url)
+            info, stream_url = await asyncio.wait_for(player.extract(url), timeout=45)
+        except asyncio.TimeoutError:
+            await message.edit(embed=discord.Embed(
+                title="No se pudo reproducir",
+                description="La búsqueda tardó demasiado. Intenta de nuevo o usa otro enlace.",
+                color=0xC0392B,
+            ))
+            return
         except Exception as exc:
             await message.edit(embed=discord.Embed(
                 title="No se pudo reproducir",
