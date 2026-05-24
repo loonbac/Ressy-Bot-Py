@@ -1,4 +1,6 @@
 import asyncio
+import os
+import tempfile
 from typing import Optional
 
 import discord
@@ -15,6 +17,85 @@ YTDL_OPTIONS = {
     "no_warnings": True,
     "extract_flat": False,
 }
+
+# Cache of the resolved cookies file path. Written once from the env secret
+# and reused for the lifetime of the process. Never logged or exposed via API.
+_COOKIE_FILE_CACHE: Optional[str] = None
+
+
+def _default_cookie_paths() -> list[str]:
+    """Conventional on-disk locations for a cookies file, in priority order.
+
+    The data directory (derived from ``DATABASE_PATH``, default ``data/``) is a
+    persistent volume in production, so dropping ``yt_cookies.txt`` there keeps
+    the cookies across deploys without passing them as an environment variable.
+    """
+    data_dir = os.path.dirname(os.getenv("DATABASE_PATH", "data/bot.db")) or "."
+    return [
+        os.path.join(data_dir, "yt_cookies.txt"),
+        os.path.join(data_dir, "plugins", "yt_cookies.txt"),
+    ]
+
+
+def _resolve_cookiefile() -> Optional[str]:
+    """Return a Netscape cookies.txt path for yt-dlp, or None if unconfigured.
+
+    Resolution order:
+    1. ``YTDLP_COOKIES_FILE`` — path to an existing cookies file on disk.
+    2. A ``yt_cookies.txt`` in the persistent data volume (see
+       :func:`_default_cookie_paths`). Preferred in production: large cookie
+       files cannot be passed as an env var (the value blows past ``ARG_MAX``).
+    3. ``YTDLP_COOKIES`` — raw cookies.txt content, for tiny cookie sets only.
+       Written once to a private temp file (mode 0600) and cached. Single-line
+       secrets with literal ``\n`` sequences are normalized to real newlines.
+
+    Cookies bypass YouTube's "Sign in to confirm you're not a bot" gate. The
+    secret stays server-side; it is never returned by any API route.
+    """
+    global _COOKIE_FILE_CACHE
+
+    path = os.getenv("YTDLP_COOKIES_FILE", "").strip()
+    if path and os.path.isfile(path):
+        return path
+
+    for candidate in _default_cookie_paths():
+        if os.path.isfile(candidate):
+            return candidate
+
+    raw = os.getenv("YTDLP_COOKIES", "")
+    if not raw.strip():
+        return None
+
+    if _COOKIE_FILE_CACHE and os.path.isfile(_COOKIE_FILE_CACHE):
+        return _COOKIE_FILE_CACHE
+
+    content = raw.replace("\\n", "\n")
+    if not content.endswith("\n"):
+        content += "\n"
+    if not content.lstrip().startswith("# Netscape"):
+        content = "# Netscape HTTP Cookie File\n" + content
+
+    fd, tmp_path = tempfile.mkstemp(prefix="ytdlp_cookies_", suffix=".txt")
+    try:
+        os.write(fd, content.encode("utf-8"))
+    finally:
+        os.close(fd)
+    os.chmod(tmp_path, 0o600)
+    _COOKIE_FILE_CACHE = tmp_path
+    return tmp_path
+
+
+def _build_ytdl_options() -> dict:
+    """Build yt-dlp options, attaching the cookies file when configured.
+
+    Resolved per call so the bot picks up a cookies secret without a restart
+    once the env var is present.
+    """
+    opts = dict(YTDL_OPTIONS)
+    cookiefile = _resolve_cookiefile()
+    if cookiefile:
+        opts["cookiefile"] = cookiefile
+    return opts
 
 FFMPEG_BEFORE_OPTIONS = (
     "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
@@ -79,7 +160,7 @@ class GuildPlayer:
         self._is_paused = False
 
     def _extract_info_sync(self, url: str) -> dict:
-        with yt_dlp.YoutubeDL(YTDL_OPTIONS) as ydl:
+        with yt_dlp.YoutubeDL(_build_ytdl_options()) as ydl:
             return ydl.extract_info(url, download=False)
 
     async def extract(self, url: str) -> tuple[TrackInfo, str]:
