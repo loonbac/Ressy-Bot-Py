@@ -203,6 +203,51 @@ class GuildPlayer:
 
         return track, stream_url
 
+    def _extract_flat_sync(self, url: str) -> dict:
+        opts = dict(_build_ytdl_options())
+        # We DO want every playlist entry here, just the titles/ids — not a
+        # deep resolve of each video (that would be slow and could hang).
+        opts["extract_flat"] = True
+        opts["noplaylist"] = False
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=False)
+
+    async def extract_playlist(self, url: str) -> list[TrackInfo]:
+        """Resolve every entry of a playlist/album URL (flat and fast).
+
+        Used for YouTube / YouTube Music album and playlist links. Only
+        titles and video URLs are pulled; each stream URL is resolved lazily
+        at play time via :meth:`extract`. Returns an empty list when the URL
+        is not a playlist or has no entries.
+        """
+        info = await asyncio.to_thread(self._extract_flat_sync, url)
+        entries = info.get("entries")
+        if not entries:
+            return []
+
+        tracks: list[TrackInfo] = []
+        for entry in entries:
+            if not entry:
+                continue
+            webpage = entry.get("url") or entry.get("webpage_url") or ""
+            if webpage and not webpage.startswith("http"):
+                # extract_flat may yield the bare video id instead of a URL.
+                webpage = f"https://www.youtube.com/watch?v={webpage}"
+            if not webpage:
+                vid = entry.get("id")
+                if not vid:
+                    continue
+                webpage = f"https://www.youtube.com/watch?v={vid}"
+            tracks.append(TrackInfo(
+                title=entry.get("title") or "Unknown",
+                url=webpage,
+                requester_id="",
+                requester_name="",
+                duration_seconds=int(entry.get("duration") or 0),
+                thumbnail_url=entry.get("thumbnail") or "",
+            ))
+        return tracks
+
     def start_stream(self, stream_url: str, track: TrackInfo) -> None:
         """Start FFmpeg playback for an already-resolved track.
 

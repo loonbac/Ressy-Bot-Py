@@ -64,6 +64,65 @@ class MusicCog(commands.Cog):
         if not url.startswith(("http://", "https://")):
             url = f"ytsearch1:{query}"
 
+        # Album/playlist link (e.g. music.youtube.com/playlist?list=OLAK…):
+        # carries a list but no single video id → enqueue every track. A
+        # watch URL with ?list=RD… (radio) keeps v= and is handled as a
+        # single track below.
+        is_playlist = url.startswith("http") and "list=" in url and "v=" not in url
+        if is_playlist:
+            try:
+                tracks = await asyncio.wait_for(
+                    player.extract_playlist(url), timeout=60
+                )
+            except asyncio.TimeoutError:
+                await message.edit(embed=discord.Embed(
+                    title="No se pudo reproducir",
+                    description="La lista tardó demasiado en cargar.",
+                    color=0xC0392B,
+                ))
+                return
+            except Exception as exc:
+                await message.edit(embed=discord.Embed(
+                    title="No se pudo reproducir",
+                    description=f"Error al obtener la lista: {exc}",
+                    color=0xC0392B,
+                ))
+                return
+
+            if not tracks:
+                await message.edit(embed=discord.Embed(
+                    title="No se pudo reproducir",
+                    description="No se pudieron obtener canciones de esa lista.",
+                    color=0xC0392B,
+                ))
+                return
+
+            for ti in tracks:
+                player.queue.add(Track(
+                    url=ti.url,
+                    title=ti.title,
+                    requester_id=str(interaction.user.id),
+                    requester_name=interaction.user.display_name,
+                    duration_seconds=ti.duration_seconds,
+                    thumbnail_url=ti.thumbnail_url,
+                ))
+
+            if not (player.is_playing and player.current_track is not None):
+                await player.play_from_queue()
+
+            embed = discord.Embed(
+                title="Lista agregada a la cola",
+                description=f"{len(tracks)} canciones",
+                color=0x23856B,
+            )
+            embed.set_footer(text=f"Solicitado por {interaction.user.display_name}")
+            await message.edit(embed=embed)
+            self._push_activity(
+                f"Lista agregada a la cola: {len(tracks)} canciones",
+                meta={"guild_id": str(interaction.guild_id), "user_id": str(interaction.user.id)},
+            )
+            return
+
         try:
             info, stream_url = await asyncio.wait_for(player.extract(url), timeout=45)
         except asyncio.TimeoutError:

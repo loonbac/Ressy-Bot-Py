@@ -346,6 +346,41 @@ class TestGuildPlayer:
             assert track.duration_seconds == 200
 
     @pytest.mark.asyncio
+    async def test_extract_playlist_returns_all_entries(self):
+        from src.bot.plugins.music_player.player import GuildPlayer
+        mock_bot = MagicMock()
+        player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
+
+        # extract_flat playlist result: bare ids/urls, one null entry that
+        # must be skipped, and a full webpage_url that must be kept as-is.
+        flat_result = {
+            "entries": [
+                {"id": "AAA", "title": "Song A", "duration": 100, "thumbnail": "tA"},
+                {"url": "BBB", "title": "Song B"},
+                None,
+                {"webpage_url": "https://music.youtube.com/watch?v=CCC", "title": "Song C"},
+            ],
+        }
+
+        with patch("src.bot.plugins.music_player.player.yt_dlp.YoutubeDL") as mock_ydl:
+            instance = MagicMock()
+            instance.__enter__ = MagicMock(return_value=instance)
+            instance.__exit__ = MagicMock(return_value=False)
+            instance.extract_info.return_value = flat_result
+            mock_ydl.return_value = instance
+
+            tracks = await player.extract_playlist(
+                "https://music.youtube.com/playlist?list=OLAK"
+            )
+            # null entry skipped; bare ids/urls expanded to watch URLs;
+            # full webpage_url preserved.
+            assert [t.title for t in tracks] == ["Song A", "Song B", "Song C"]
+            assert tracks[0].url == "https://www.youtube.com/watch?v=AAA"
+            assert tracks[0].duration_seconds == 100
+            assert tracks[1].url == "https://www.youtube.com/watch?v=BBB"
+            assert tracks[2].url == "https://music.youtube.com/watch?v=CCC"
+
+    @pytest.mark.asyncio
     async def test_start_stream_begins_playback(self):
         from src.bot.plugins.music_player.player import GuildPlayer
         mock_bot = MagicMock()
