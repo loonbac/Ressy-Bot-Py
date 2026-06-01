@@ -1,0 +1,120 @@
+# ─────────────────────────────────────────────────────────────
+# Ressy Bot + Piston — stack unificado
+#
+# Uso:
+#   docker compose up -d --build
+#
+# La primera vez, el servicio `piston-init` instala los runtimes
+# (python, javascript, typescript, bash) y luego se detiene.
+# En arranques subsiguientes, Piston ya tiene los paquetes en el
+# volumen persistente `piston_packages` y el init se salta.
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── Piston: sandbox de ejecución de código ──────────────────
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: piston_api
+    restart: unless-stopped
+    # nsjail requiere privilegios para aislar procesos.
+    privileged: true
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /tmp:exec
+    environment:
+      PISTON_COMPILE_TIMEOUT: "20000"
+      PISTON_RUN_TIMEOUT: "15000"
+      PISTON_OUTPUT_MAX_SIZE: "65536"
+      PISTON_MAX_PROCESS_COUNT: "256"
+      PISTON_MAX_OPEN_FILES: "256"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2000/api/v2/runtimes"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - ressy
+
+  # ── Init: instala runtimes la primera vez ───────────────────
+  # Clona el CLI oficial de Piston (shallow), instala python/node/ts/bash
+  # y se detiene. El volumen piston_packages persiste los paquetes entre
+  # reinicios, así que en arranques subsiguientes esto se omite (el
+  # healthcheck de Piston ya验证 que los runtimes existen).
+  piston-init:
+    image: node:20-bookworm-slim
+    container_name: piston_init
+    depends_on:
+      piston:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        echo "⏳ Verificando runtimes instalados..."
+        EXISTING=$$(wget -qO- http://piston:2000/api/v2/runtimes 2>/dev/null | grep -o '"language":"[^"]*"' | sort -u)
+        echo "Runtimes actuales: $EXISTING"
+
+        # Si ya hay runtimes instalados, saltar.
+        if echo "$EXISTING" | grep -q "python"; then
+          echo "✅ Python ya instalado. Asumiendo runtimes previos — skip init."
+          exit 0
+        fi
+
+        echo "⏳ Instalando CLI de Piston..."
+        apt-get update -qq && apt-get install -y -qq git > /dev/null 2>&1
+        git clone --depth 1 https://github.com/engineer-man/piston.git /tmp/piston
+        cd /tmp/piston/cli && npm install --silent 2>/dev/null
+
+        echo "⏳ Instalando runtimes: python, node, typescript, bash..."
+        node index.js -u http://piston:2000 ppman install python
+        node index.js -u http://piston:2000 ppman install node
+        node index.js -u http://piston:2000 ppman install typescript
+        node index.js -u http://piston:2000 ppman install bash
+
+        echo "⏳ Verificando..."
+        wget -qO- http://piston:2000/api/v2/runtimes
+        echo ""
+        echo "✅ Runtimes instalados correctamente."
+    networks:
+      - ressy
+
+  # ── Ressy Bot: Discord + FastAPI ────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ressy_bot
+    restart: unless-stopped
+    depends_on:
+      piston:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Default: servicio Piston en la misma red Docker.
+      # Override desde .env si Piston corre en otro host/puerto.
+      PISTON_URL: "${PISTON_URL:-http://piston:2000}"
+    volumes:
+      - bot_data:/app/data
+    ports:
+      - "${PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/healthz', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    networks:
+      - ressy
+
+volumes:
+  piston_packages:
+    name: ressy_piston_packages
+  bot_data:
+    name: ressy_bot_data
+
+networks:
+  ressy:
+    name: ressy_network
