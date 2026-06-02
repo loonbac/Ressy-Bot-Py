@@ -10,7 +10,7 @@ import pytest
 from src.bot.plugins.code_runner.cog import CodeRunnerCog
 from src.bot.plugins.code_runner.database import CodeRunnerDatabase
 from src.bot.plugins.code_runner.exporter import export_transcript
-from src.bot.plugins.code_runner.piston import PistonRateLimitError
+from src.bot.plugins.code_runner.piston import PistonClient, PistonRateLimitError
 from src.bot.plugins.code_runner.security import analyze_security_with_ai, structured_security_analysis
 from src.bot.plugins.code_runner.events import broadcast, connect, disconnect
 from src.bot.plugins.code_runner.session import SessionManager, sanitize_channel_name
@@ -335,3 +335,17 @@ async def test_code_runner_websocket_broadcast_basic_event():
     disconnect(websocket)
     websocket.accept.assert_awaited_once()
     websocket.send_json.assert_awaited_once_with({"event": "session_created", "payload": {"session_id": 1}})
+
+
+@pytest.mark.parametrize(
+    "given,expected",
+    [
+        ("http://piston:2000", "http://piston:2000/api/v2"),
+        ("http://piston:2000/", "http://piston:2000/api/v2"),
+        ("http://piston:2000/api/v2", "http://piston:2000/api/v2"),
+        ("http://piston:2000/api/v2/", "http://piston:2000/api/v2"),
+        ("https://emkc.org/api/v2/piston", "https://emkc.org/api/v2/piston"),
+    ],
+)
+def test_piston_client_normalizes_base_url(given, expected):
+    assert PistonClient(given).base_url == expected

@@ -12,7 +12,14 @@ class PistonRateLimitError(RuntimeError):
 
 class PistonClient:
     def __init__(self, base_url: str = "https://emkc.org/api/v2/piston", http_client: httpx.AsyncClient | None = None) -> None:
-        self.base_url = base_url.rstrip("/")
+        base = base_url.rstrip("/")
+        # Normaliza al base de la API v2. El self-hosted (engineer-man/piston)
+        # expone /api/v2; el emkc público usa /api/v2/piston (ya contiene
+        # /api/v2). Si llega solo host:puerto (ej http://piston:2000), agrega
+        # /api/v2 para que {base}/execute resuelva bien y no de 404.
+        if "/api/v2" not in base:
+            base = f"{base}/api/v2"
+        self.base_url = base
         self._owns_client = http_client is None
         self._client = http_client or httpx.AsyncClient(timeout=20.0)
 
