@@ -1,13 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# Ressy Bot + Piston — stack unificado
+# Ressy Bot + Piston — stack unificado (Coolify / docker compose)
 #
 # Uso:
 #   docker compose up -d --build
 #
-# La primera vez, el servicio `piston-init` instala los runtimes
-# (python, javascript, typescript, bash) y luego se detiene.
-# En arranques subsiguientes, Piston ya tiene los paquetes en el
-# volumen persistente `piston_packages` y el init se salta.
+# La primera vez, `piston-init` instala los runtimes (python,
+# node, typescript, bash) vía la API HTTP de Piston y se detiene.
+# Los paquetes quedan en el volumen `piston_packages`, así que en
+# arranques posteriores el init los detecta y se salta.
+#
+# NOTA: el healthcheck de Piston usa `node` (la imagen NO trae
+# wget ni curl). Usar wget deja el container "unhealthy" para
+# siempre aunque la API esté viva, y tumba el deploy entero.
 # ─────────────────────────────────────────────────────────────
 
 services:
@@ -16,7 +20,7 @@ services:
     image: ghcr.io/engineer-man/piston:latest
     container_name: piston_api
     restart: unless-stopped
-    # nsjail requiere privilegios para aislar procesos.
+    # nsjail/isolate requieren privilegios para aislar procesos.
     privileged: true
     volumes:
       - piston_packages:/piston/packages
@@ -29,7 +33,12 @@ services:
       PISTON_MAX_PROCESS_COUNT: "256"
       PISTON_MAX_OPEN_FILES: "256"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:2000/api/v2/runtimes"]
+      # La imagen de Piston no trae wget/curl: usar node.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "require('http').get('http://localhost:2000/api/v2/runtimes',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 10
@@ -37,11 +46,10 @@ services:
     networks:
       - ressy
 
-  # ── Init: instala runtimes la primera vez ───────────────────
-  # Clona el CLI oficial de Piston (shallow), instala python/node/ts/bash
-  # y se detiene. El volumen piston_packages persiste los paquetes entre
-  # reinicios, así que en arranques subsiguientes esto se omite (el
-  # healthcheck de Piston ya验证 que los runtimes existen).
+  # ── Init: instala runtimes la primera vez (vía API HTTP) ─────
+  # node:20 trae fetch global. Por cada lenguaje deseado que no
+  # tenga runtime, instala la última versión disponible. Idempotente:
+  # en arranques posteriores todo ya está y sale al toque.
   piston-init:
     image: node:20-bookworm-slim
     container_name: piston_init
@@ -49,34 +57,31 @@ services:
       piston:
         condition: service_healthy
     restart: "no"
-    entrypoint: ["bash", "-c"]
-    command:
+    entrypoint:
+      - "node"
+      - "-e"
       - |
-        echo "⏳ Verificando runtimes instalados..."
-        EXISTING=$$(wget -qO- http://piston:2000/api/v2/runtimes 2>/dev/null | grep -o '"language":"[^"]*"' | sort -u)
-        echo "Runtimes actuales: $EXISTING"
-
-        # Si ya hay runtimes instalados, saltar.
-        if echo "$EXISTING" | grep -q "python"; then
-          echo "✅ Python ya instalado. Asumiendo runtimes previos — skip init."
-          exit 0
-        fi
-
-        echo "⏳ Instalando CLI de Piston..."
-        apt-get update -qq && apt-get install -y -qq git > /dev/null 2>&1
-        git clone --depth 1 https://github.com/engineer-man/piston.git /tmp/piston
-        cd /tmp/piston/cli && npm install --silent 2>/dev/null
-
-        echo "⏳ Instalando runtimes: python, node, typescript, bash..."
-        node index.js -u http://piston:2000 ppman install python
-        node index.js -u http://piston:2000 ppman install node
-        node index.js -u http://piston:2000 ppman install typescript
-        node index.js -u http://piston:2000 ppman install bash
-
-        echo "⏳ Verificando..."
-        wget -qO- http://piston:2000/api/v2/runtimes
-        echo ""
-        echo "✅ Runtimes instalados correctamente."
+        const base = "http://piston:2000/api/v2";
+        const want = ["python", "node", "typescript", "bash"];
+        (async () => {
+          const rt = await (await fetch(base + "/runtimes")).json();
+          const have = new Set(rt.map(r => r.language));
+          const pkgs = await (await fetch(base + "/packages")).json();
+          for (const lang of want) {
+            if (have.has(lang)) { console.log("skip " + lang + " (ya instalado)"); continue; }
+            const vers = pkgs.filter(p => p.language === lang).map(p => p.language_version);
+            if (!vers.length) { console.log("sin paquete para " + lang); continue; }
+            const latest = vers.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).pop();
+            console.log("instalando " + lang + " " + latest + "...");
+            const r = await fetch(base + "/packages", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ language: lang, version: latest }),
+            });
+            console.log("  -> " + JSON.stringify(await r.json()));
+          }
+          console.log("runtimes listos.");
+        })().catch(e => { console.error(e); process.exit(1); });
     networks:
       - ressy
 
@@ -87,6 +92,9 @@ services:
       dockerfile: Dockerfile
     container_name: ressy_bot
     restart: unless-stopped
+    # Gatea solo en piston healthy (no en init): el bot levanta
+    # Discord/dashboard de inmediato; code_runner espera a que los
+    # runtimes terminen de instalarse en segundo plano.
     depends_on:
       piston:
         condition: service_healthy
