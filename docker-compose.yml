@@ -103,7 +103,7 @@ services:
     environment:
       # Default: servicio Piston en la misma red Docker.
       # Override desde .env si Piston corre en otro host/puerto.
-      PISTON_URL: "${PISTON_URL:-http://piston:2000}"
+      PISTON_URL: "${PISTON_URL:-http://piston:2000/api/v2}"
     volumes:
       - bot_data:/app/data
     # Publicar al host en 65534 (Tailscale Serve frontea ese puerto).
