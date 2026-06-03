@@ -22,7 +22,7 @@ Plugin para crear sesiones temporales de ejecución de código y ejecutar snippe
   "security_enabled": true,
   "mod_role_names": ["Moderador", "Admin", "Administrador"],
   "category_id": null,
-  "piston_url": "https://emkc.org/api/v2/piston"
+  "piston_url": "http://piston:2000/api/v2"
 }
 ```
 

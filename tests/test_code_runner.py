@@ -156,6 +156,44 @@ async def test_transcript_generation(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_legacy_public_piston_url_migrated_to_local(tmp_path):
+    path = str(tmp_path / "cr_legacy.db")
+    # Simula una DB vieja con el endpoint público legacy guardado.
+    seed = CodeRunnerDatabase(path)
+    await seed.connect()
+    await seed._conn().execute(
+        "INSERT OR REPLACE INTO code_runner_config (key, value) VALUES ('piston_url', ?)",
+        ("https://emkc.org/api/v2/piston",),
+    )
+    await seed._conn().commit()
+    await seed.close()
+    # Reconectar dispara la migración idempotente.
+    db = CodeRunnerDatabase(path)
+    await db.connect()
+    cfg = await db.get_config()
+    assert cfg["piston_url"] == "http://piston:2000/api/v2"
+    await db.close()
+
+
+@pytest.mark.asyncio
+async def test_custom_piston_url_is_not_overwritten(tmp_path):
+    path = str(tmp_path / "cr_custom.db")
+    seed = CodeRunnerDatabase(path)
+    await seed.connect()
+    await seed._conn().execute(
+        "INSERT OR REPLACE INTO code_runner_config (key, value) VALUES ('piston_url', ?)",
+        ("http://192.168.1.50:2000/api/v2",),
+    )
+    await seed._conn().commit()
+    await seed.close()
+    db = CodeRunnerDatabase(path)
+    await db.connect()
+    cfg = await db.get_config()
+    assert cfg["piston_url"] == "http://192.168.1.50:2000/api/v2"
+    await db.close()
+
+
+@pytest.mark.asyncio
 async def test_mod_session_is_exempt_from_expiry(runner_db):
     # Sesión normal expirada → aparece en expired_sessions.
     await runner_db.create_session("1", "2", "333", ttl_minutes=1, exempt_expiry=False)
@@ -430,7 +468,8 @@ async def test_code_runner_websocket_broadcast_basic_event():
         ("http://piston:2000/", "http://piston:2000/api/v2"),
         ("http://piston:2000/api/v2", "http://piston:2000/api/v2"),
         ("http://piston:2000/api/v2/", "http://piston:2000/api/v2"),
-        ("https://emkc.org/api/v2/piston", "https://emkc.org/api/v2/piston"),
+        # URL self-host que ya trae /api/v2 (+ sufijo) se deja intacta.
+        ("http://10.0.0.5:2000/api/v2/piston", "http://10.0.0.5:2000/api/v2/piston"),
     ],
 )
 def test_piston_client_normalizes_base_url(given, expected):

@@ -111,8 +111,9 @@ export default function ExecutionCard({ config, status, onPatch }: Props) {
             value={config.piston_url}
             onChange={(e) => onPatch({ piston_url: e.target.value })}
             spellCheck={false}
+            placeholder="http://piston:2000/api/v2"
           />
-          <p className="cr-hint">URL del API público o self-host de Piston.</p>
+          <p className="cr-hint">URL del Piston self-host (red interna). Default: http://piston:2000/api/v2</p>
         </div>
       </div>
 

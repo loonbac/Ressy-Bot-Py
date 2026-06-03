@@ -57,7 +57,7 @@ const DEFAULT_CONFIG: CodeRunnerConfigType = {
   security_enabled: true,
   mod_role_names: ['Moderador', 'Admin', 'Administrador'],
   category_id: null,
-  piston_url: 'https://emkc.org/api/v2/piston',
+  piston_url: 'http://piston:2000/api/v2',
 };
 
 export default function CodeRunnerConfig({ onNavigate }: Props) {
