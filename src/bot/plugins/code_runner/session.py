@@ -43,7 +43,15 @@ class SessionManager:
             reason="Sesión temporal de code_runner",
             overwrites=overwrites,
         )
-        session = await self.db.create_session(str(user.id), str(guild.id), str(channel.id), int(cfg.get("session_timeout_minutes", cfg.get("session_ttl_minutes", "30"))))
+        # Sesiones creadas por roles moderadores no caducan por inactividad.
+        is_mod = self._user_is_mod(user, cfg)
+        session = await self.db.create_session(
+            str(user.id),
+            str(guild.id),
+            str(channel.id),
+            int(cfg.get("session_timeout_minutes", cfg.get("session_ttl_minutes", "30"))),
+            exempt_expiry=is_mod,
+        )
         emit_event("session_created", "Sesión de código creada", meta={"user_id": str(user.id), "channel_id": str(channel.id), "guild_id": str(guild.id), "session_id": session.get("id")})
         # Embed de bienvenida con @mención y guía. Best-effort: si falla no
         # rompe la creación de la sesión.
@@ -54,6 +62,19 @@ class SessionManager:
             except Exception:
                 pass
         return {"created": True, "session": session, "channel": channel}
+
+    @staticmethod
+    def _mod_role_set(cfg: dict[str, str]) -> set[str]:
+        return {item.strip().lower() for item in str(cfg.get("mod_role_names", "")).split(",") if item.strip()}
+
+    def _user_is_mod(self, user: Any, cfg: dict[str, str]) -> bool:
+        wanted = self._mod_role_set(cfg)
+        if not wanted:
+            return False
+        for role in getattr(user, "roles", []) or []:
+            if str(getattr(role, "name", "")).strip().lower() in wanted:
+                return True
+        return False
 
     def _build_overwrites(self, guild: Any, user: Any, cfg: dict[str, str]) -> dict[Any, Any]:
         try:
@@ -79,7 +100,7 @@ class SessionManager:
         me = getattr(guild, "me", None) or getattr(self.bot, "user", None)
         if me is not None:
             _set(me, bot_perms)
-        wanted = {item.strip().lower() for item in str(cfg.get("mod_role_names", "")).split(",") if item.strip()}
+        wanted = self._mod_role_set(cfg)
         for role in getattr(guild, "roles", []) or []:
             if str(getattr(role, "name", "")).strip().lower() in wanted:
                 _set(role, read_send)

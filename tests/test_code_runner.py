@@ -156,6 +156,92 @@ async def test_transcript_generation(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_mod_session_is_exempt_from_expiry(runner_db):
+    # Sesión normal expirada → aparece en expired_sessions.
+    await runner_db.create_session("1", "2", "333", ttl_minutes=1, exempt_expiry=False)
+    # Sesión de moderador expirada → NO aparece (exempt_expiry = 1).
+    await runner_db.create_session("9", "2", "444", ttl_minutes=1, exempt_expiry=True)
+    past = int(time.time()) - 1
+    await runner_db._conn().execute("UPDATE sessions SET expires_at = ?", (past,))
+    await runner_db._conn().commit()
+
+    expired = await runner_db.expired_sessions()
+
+    channel_ids = {str(s["channel_id"]) for s in expired}
+    assert channel_ids == {"333"}
+    mod_session = await runner_db.session_by_channel("444")
+    assert mod_session["exempt_expiry"] == 1
+
+
+@pytest.mark.asyncio
+async def test_create_session_flags_mod_role_as_exempt(runner_db):
+    bot = MagicMock()
+    manager = SessionManager(bot, runner_db)
+    await runner_db.update_config({"mod_role_names": ["Moderador"]})
+    channel = SimpleNamespace(id=555, delete=AsyncMock())
+    mod_role = MockDiscordObject(2, "Moderador")
+    guild = SimpleNamespace(id=111, default_role=object(), roles=[mod_role], create_text_channel=AsyncMock(return_value=channel))
+    user = SimpleNamespace(id=222, name="mod", roles=[mod_role])
+
+    await manager.create_session(guild, user)
+    session = await runner_db.session_by_channel("555")
+
+    assert session["exempt_expiry"] == 1
+
+
+@pytest.mark.asyncio
+async def test_chat_history_is_scoped_per_channel(runner_db):
+    await runner_db.add_chat_message("100", "user", "hola")
+    await runner_db.add_chat_message("100", "assistant", "qué tal")
+    await runner_db.add_chat_message("200", "user", "otro canal")
+
+    history_100 = await runner_db.recent_chat_messages("100", limit=12)
+    history_200 = await runner_db.recent_chat_messages("200", limit=12)
+
+    assert [m["content"] for m in history_100] == ["hola", "qué tal"]
+    assert [m["content"] for m in history_200] == ["otro canal"]
+
+
+@pytest.mark.asyncio
+async def test_ai_chat_reply_includes_history_and_persists(runner_cog):
+    captured: dict[str, Any] = {}
+
+    async def fake_chat(messages, model):
+        captured["messages"] = messages
+        return "respuesta IA"
+
+    runner_cog.ai_chat.client = SimpleNamespace(chat=fake_chat)
+    await runner_cog.db.add_chat_message("777", "user", "pregunta vieja")
+    await runner_cog.db.add_chat_message("777", "assistant", "respuesta vieja")
+
+    reply = await runner_cog._ai_chat_reply("1", "777", "nueva pregunta")
+
+    assert reply == "respuesta IA"
+    roles = [m["role"] for m in captured["messages"]]
+    contents = [m["content"] for m in captured["messages"]]
+    assert roles[0] == "system"
+    assert "pregunta vieja" in contents
+    assert "respuesta vieja" in contents
+    assert contents[-1] == "nueva pregunta"
+    # El intercambio nuevo quedó persistido para el siguiente turno.
+    history = await runner_cog.db.recent_chat_messages("777", limit=12)
+    assert history[-2:] == [
+        {"role": "user", "content": "nueva pregunta"},
+        {"role": "assistant", "content": "respuesta IA"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_close_session_purges_chat_history(runner_db):
+    await runner_db.create_session("1", "2", "333", ttl_minutes=1)
+    await runner_db.add_chat_message("333", "user", "hola")
+    await runner_db.close_session("333", "")
+
+    history = await runner_db.recent_chat_messages("333", limit=12)
+    assert history == []
+
+
+@pytest.mark.asyncio
 async def test_reaper_loop_closes_only_db_channels(runner_db):
     await runner_db.create_session("1", "2", "333", ttl_minutes=1)
     await runner_db._conn().execute("UPDATE sessions SET expires_at = ? WHERE channel_id = '333'", (int(time.time()) - 1,))
@@ -247,7 +333,7 @@ async def test_lobby_embed_shows_current_allowed_languages(runner_cog):
 
     assert embed is not None
     fields = {field.name: field.value for field in embed.fields}
-    assert fields["Lenguajes soportados"] == "python, bash"
+    assert fields["🛠 Lenguajes soportados"] == "`🐍 python` `💻 bash`"
 
 
 @pytest.mark.asyncio
