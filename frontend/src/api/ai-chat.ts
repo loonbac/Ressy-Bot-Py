@@ -9,6 +9,13 @@ export interface AIChatConfig {
   system_prompt: string;
   max_context_messages: number;
   rate_limit_seconds: number;
+  context_token_budget: number;
+  summary_enabled: boolean;
+  summary_trigger_messages: number;
+  memory_enabled: boolean;
+  max_input_chars: number;
+  tools_enabled: boolean;
+  tools_search_scan_limit: number;
 }
 
 export type AIChatConfigPatch = Partial<AIChatConfig>;

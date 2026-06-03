@@ -31,11 +31,18 @@ type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 const DEFAULT_CONFIG: AIChatConfigType = {
   enabled: true,
-  chat_model: 'MiniMax-M2.5',
-  analysis_model: 'MiniMax-M2.7',
+  chat_model: 'MiniMax-M3',
+  analysis_model: 'MiniMax-M3',
   system_prompt: '',
-  max_context_messages: 12,
+  max_context_messages: 60,
   rate_limit_seconds: 8,
+  context_token_budget: 200000,
+  summary_enabled: true,
+  summary_trigger_messages: 40,
+  memory_enabled: true,
+  max_input_chars: 8000,
+  tools_enabled: true,
+  tools_search_scan_limit: 300,
 };
 
 export default function AIChatConfig({ onNavigate }: Props) {
@@ -111,12 +118,17 @@ export default function AIChatConfig({ onNavigate }: Props) {
     setConfigSaveState('saving');
     try {
       // enabled y analysis_model se preservan tal cual en backend; este
-      // dashboard solo edita modelo conversacional, prompt, contexto y cooldown.
+      // dashboard edita modelo, prompt, contexto, memoria y tools.
       const updated = await updateAIChatConfig({
         chat_model: draft.chat_model,
         system_prompt: draft.system_prompt,
         max_context_messages: draft.max_context_messages,
         rate_limit_seconds: draft.rate_limit_seconds,
+        context_token_budget: draft.context_token_budget,
+        summary_enabled: draft.summary_enabled,
+        memory_enabled: draft.memory_enabled,
+        tools_enabled: draft.tools_enabled,
+        tools_search_scan_limit: draft.tools_search_scan_limit,
       });
       setConfig(updated);
       setDraft(updated);

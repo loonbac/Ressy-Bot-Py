@@ -58,18 +58,44 @@ export default function BehaviorCard({ config, onPatch }: Props) {
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-2">
-            <label className="ai-chat-label">Memoria activa</label>
-            <span className="ai-chat-slider-value">{config.max_context_messages}</span>
+          <div
+            className="ai-chat-toggle-row justify-between w-full mb-2"
+            onClick={() => onPatch({ tools_enabled: !config.tools_enabled })}
+          >
+            <label className="ai-chat-label">Tools de lectura del servidor</label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={config.tools_enabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPatch({ tools_enabled: !config.tools_enabled });
+              }}
+              className={`ai-chat-toggle ${config.tools_enabled ? 'ai-chat-toggle--on' : ''}`}
+            >
+              <span className="ai-chat-toggle__thumb" />
+            </button>
           </div>
-          <div className="ai-chat-memory-bar">
-            <div
-              className="ai-chat-memory-bar__fill"
-              style={{ width: `${Math.min(100, (config.max_context_messages / 50) * 100)}%` }}
-            />
-          </div>
+          {config.tools_enabled && (
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-2">
+                <span className="ai-chat-label">Mensajes escaneados por canal</span>
+                <span className="ai-chat-slider-value">{config.tools_search_scan_limit}</span>
+              </div>
+              <input
+                type="range"
+                min={50}
+                max={2000}
+                step={50}
+                value={config.tools_search_scan_limit}
+                onChange={(e) => onPatch({ tools_search_scan_limit: Number(e.target.value) })}
+                className="ai-chat-slider"
+              />
+            </div>
+          )}
           <p className="ai-chat-hint">
-            Visualización del contexto activo. Mensajes más antiguos se descartan al construir el prompt.
+            Permite a la IA buscar mensajes, miembros y canales del servidor seleccionado. Solo lectura, acotado a
+            ese servidor.
           </p>
         </div>
       </div>
