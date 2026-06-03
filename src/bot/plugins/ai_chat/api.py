@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 
 from .client import DEFAULT_ANALYSIS_MODEL, DEFAULT_CHAT_MODEL
-from .models import AnalyzeCodeRequest, ChatRequest, ConfigPayload
+from .models import AnalyzeCodeRequest, ChatRequest, ConfigPayload, MemoryCreate
 
 router = APIRouter()
 
@@ -23,8 +23,15 @@ def _typed_config(raw: dict[str, str]) -> dict[str, Any]:
         "chat_model": raw.get("chat_model", DEFAULT_CHAT_MODEL),
         "analysis_model": raw.get("analysis_model", DEFAULT_ANALYSIS_MODEL),
         "system_prompt": raw.get("system_prompt", ""),
-        "max_context_messages": int(raw.get("max_context_messages", "12")),
+        "max_context_messages": int(raw.get("max_context_messages", "60")),
         "rate_limit_seconds": int(raw.get("rate_limit_seconds", "8")),
+        "context_token_budget": int(raw.get("context_token_budget", "200000")),
+        "summary_enabled": raw.get("summary_enabled", "true") == "true",
+        "summary_trigger_messages": int(raw.get("summary_trigger_messages", "40")),
+        "memory_enabled": raw.get("memory_enabled", "true") == "true",
+        "max_input_chars": int(raw.get("max_input_chars", "8000")),
+        "tools_enabled": raw.get("tools_enabled", "true") == "true",
+        "tools_search_scan_limit": int(raw.get("tools_search_scan_limit", "300")),
     }
 
 
@@ -39,7 +46,16 @@ async def update_config(request: Request, payload: ConfigPayload) -> dict[str, A
     if "rate_limit_seconds" in data:
         data["rate_limit_seconds"] = max(1, int(data["rate_limit_seconds"]))
     if "max_context_messages" in data:
-        data["max_context_messages"] = max(1, min(50, int(data["max_context_messages"])))
+        data["max_context_messages"] = max(1, min(500, int(data["max_context_messages"])))
+    if "context_token_budget" in data:
+        # Acota a la ventana de MiniMax-M3 (1M), con piso razonable.
+        data["context_token_budget"] = max(1000, min(900_000, int(data["context_token_budget"])))
+    if "summary_trigger_messages" in data:
+        data["summary_trigger_messages"] = max(1, min(500, int(data["summary_trigger_messages"])))
+    if "max_input_chars" in data:
+        data["max_input_chars"] = max(100, min(100_000, int(data["max_input_chars"])))
+    if "tools_search_scan_limit" in data:
+        data["tools_search_scan_limit"] = max(50, min(2000, int(data["tools_search_scan_limit"])))
     return _typed_config(await _get_cog(request).db.update_config(data))
 
 
@@ -64,7 +80,7 @@ async def chat(request: Request, payload: ChatRequest) -> dict[str, Any]:
         raise HTTPException(status_code=429, detail=f"Rate limit activo. Intenta nuevamente en {wait}s.")
     try:
         thinking, reply = await cog.ask_full(
-            payload.user_id, payload.channel_id or "api", payload.message, persist=True
+            payload.user_id, payload.channel_id or "api", payload.message, persist=True, user_name=payload.user_name
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -87,3 +103,45 @@ async def reset_conversation(request: Request, user_id: str, channel_id: str | N
     # TODO: proteger este endpoint con auth admin cuando el dashboard tenga sesión real.
     deleted = await _get_cog(request).db.reset(user_id, channel_id)
     return {"deleted": deleted, "user_id": user_id, "channel_id": channel_id}
+
+
+@router.get("/conversations/{user_id}/summary")
+async def conversation_summary(request: Request, user_id: str, channel_id: str = "api") -> dict[str, Any]:
+    summary = await _get_cog(request).db.get_summary(user_id, channel_id)
+    return {"user_id": user_id, "channel_id": channel_id, "summary": summary}
+
+
+def _resolve_owner(scope: str, owner_id: str | None) -> str:
+    return "" if scope == "global" else str(owner_id or "")
+
+
+@router.get("/memories")
+async def list_memories(request: Request, scope: str = "user", owner_id: str | None = None) -> dict[str, Any]:
+    if scope not in {"user", "global"}:
+        raise HTTPException(status_code=422, detail="scope debe ser 'user' o 'global'")
+    owner = _resolve_owner(scope, owner_id)
+    if scope == "user" and not owner:
+        raise HTTPException(status_code=422, detail="owner_id es obligatorio para scope 'user'")
+    items = await _get_cog(request).db.list_memories(scope, owner)
+    return {"memories": items, "count": len(items), "scope": scope, "owner_id": owner}
+
+
+@router.post("/memories")
+async def create_memory(request: Request, payload: MemoryCreate) -> dict[str, Any]:
+    if payload.scope not in {"user", "global"}:
+        raise HTTPException(status_code=422, detail="scope debe ser 'user' o 'global'")
+    owner = _resolve_owner(payload.scope, payload.owner_id)
+    if payload.scope == "user" and not owner:
+        raise HTTPException(status_code=422, detail="owner_id es obligatorio para scope 'user'")
+    added = await _get_cog(request).db.add_memory(payload.scope, owner, payload.content, source="manual")
+    if not added:
+        raise HTTPException(status_code=409, detail="Ese dato ya estaba guardado o está vacío.")
+    return {"added": True, "scope": payload.scope, "owner_id": owner, "content": payload.content.strip()}
+
+
+@router.delete("/memories/{memory_id}")
+async def delete_memory(request: Request, memory_id: int) -> dict[str, Any]:
+    deleted = await _get_cog(request).db.delete_memory(memory_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Memoria no encontrada")
+    return {"deleted": True, "id": memory_id}
