@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 
 from .events import emit_event
-from .piston import LANGUAGE_ALIASES, PistonClient, PistonRateLimitError
+from .piston import EXT_LANGUAGE, LANGUAGE_ALIASES, PistonClient, PistonRateLimitError
 from .security import extract_code_block, looks_like_code, structured_security_analysis
 from .session import SessionManager
 
@@ -437,7 +437,8 @@ class CodeRunnerCog(commands.Cog):
         if session is None or session.get("status") != "active":
             return
         content = (message.content or "").strip()
-        if not content:
+        # Aceptar mensajes con solo adjuntos (subir un archivo de código sin texto).
+        if not content and not message.attachments:
             return
         # Encolar: cada canal procesa sus mensajes en orden con un worker propio.
         self._enqueue_message(message)
@@ -479,53 +480,67 @@ class CodeRunnerCog(commands.Cog):
                 self._channel_queues.pop(channel_id, None)
                 self._channel_workers.pop(channel_id, None)
 
-    async def _process_session_message(self, message: discord.Message) -> None:
-        content = (message.content or "").strip()
-        if not content:
-            return
-        # La sesión puede haberse cerrado mientras estaba en cola.
-        session = await self.db.session_by_channel(str(message.channel.id))
-        if session is None or session.get("status") != "active":
-            return
+    async def _read_code_attachments(self, message: discord.Message, max_chars: int) -> list[tuple[str, str, str | None]]:
+        """Lee adjuntos de texto del mensaje.
 
-        # Detección de código: primero bloque triple-backtick, luego heurística.
-        block = extract_code_block(content)
-        if block is None:
-            heuristic = looks_like_code(content)
-            if heuristic is not None:
-                block = heuristic
+        Devuelve `(filename, text, language)` por adjunto legible. `language` es
+        el lenguaje deducido por extensión; si la extensión no implica lenguaje
+        (ej. `.txt`) cae al detector heurístico, y queda `None` si no parece código.
+        """
+        results: list[tuple[str, str, str | None]] = []
+        for att in getattr(message, "attachments", []) or []:
+            filename = str(getattr(att, "filename", "") or "")
+            ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+            content_type = str(getattr(att, "content_type", "") or "").lower()
+            is_text = ext in EXT_LANGUAGE or ext == "txt" or content_type.startswith("text")
+            if not is_text:
+                continue
+            # Evita descargar archivos enormes: el runner trunca a max_chars igual.
+            if int(getattr(att, "size", 0) or 0) > 1_000_000:
+                continue
+            try:
+                raw = await att.read()
+            except Exception:
+                continue
+            text = None
+            for encoding in ("utf-8", "latin-1"):
+                try:
+                    text = raw.decode(encoding)
+                    break
+                except Exception:
+                    continue
+            if not text or not text.strip():
+                continue
+            text = text.strip()[:max_chars]
+            language = EXT_LANGUAGE.get(ext)
+            if language is None:
+                guess = looks_like_code(text)
+                if guess is not None:
+                    language = guess[1]
+            results.append((filename, text, language))
+        return results
 
-        if block is not None:
-            ok, wait = await self._check_rate_limit(int(message.author.id))
-            if not ok:
-                await message.reply(f"⏳ Espera {wait}s antes de ejecutar otra vez.", mention_author=False)
-                return
-            code, language = block
-            result = await self.execute_code(
-                str(message.author.id),
-                str(getattr(message.guild, "id", 0)),
-                str(message.channel.id),
-                code,
-                language,
-            )
-            embed = self._format_execution_embed(result, language)
-            await message.reply(embed=embed, mention_author=False)
+    async def _run_and_reply(self, message: discord.Message, code: str, language: str) -> None:
+        ok, wait = await self._check_rate_limit(int(message.author.id))
+        if not ok:
+            await message.reply(f"⏳ Espera {wait}s antes de ejecutar otra vez.", mention_author=False)
             return
+        result = await self.execute_code(
+            str(message.author.id),
+            str(getattr(message.guild, "id", 0)),
+            str(message.channel.id),
+            code,
+            language,
+        )
+        embed = self._format_execution_embed(result, language)
+        await message.reply(embed=embed, mention_author=False)
 
-        # No es código → preguntar a la IA mentor (MiniMax M2.7).
+    async def _reply_ai(self, message: discord.Message, text: str) -> None:
         try:
             async with message.channel.typing():
-                reply = await self._ai_chat_reply(
-                    str(message.author.id),
-                    str(message.channel.id),
-                    content,
-                )
+                reply = await self._ai_chat_reply(str(message.author.id), str(message.channel.id), text)
         except Exception:
-            reply = await self._ai_chat_reply(
-                str(message.author.id),
-                str(message.channel.id),
-                content,
-            )
+            reply = await self._ai_chat_reply(str(message.author.id), str(message.channel.id), text)
         if reply is None:
             await message.reply(
                 "💭 La IA no está disponible en este momento. Envía código o reintenta en unos segundos.",
@@ -539,3 +554,54 @@ class CodeRunnerCog(commands.Cog):
             await message.reply(embed=embed, mention_author=False)
         except Exception:
             await message.reply(reply[:1900], mention_author=False)
+
+    async def _process_session_message(self, message: discord.Message) -> None:
+        content = (message.content or "").strip()
+        # La sesión puede haberse cerrado mientras estaba en cola.
+        session = await self.db.session_by_channel(str(message.channel.id))
+        if session is None or session.get("status") != "active":
+            return
+
+        cfg = await self.db.get_config()
+        max_chars = int(cfg.get("max_code_chars", "4000"))
+        attachments = await self._read_code_attachments(message, max_chars)
+        code_files = [a for a in attachments if a[2] is not None]
+
+        # Caso 1: hay archivo(s) de código adjuntos.
+        if code_files:
+            if content:
+                # Texto + archivo → el usuario pregunta sobre el código: la IA lo revisa.
+                blocks = "\n\n".join(
+                    f"Archivo `{fn}`:\n```{lang}\n{txt}\n```" for fn, txt, lang in code_files
+                )
+                await self._reply_ai(message, f"{content}\n\n{blocks}")
+                return
+            # Solo archivo → ejecutar el primero.
+            _fn, code, language = code_files[0]
+            await self._run_and_reply(message, code, language or "python")
+            return
+
+        # Caso 2: adjuntos presentes pero ilegibles/no código, y sin texto.
+        if not content:
+            if message.attachments:
+                await message.reply(
+                    "📎 No pude leer ese archivo como código. Sube un archivo de texto "
+                    "(`.py`, `.js`, `.ts`, `.sh`, etc.) o pega el código directo.",
+                    mention_author=False,
+                )
+            return
+
+        # Caso 3: solo texto. Detección de código: bloque triple-backtick, luego heurística.
+        block = extract_code_block(content)
+        if block is None:
+            heuristic = looks_like_code(content)
+            if heuristic is not None:
+                block = heuristic
+
+        if block is not None:
+            code, language = block
+            await self._run_and_reply(message, code, language)
+            return
+
+        # No es código → mentor IA.
+        await self._reply_ai(message, content)

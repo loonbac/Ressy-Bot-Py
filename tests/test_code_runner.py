@@ -155,6 +155,98 @@ async def test_transcript_generation(tmp_path):
     assert "print(1)" in Path(path).read_text(encoding="utf-8")
 
 
+class _Typing:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+def _make_attachment(filename: str, data: bytes, content_type: str = "text/plain"):
+    att = SimpleNamespace(filename=filename, content_type=content_type, size=len(data))
+    att.read = AsyncMock(return_value=data)
+    return att
+
+
+def _make_message(channel_id: str, *, content: str = "", attachments=None):
+    channel = SimpleNamespace(id=int(channel_id))
+    channel.typing = lambda: _Typing()
+    return SimpleNamespace(
+        content=content,
+        attachments=attachments or [],
+        channel=channel,
+        author=SimpleNamespace(id=42, bot=False),
+        guild=SimpleNamespace(id=99),
+        reply=AsyncMock(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_attachment_only_python_file_executes(runner_cog):
+    await runner_cog.db.create_session("42", "99", "700", ttl_minutes=30)
+    att = _make_attachment("snippet.py", b"print('hola')")
+    message = _make_message("700", content="", attachments=[att])
+
+    await runner_cog._process_session_message(message)
+
+    runner_cog.piston.execute.assert_awaited_once()
+    assert runner_cog.piston.execute.await_args.args[0] == "python"
+    embed = message.reply.await_args.kwargs["embed"]
+    assert "Ejecución exitosa" in embed.title
+
+
+@pytest.mark.asyncio
+async def test_attachment_txt_with_code_is_detected_and_executes(runner_cog):
+    await runner_cog.db.create_session("42", "99", "701", ttl_minutes=30)
+    # message.txt (sin extensión de lenguaje) con código Python → heurística lo detecta.
+    code = b"import os\nfor i in range(3):\n    print(i)\n"
+    att = _make_attachment("message.txt", code)
+    message = _make_message("701", content="", attachments=[att])
+
+    await runner_cog._process_session_message(message)
+
+    runner_cog.piston.execute.assert_awaited_once()
+    assert runner_cog.piston.execute.await_args.args[0] == "python"
+
+
+@pytest.mark.asyncio
+async def test_attachment_with_question_goes_to_ai_review(runner_cog):
+    await runner_cog.db.create_session("42", "99", "702", ttl_minutes=30)
+    captured: dict[str, Any] = {}
+
+    async def fake_chat(messages, model):
+        captured["messages"] = messages
+        return "Tu código está bien estructurado."
+
+    runner_cog.ai_chat.client = SimpleNamespace(chat=fake_chat)
+    att = _make_attachment("app.py", b"print('hola')")
+    message = _make_message("702", content="¿qué opinas de este código?", attachments=[att])
+
+    await runner_cog._process_session_message(message)
+
+    # Texto + archivo → revisión IA, NO ejecución.
+    runner_cog.piston.execute.assert_not_awaited()
+    user_msg = captured["messages"][-1]["content"]
+    assert "¿qué opinas" in user_msg
+    assert "print('hola')" in user_msg
+    embed = message.reply.await_args.kwargs["embed"]
+    assert embed.author.name == "💭 Asistente del santuario"
+
+
+@pytest.mark.asyncio
+async def test_unreadable_attachment_only_replies_hint(runner_cog):
+    await runner_cog.db.create_session("42", "99", "703", ttl_minutes=30)
+    att = _make_attachment("photo.png", b"\x89PNG\r\n", content_type="image/png")
+    message = _make_message("703", content="", attachments=[att])
+
+    await runner_cog._process_session_message(message)
+
+    runner_cog.piston.execute.assert_not_awaited()
+    hint = message.reply.await_args.args[0]
+    assert "No pude leer ese archivo" in hint
+
+
 @pytest.mark.asyncio
 async def test_legacy_public_piston_url_migrated_to_local(tmp_path):
     path = str(tmp_path / "cr_legacy.db")

@@ -13,6 +13,16 @@ DEFAULT_PISTON_URL = "http://piston:2000/api/v2"
 # Valor público legacy: cualquier config que aún lo tenga se migra a local.
 _LEGACY_PUBLIC_PISTON_URL = "https://emkc.org/api/v2/piston"
 
+# Extensión de archivo -> lenguaje Piston. Se usa al subir un archivo adjunto
+# para detectar el lenguaje sin depender de heurísticas. `.txt` queda fuera a
+# propósito: no implica lenguaje, cae al detector heurístico (looks_like_code).
+EXT_LANGUAGE = {
+    "py": "python", "js": "javascript", "mjs": "javascript", "cjs": "javascript",
+    "ts": "typescript", "sh": "bash", "bash": "bash", "rs": "rust", "go": "go",
+    "java": "java", "cpp": "cpp", "cc": "cpp", "cxx": "cpp", "hpp": "cpp",
+    "c": "c", "h": "c", "rb": "ruby", "php": "php",
+}
+
 
 class PistonRateLimitError(RuntimeError):
     pass
