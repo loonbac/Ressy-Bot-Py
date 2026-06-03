@@ -12,8 +12,9 @@ async def setup(bot, config_manager, app):
     os.makedirs("data/plugins", exist_ok=True)
     db = AIChatDatabase("data/plugins/ai_chat.db")
     await db.connect()
-    client = AIChatClient(config_manager=config_manager or getattr(app.state, "config_manager", None))
-    cog = AIChatCog(bot=bot, db=db, client=client)
+    resolved_cm = config_manager or getattr(app.state, "config_manager", None)
+    client = AIChatClient(config_manager=resolved_cm)
+    cog = AIChatCog(bot=bot, db=db, client=client, config_manager=resolved_cm)
     await bot.add_cog(cog)
 
     app.include_router(router, prefix="/api/plugins/ai-chat", tags=["ai-chat"])

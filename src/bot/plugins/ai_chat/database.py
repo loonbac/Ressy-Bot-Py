@@ -14,8 +14,25 @@ DEFAULTS = {
     "chat_model": DEFAULT_CHAT_MODEL,
     "analysis_model": DEFAULT_ANALYSIS_MODEL,
     "system_prompt": "Responde en español neutro peruano, con claridad y brevedad.",
-    "max_context_messages": "12",
+    # Cantidad de mensajes recientes que se conservan textualmente (verbatim).
+    "max_context_messages": "60",
     "rate_limit_seconds": "8",
+    # Presupuesto de tokens para la ventana reciente inyectada al modelo.
+    # MiniMax-M3 admite 1M de contexto; 200k deja margen amplio para resumen,
+    # memoria de largo plazo y salida.
+    "context_token_budget": "200000",
+    # Resumen rodante: cuando hay más de (max_context_messages + trigger)
+    # mensajes, los más viejos se funden en un resumen persistente.
+    "summary_enabled": "true",
+    "summary_trigger_messages": "40",
+    # Memoria de largo plazo (hechos globales y por usuario) inyectada siempre.
+    "memory_enabled": "true",
+    # Guard de longitud de entrada: recorta prompts gigantes antes de enviarlos.
+    "max_input_chars": "8000",
+    # Tools: la IA puede leer el server seleccionado (buscar mensajes, miembros, etc.).
+    "tools_enabled": "true",
+    # Mensajes recientes que escanea por canal al buscar.
+    "tools_search_scan_limit": "300",
 }
 
 
@@ -41,26 +58,49 @@ class AIChatDatabase:
             )
             """
         )
+        await self.db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_conversations_thread ON conversations (user_id, channel_id, id)"
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversation_summaries (
+                user_id TEXT NOT NULL,
+                channel_id TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                last_summarized_id INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (user_id, channel_id)
+            )
+            """
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope TEXT NOT NULL,
+                owner_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'auto',
+                created_at INTEGER NOT NULL
+            )
+            """
+        )
+        await self.db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories (scope, owner_id, id)"
+        )
+        # Evita duplicar el mismo hecho para el mismo dueño.
+        await self.db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_memories_dedup ON memories (scope, owner_id, content)"
+        )
         for key, value in DEFAULTS.items():
             await self.db.execute("INSERT OR IGNORE INTO ai_chat_config (key, value) VALUES (?, ?)", (key, value))
-        await self._migrate_model_defaults()
+        await self._drop_legacy_keys()
         await self.db.commit()
 
-    async def _migrate_model_defaults(self) -> None:
-        old_rows = await self.db.execute_fetchall("SELECT value FROM ai_chat_config WHERE key = 'model'")
-        old_model = old_rows[0] if old_rows else None
-        if old_model is None:
-            return
-        old_value = str(old_model["value"])
-        if old_value == "openai/gpt-4o-mini":
-            await self.db.execute(
-                "INSERT OR REPLACE INTO ai_chat_config (key, value) VALUES ('chat_model', ?)",
-                (DEFAULT_CHAT_MODEL,),
-            )
-            await self.db.execute(
-                "INSERT OR REPLACE INTO ai_chat_config (key, value) VALUES ('analysis_model', ?)",
-                (DEFAULT_ANALYSIS_MODEL,),
-            )
+    async def _drop_legacy_keys(self) -> None:
+        # Limpia la key unificada `model` de esquemas muy viejos. El modelo activo
+        # lo define la selección del dashboard (PUT /config), no una migración:
+        # nunca se reescribe un valor ya elegido por el usuario.
         await self.db.execute("DELETE FROM ai_chat_config WHERE key = 'model'")
 
     def _conn(self) -> aiosqlite.Connection:
@@ -82,6 +122,8 @@ class AIChatDatabase:
         await self._conn().commit()
         return await self.get_config()
 
+    # ----- Conversación verbatim -----
+
     async def add_message(self, user_id: str, channel_id: str, role: str, content: str) -> None:
         await self._conn().execute(
             "INSERT INTO conversations (user_id, channel_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -96,11 +138,107 @@ class AIChatDatabase:
         )
         return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
 
+    async def messages_asc(self, user_id: str, channel_id: str) -> list[dict[str, Any]]:
+        """Todos los mensajes del hilo en orden ascendente, con id (para poda/resumen)."""
+        rows = await self._conn().execute_fetchall(
+            "SELECT id, role, content FROM conversations WHERE user_id = ? AND channel_id = ? ORDER BY id ASC",
+            (str(user_id), str(channel_id)),
+        )
+        return [{"id": int(r["id"]), "role": r["role"], "content": r["content"]} for r in rows]
+
+    async def count_messages(self, user_id: str, channel_id: str) -> int:
+        rows = await self._conn().execute_fetchall(
+            "SELECT COUNT(*) AS n FROM conversations WHERE user_id = ? AND channel_id = ?",
+            (str(user_id), str(channel_id)),
+        )
+        return int(rows[0]["n"]) if rows else 0
+
+    async def prune_messages_through(self, user_id: str, channel_id: str, last_id: int) -> int:
+        """Borra mensajes con id <= last_id (ya resumidos). Mantiene la tabla acotada."""
+        cur = await self._conn().execute(
+            "DELETE FROM conversations WHERE user_id = ? AND channel_id = ? AND id <= ?",
+            (str(user_id), str(channel_id), int(last_id)),
+        )
+        await self._conn().commit()
+        return int(cur.rowcount or 0)
+
     async def reset(self, user_id: str, channel_id: str | None = None) -> int:
         if channel_id is None:
             cur = await self._conn().execute("DELETE FROM conversations WHERE user_id = ?", (str(user_id),))
+            await self._conn().execute("DELETE FROM conversation_summaries WHERE user_id = ?", (str(user_id),))
         else:
-            cur = await self._conn().execute("DELETE FROM conversations WHERE user_id = ? AND channel_id = ?", (str(user_id), str(channel_id)))
+            cur = await self._conn().execute(
+                "DELETE FROM conversations WHERE user_id = ? AND channel_id = ?", (str(user_id), str(channel_id))
+            )
+            await self._conn().execute(
+                "DELETE FROM conversation_summaries WHERE user_id = ? AND channel_id = ?",
+                (str(user_id), str(channel_id)),
+            )
+        await self._conn().commit()
+        return int(cur.rowcount or 0)
+
+    # ----- Resumen rodante -----
+
+    async def get_summary(self, user_id: str, channel_id: str) -> str | None:
+        rows = await self._conn().execute_fetchall(
+            "SELECT summary FROM conversation_summaries WHERE user_id = ? AND channel_id = ?",
+            (str(user_id), str(channel_id)),
+        )
+        if not rows:
+            return None
+        value = str(rows[0]["summary"]).strip()
+        return value or None
+
+    async def set_summary(self, user_id: str, channel_id: str, summary: str, last_summarized_id: int) -> None:
+        await self._conn().execute(
+            """
+            INSERT INTO conversation_summaries (user_id, channel_id, summary, last_summarized_id, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, channel_id) DO UPDATE SET
+                summary = excluded.summary,
+                last_summarized_id = excluded.last_summarized_id,
+                updated_at = excluded.updated_at
+            """,
+            (str(user_id), str(channel_id), summary, int(last_summarized_id), int(time.time())),
+        )
+        await self._conn().commit()
+
+    # ----- Memoria de largo plazo -----
+
+    async def add_memory(self, scope: str, owner_id: str, content: str, source: str = "auto") -> bool:
+        """Inserta un hecho. Devuelve False si ya existía (dedup) o estaba vacío."""
+        text = (content or "").strip()
+        if text == "":
+            return False
+        try:
+            cur = await self._conn().execute(
+                "INSERT INTO memories (scope, owner_id, content, source, created_at) VALUES (?, ?, ?, ?, ?)",
+                (scope, str(owner_id), text, source, int(time.time())),
+            )
+        except aiosqlite.IntegrityError:
+            return False
+        await self._conn().commit()
+        return int(cur.rowcount or 0) > 0
+
+    async def list_memories(self, scope: str, owner_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        rows = await self._conn().execute_fetchall(
+            "SELECT id, content, source, created_at FROM memories WHERE scope = ? AND owner_id = ? ORDER BY id ASC LIMIT ?",
+            (scope, str(owner_id), int(limit)),
+        )
+        return [
+            {"id": int(r["id"]), "content": r["content"], "source": r["source"], "created_at": int(r["created_at"])}
+            for r in rows
+        ]
+
+    async def delete_memory(self, memory_id: int) -> bool:
+        cur = await self._conn().execute("DELETE FROM memories WHERE id = ?", (int(memory_id),))
+        await self._conn().commit()
+        return int(cur.rowcount or 0) > 0
+
+    async def clear_memories(self, scope: str, owner_id: str) -> int:
+        cur = await self._conn().execute(
+            "DELETE FROM memories WHERE scope = ? AND owner_id = ?", (scope, str(owner_id))
+        )
         await self._conn().commit()
         return int(cur.rowcount or 0)
 

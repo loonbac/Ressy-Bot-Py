@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
     channel_id: str | None = None
     message: str
     system_prompt: str | None = None
+    user_name: str | None = Field(None, description="Nombre visible del usuario para que la IA sepa con quién habla")
 
 
 class ChatResponse(BaseModel):
@@ -35,3 +36,16 @@ class ConfigPayload(BaseModel):
     system_prompt: str | None = None
     max_context_messages: int | None = None
     rate_limit_seconds: int | None = None
+    context_token_budget: int | None = None
+    summary_enabled: bool | None = None
+    summary_trigger_messages: int | None = None
+    memory_enabled: bool | None = None
+    max_input_chars: int | None = None
+    tools_enabled: bool | None = None
+    tools_search_scan_limit: int | None = None
+
+
+class MemoryCreate(BaseModel):
+    content: str = Field(..., description="Hecho duradero a recordar")
+    scope: str = Field("user", description="'user' o 'global'")
+    owner_id: str | None = Field(None, description="user_id para scope user; vacío para global")
