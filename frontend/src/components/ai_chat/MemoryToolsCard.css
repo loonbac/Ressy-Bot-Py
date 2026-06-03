@@ -1,0 +1,121 @@
+/* ── AI Chat · Memoria de largo plazo ─────────────────────── */
+
+.ai-chat-memory-add {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-chat-memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ai-chat-memory-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 24px 12px;
+  font-size: 12px;
+  color: rgb(120, 110, 110);
+  text-align: center;
+}
+
+html.dark .ai-chat-memory-empty {
+  color: rgb(170, 160, 160);
+}
+
+.ai-chat-memory-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ai-chat-memory-row:hover {
+  background: rgba(247, 207, 216, 0.18);
+  box-shadow: 0 4px 14px rgba(183, 19, 41, 0.08);
+}
+
+html.dark .ai-chat-memory-row {
+  background: rgba(34, 36, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.dark .ai-chat-memory-row:hover {
+  background: rgba(247, 207, 216, 0.1);
+}
+
+.ai-chat-memory-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-chat-memory-row__content {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgb(40, 36, 36);
+  word-break: break-word;
+}
+
+html.dark .ai-chat-memory-row__content {
+  color: rgb(230, 224, 224);
+}
+
+.ai-chat-memory-row__meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(150, 140, 140);
+  font-family: ui-monospace, monospace;
+}
+
+html.dark .ai-chat-memory-row__meta {
+  color: rgb(150, 142, 142);
+}
+
+.ai-chat-memory-row__delete {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: rgb(183, 19, 41);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.ai-chat-memory-row__delete:hover:not(:disabled) {
+  background: rgba(183, 19, 41, 0.1);
+  border-color: rgba(183, 19, 41, 0.3);
+  transform: scale(1.08);
+}
+
+.ai-chat-memory-row__delete:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.ai-chat-memory-row__delete:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ai-chat-memory-row__delete .material-symbols-outlined {
+  font-size: 18px;
+}

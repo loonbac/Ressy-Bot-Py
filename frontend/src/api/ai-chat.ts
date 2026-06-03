@@ -98,3 +98,53 @@ export async function resetConversation(userId: string, channelId?: string): Pro
   return (await res.json()) as { deleted: number };
 }
 
+// ── Memoria de largo plazo ──────────────────────────────────────────
+// owner_id es un snowflake de Discord: se maneja SIEMPRE como string.
+
+export type MemoryScope = 'user' | 'global';
+
+export interface AIChatMemory {
+  id: number;
+  content: string;
+  source: string;
+  created_at: number;
+}
+
+export interface MemoryCreatePayload {
+  content: string;
+  scope: MemoryScope;
+  owner_id?: string | null;
+}
+
+async function parseDetail(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { detail?: string };
+    return data?.detail ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function fetchMemories(scope: MemoryScope, ownerId?: string | null): Promise<AIChatMemory[]> {
+  const params = new URLSearchParams({ scope });
+  if (ownerId) params.set('owner_id', ownerId);
+  const res = await apiFetch(`${BASE}/memories?${params.toString()}`);
+  if (!res.ok) throw new Error(await parseDetail(res, `Error al cargar memorias (${res.status})`));
+  const data = (await res.json()) as { memories: AIChatMemory[]; count: number };
+  return data.memories;
+}
+
+export async function createMemory(payload: MemoryCreatePayload): Promise<void> {
+  const res = await apiFetch(`${BASE}/memories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await parseDetail(res, `Error al guardar memoria (${res.status})`));
+}
+
+export async function deleteMemory(id: number): Promise<void> {
+  const res = await apiFetch(`${BASE}/memories/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await parseDetail(res, `Error al eliminar memoria (${res.status})`));
+}
+
