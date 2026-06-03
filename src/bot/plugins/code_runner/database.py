@@ -7,6 +7,8 @@ from typing import Any
 
 import aiosqlite
 
+from .piston import DEFAULT_PISTON_URL, _LEGACY_PUBLIC_PISTON_URL
+
 
 DEFAULTS = {
     "enabled": "true",
@@ -25,7 +27,7 @@ DEFAULTS = {
     "max_code_chars": "4000",
     "session_ttl_minutes": "30",
     "rate_limit_seconds": "10",
-    "piston_url": "https://emkc.org/api/v2/piston",
+    "piston_url": DEFAULT_PISTON_URL,
     # Cuántos mensajes previos (user+IA) se reinyectan como contexto al mentor IA.
     # El contexto es por canal/sesión, nunca global.
     "chat_history_messages": "12",
@@ -141,6 +143,14 @@ class CodeRunnerDatabase:
             await self.db.execute(
                 "INSERT OR IGNORE INTO code_runner_config (key, value) VALUES ('cooldown_seconds', ?)",
                 (str(cfg["rate_limit_seconds"]),),
+            )
+        # El endpoint público legacy (emkc.org) ya no se usa: Code Runner corre
+        # solo contra Piston self-host. Reescribe el valor stale al default local
+        # SIN pisar una URL custom que el usuario haya configurado a mano.
+        if cfg.get("piston_url") == _LEGACY_PUBLIC_PISTON_URL:
+            await self.db.execute(
+                "UPDATE code_runner_config SET value = ? WHERE key = 'piston_url'",
+                (DEFAULT_PISTON_URL,),
             )
 
     def _conn(self) -> aiosqlite.Connection:

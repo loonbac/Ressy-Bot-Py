@@ -7,15 +7,15 @@ async def setup(bot, config_manager, app):
     from .api import router
     from .cog import CodeRunnerCog
     from .database import CodeRunnerDatabase
-    from .piston import PistonClient
+    from .piston import DEFAULT_PISTON_URL, PistonClient
 
     os.makedirs("data/plugins", exist_ok=True)
     db = CodeRunnerDatabase("data/plugins/code_runner.db")
     await db.connect()
     cfg = await db.get_config()
-    # Precedencia: env PISTON_URL (Coolify) > config DB > default público.
-    # El público emkc.org es whitelist-only desde 2026-02-15; self-host recomendado.
-    piston_url = os.getenv("PISTON_URL", "").strip() or cfg.get("piston_url", "https://emkc.org/api/v2/piston")
+    # Precedencia: env PISTON_URL (Coolify) > config DB > default local.
+    # Code Runner corre SOLO contra Piston self-host; no hay endpoint público.
+    piston_url = os.getenv("PISTON_URL", "").strip() or cfg.get("piston_url", DEFAULT_PISTON_URL)
     piston = PistonClient(piston_url)
     ai_chat = getattr(app.state, "ai_chat_cog", None)
     cog = CodeRunnerCog(bot=bot, db=db, piston=piston, ai_chat=ai_chat)

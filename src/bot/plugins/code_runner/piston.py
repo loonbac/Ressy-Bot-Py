@@ -5,13 +5,21 @@ import httpx
 
 LANGUAGE_ALIASES = {"py": "python", "js": "javascript", "ts": "typescript", "sh": "bash"}
 
+# Piston self-host en la misma red Docker (servicio `piston` del compose).
+# Code Runner ejecuta SOLO contra esta instancia local; no se usa ningún
+# endpoint público. Override por env PISTON_URL si Piston corre en otro host.
+DEFAULT_PISTON_URL = "http://piston:2000/api/v2"
+
+# Valor público legacy: cualquier config que aún lo tenga se migra a local.
+_LEGACY_PUBLIC_PISTON_URL = "https://emkc.org/api/v2/piston"
+
 
 class PistonRateLimitError(RuntimeError):
     pass
 
 
 class PistonClient:
-    def __init__(self, base_url: str = "https://emkc.org/api/v2/piston", http_client: httpx.AsyncClient | None = None) -> None:
+    def __init__(self, base_url: str = DEFAULT_PISTON_URL, http_client: httpx.AsyncClient | None = None) -> None:
         base = base_url.rstrip("/")
         # Normaliza al base de la API v2. El self-hosted (engineer-man/piston)
         # expone /api/v2; el emkc público usa /api/v2/piston (ya contiene

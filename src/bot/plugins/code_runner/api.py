@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 
 from .events import connect, disconnect
 from .models import ConfigPayload, ExecuteRequest, SessionCreateRequest
+from .piston import DEFAULT_PISTON_URL
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ def _typed_config(raw: dict[str, str]) -> dict[str, Any]:
         "security_enabled": raw.get("security_enabled", "true") == "true",
         "mod_role_names": _list("mod_role_names"),
         "category_id": raw.get("category_id") or None,
-        "piston_url": raw.get("piston_url", "https://emkc.org/api/v2/piston"),
+        "piston_url": raw.get("piston_url", DEFAULT_PISTON_URL),
     }
 
 
