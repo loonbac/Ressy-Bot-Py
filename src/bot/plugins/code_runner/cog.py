@@ -534,7 +534,7 @@ class CodeRunnerCog(commands.Cog):
             return
         try:
             embed = discord.Embed(description=reply[:4000], color=_SAKURA_COLOR)
-            embed.set_author(name="💭 Asistente del santuario · MiniMax M2.7")
+            embed.set_author(name="💭 Asistente del santuario")
             embed.set_footer(text="Envía código directo o ```bloque``` para ejecutarlo")
             await message.reply(embed=embed, mention_author=False)
         except Exception:
