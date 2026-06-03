@@ -309,7 +309,8 @@ class TestGuildPlayer:
         mock_bot = MagicMock()
         player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
         mock_channel = AsyncMock()
-        mock_vc = AsyncMock()
+        mock_vc = MagicMock()
+        mock_vc.disconnect = AsyncMock()
         mock_channel.connect.return_value = mock_vc
         await player.connect(mock_channel)
         await player.disconnect()
@@ -445,7 +446,8 @@ class TestGuildPlayer:
         mock_bot = MagicMock()
         player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
         mock_channel = AsyncMock()
-        mock_vc = AsyncMock()
+        mock_vc = MagicMock()
+        mock_vc.disconnect = AsyncMock()
         mock_channel.connect.return_value = mock_vc
         await player.connect(mock_channel)
         player.queue.add(Track(url="a", title="A"))
@@ -460,7 +462,8 @@ class TestGuildPlayer:
         mock_bot = MagicMock()
         player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
         mock_channel = AsyncMock()
-        mock_vc = AsyncMock()
+        mock_vc = MagicMock()
+        mock_vc.disconnect = AsyncMock()
         mock_channel.connect.return_value = mock_vc
         await player.connect(mock_channel)
 
@@ -494,7 +497,8 @@ class TestGuildPlayer:
         mock_bot = MagicMock()
         player = GuildPlayer(guild_id=1, bot=mock_bot, volume=50)
         mock_channel = AsyncMock()
-        mock_vc = AsyncMock()
+        mock_vc = MagicMock()
+        mock_vc.disconnect = AsyncMock()
         mock_channel.connect.return_value = mock_vc
         await player.connect(mock_channel)
         await player.play_from_queue()
@@ -587,6 +591,8 @@ class TestMusicCog:
         mock_player.is_playing = False
         mock_player.current_track = None
         mock_player.queue = MagicMock()
+        # start_stream es síncrono en el player real (envuelve voice_client.play).
+        mock_player.start_stream = MagicMock()
         mock_manager.get_or_create.return_value = mock_player
 
         mock_player.extract.return_value = (

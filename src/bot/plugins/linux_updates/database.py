@@ -56,7 +56,10 @@ class LinuxUpdatesDatabase:
     # ------------------------------------------------------------------
 
     async def connect(self) -> None:
-        """Abre la conexion y crea el schema."""
+        """Abre la conexion y crea el schema. Idempotente: si ya hay conexion
+        abierta no crea otra (evitaba fugar el hilo worker de la conexion previa)."""
+        if self._db is not None:
+            return
         self._db = await aiosqlite.connect(self.db_path)
         self._db.row_factory = aiosqlite.Row
         await self._db.execute("PRAGMA journal_mode=WAL")

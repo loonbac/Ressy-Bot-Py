@@ -338,11 +338,13 @@ class GuildPlayerManager:
     def cleanup(self, guild_id: int) -> None:
         player = self._players.pop(guild_id, None)
         if player is not None:
+            import asyncio
+            coro = player.stop()
             try:
-                import asyncio
-                asyncio.create_task(player.stop())
+                asyncio.create_task(coro)
             except RuntimeError:
-                pass
+                # Sin event loop corriendo: cierra la coroutine para no fugarla.
+                coro.close()
 
     def cleanup_all(self) -> None:
         for player in list(self._players.values()):
