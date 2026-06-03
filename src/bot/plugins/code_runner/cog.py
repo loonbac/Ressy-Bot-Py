@@ -187,9 +187,14 @@ class CodeRunnerCog(commands.Cog):
                 inline=False,
             )
             embed.add_field(name="🛠 Lenguajes activos", value=chips, inline=False)
+            life_value = (
+                "Permanente: como rol moderador, tu canal no caduca por inactividad."
+                if session.get("exempt_expiry")
+                else f"`{timeout_min} min` sin actividad y se archiva automáticamente."
+            )
             embed.add_field(
                 name="⏱ Vida del canal",
-                value=f"`{timeout_min} min` sin actividad y se archiva automáticamente.",
+                value=life_value,
                 inline=True,
             )
             embed.add_field(
@@ -383,22 +388,43 @@ class CodeRunnerCog(commands.Cog):
             "Eres un mentor experto de programación dentro de un canal Discord de Code Runner. "
             "Responde en español neutro peruano, concreto y didáctico. Si el usuario pregunta sobre código, "
             "explica con bloques markdown. Si pide refactor o mejoras, da pasos accionables. "
-            "Mantén respuestas debajo de 1500 caracteres. NO inventes ejecuciones; solo orienta."
+            "Mantén respuestas debajo de 1500 caracteres. NO inventes ejecuciones; solo orienta. "
+            "Tienes memoria de esta conversación: usa el contexto previo para dar continuidad."
         )
+        # Contexto SOLO de este canal (esta sesión), nunca global. Cada canal es
+        # una conversación aislada porque los IDs de canal de Discord no se reusan.
         try:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message_text},
-            ]
+            history_limit = int(cfg.get("chat_history_messages", "12"))
+        except (TypeError, ValueError):
+            history_limit = 12
+        history: list[dict[str, str]] = []
+        if history_limit > 0:
+            try:
+                history = await self.db.recent_chat_messages(channel_id, history_limit)
+            except Exception:
+                history = []
+        try:
+            messages = [{"role": "system", "content": system_prompt}]
+            messages.extend({"role": h["role"], "content": h["content"]} for h in history)
+            messages.append({"role": "user", "content": message_text})
             raw = await chat_fn(messages, model)
             # Quitar bloque <think>...</think> que añaden modelos MiniMax razonadores.
+            clean = raw
             try:
                 from src.bot.plugins.ai_chat.cog import split_thinking
 
-                _thinking, clean = split_thinking(raw)
-                return clean or raw
+                _thinking, stripped = split_thinking(raw)
+                clean = stripped or raw
             except Exception:
-                return raw
+                clean = raw
+            # Persistir el intercambio para que el siguiente turno tenga contexto.
+            try:
+                await self.db.add_chat_message(channel_id, "user", message_text)
+                if clean:
+                    await self.db.add_chat_message(channel_id, "assistant", clean)
+            except Exception:
+                pass
+            return clean
         except Exception:
             return None
 

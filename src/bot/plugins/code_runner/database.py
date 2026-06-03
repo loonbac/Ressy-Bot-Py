@@ -26,6 +26,9 @@ DEFAULTS = {
     "session_ttl_minutes": "30",
     "rate_limit_seconds": "10",
     "piston_url": "https://emkc.org/api/v2/piston",
+    # Cuántos mensajes previos (user+IA) se reinyectan como contexto al mentor IA.
+    # El contexto es por canal/sesión, nunca global.
+    "chat_history_messages": "12",
 }
 
 
@@ -50,9 +53,26 @@ class CodeRunnerDatabase:
                 created_at INTEGER NOT NULL,
                 expires_at INTEGER NOT NULL,
                 closed_at INTEGER,
-                transcript_path TEXT DEFAULT ''
+                transcript_path TEXT DEFAULT '',
+                exempt_expiry INTEGER NOT NULL DEFAULT 0
             )
             """
+        )
+        # Historial de chat IA por canal/sesión. El contexto se acota a un solo
+        # channel_id (cada sesión = un canal), nunca cruza conversaciones.
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+            """
+        )
+        await self.db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_messages_channel ON chat_messages (channel_id, id)"
         )
         await self.db.execute(
             """
@@ -97,6 +117,8 @@ class CodeRunnerDatabase:
             await self.db.execute("ALTER TABLE sessions ADD COLUMN closed_at INTEGER")
         if "transcript_path" not in session_cols:
             await self.db.execute("ALTER TABLE sessions ADD COLUMN transcript_path TEXT DEFAULT ''")
+        if "exempt_expiry" not in session_cols:
+            await self.db.execute("ALTER TABLE sessions ADD COLUMN exempt_expiry INTEGER NOT NULL DEFAULT 0")
         execution_cols = {str(r[1]) for r in await self.db.execute_fetchall("PRAGMA table_info(executions)")}
         for column, ddl in {
             "exit_code": "ALTER TABLE executions ADD COLUMN exit_code TEXT DEFAULT ''",
@@ -168,12 +190,19 @@ class CodeRunnerDatabase:
             rows = await self._conn().execute_fetchall("SELECT * FROM sessions ORDER BY id DESC LIMIT ?", (limit,))
         return [dict(r) for r in rows]
 
-    async def create_session(self, user_id: str, guild_id: str, channel_id: str, ttl_minutes: int) -> dict[str, Any]:
+    async def create_session(
+        self,
+        user_id: str,
+        guild_id: str,
+        channel_id: str,
+        ttl_minutes: int,
+        exempt_expiry: bool = False,
+    ) -> dict[str, Any]:
         now = int(time.time())
         expires_at = now + ttl_minutes * 60
         await self._conn().execute(
-            "INSERT INTO sessions (user_id, guild_id, channel_id, status, created_at, expires_at) VALUES (?, ?, ?, 'active', ?, ?)",
-            (str(user_id), str(guild_id), str(channel_id), now, expires_at),
+            "INSERT INTO sessions (user_id, guild_id, channel_id, status, created_at, expires_at, exempt_expiry) VALUES (?, ?, ?, 'active', ?, ?, ?)",
+            (str(user_id), str(guild_id), str(channel_id), now, expires_at, 1 if exempt_expiry else 0),
         )
         await self._conn().commit()
         return await self.session_by_channel(channel_id) or {}
@@ -183,6 +212,9 @@ class CodeRunnerDatabase:
             "UPDATE sessions SET status = 'closed', transcript_path = ?, closed_at = ? WHERE channel_id = ? AND status = 'active'",
             (transcript_path, int(time.time()), str(channel_id)),
         )
+        if cur.rowcount:
+            # El contexto IA muere con la sesión: no se conserva entre canales.
+            await self._conn().execute("DELETE FROM chat_messages WHERE channel_id = ?", (str(channel_id),))
         await self._conn().commit()
         return bool(cur.rowcount)
 
@@ -194,11 +226,34 @@ class CodeRunnerDatabase:
         await self._conn().commit()
 
     async def expired_sessions(self, now: int | None = None) -> list[dict[str, Any]]:
+        # Sesiones con exempt_expiry = 1 (creadas por roles moderadores) nunca
+        # se consideran expiradas: sus canales no se archivan por inactividad.
         rows = await self._conn().execute_fetchall(
-            "SELECT * FROM sessions WHERE status = 'active' AND expires_at <= ?",
+            "SELECT * FROM sessions WHERE status = 'active' AND exempt_expiry = 0 AND expires_at <= ?",
             (int(now or time.time()),),
         )
         return [dict(r) for r in rows]
+
+    async def add_chat_message(self, channel_id: str, role: str, content: str) -> int:
+        cur = await self._conn().execute(
+            "INSERT INTO chat_messages (channel_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+            (str(channel_id), str(role), str(content), int(time.time())),
+        )
+        await self._conn().commit()
+        return int(cur.lastrowid)
+
+    async def recent_chat_messages(self, channel_id: str, limit: int = 12) -> list[dict[str, Any]]:
+        """Últimos `limit` mensajes del canal en orden cronológico (ASC)."""
+        limit = max(1, min(100, int(limit)))
+        rows = await self._conn().execute_fetchall(
+            "SELECT role, content FROM chat_messages WHERE channel_id = ? ORDER BY id DESC LIMIT ?",
+            (str(channel_id), limit),
+        )
+        return [dict(r) for r in reversed(rows)]
+
+    async def delete_chat_messages(self, channel_id: str) -> None:
+        await self._conn().execute("DELETE FROM chat_messages WHERE channel_id = ?", (str(channel_id),))
+        await self._conn().commit()
 
     async def add_execution(
         self,
