@@ -5,6 +5,7 @@ import PageHeader from './ai_chat/PageHeader';
 import StatusCard from './ai_chat/StatusCard';
 import BehaviorCard from './ai_chat/BehaviorCard';
 import PlaygroundCard from './ai_chat/PlaygroundCard';
+import MemoryToolsCard from './ai_chat/MemoryToolsCard';
 import AnimatedSaveButton from './ai_chat/AnimatedSaveButton';
 import {
   fetchAIChatConfig,
@@ -197,8 +198,11 @@ export default function AIChatConfig({ onNavigate }: Props) {
         </div>
 
         <div className="grid grid-cols-12 gap-4 pb-6">
-          <div className="col-span-12">
+          <div className="col-span-12 lg:col-span-7 flex">
             <PlaygroundCard config={draft} showToast={showToast} />
+          </div>
+          <div className="col-span-12 lg:col-span-5 flex">
+            <MemoryToolsCard showToast={showToast} />
           </div>
         </div>
 
