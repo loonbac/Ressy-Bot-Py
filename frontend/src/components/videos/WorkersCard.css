@@ -9,7 +9,7 @@
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .videos-worker-row:hover {
-  border-color: rgba(255, 0, 80, 0.4);
+  border-color: rgba(218, 50, 63, 0.4);
   transform: translateX(2px);
 }
 html.dark .videos-worker-row {
@@ -27,8 +27,8 @@ html.dark .videos-worker-row {
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .videos-worker-icon-btn:hover:not(:disabled) {
-  background: rgba(255, 0, 80, 0.1);
-  color: #ff0050;
+  background: rgba(218, 50, 63, 0.1);
+  color: var(--color-secondary);
   transform: scale(1.1);
 }
 .videos-worker-icon-btn--danger:hover:not(:disabled) {
@@ -42,7 +42,7 @@ html.dark .videos-worker-row {
 
 .videos-workers-scroll::-webkit-scrollbar { width: 6px; }
 .videos-workers-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 0, 80, 0.25);
+  background: rgba(218, 50, 63, 0.25);
   border-radius: 9999px;
 }
 .videos-workers-scroll::-webkit-scrollbar-track { background: transparent; }
