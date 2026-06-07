@@ -19,7 +19,7 @@ export default function StatusCard({ status, workerCount }: Props) {
         <div className="flex items-center gap-2">
           <span
             className="material-symbols-outlined text-[20px]"
-            style={{ color: '#ff0050', fontVariationSettings: "'FILL' 1" }}
+            style={{ color: 'var(--color-secondary)', fontVariationSettings: "'FILL' 1" }}
           >
             smart_display
           </span>
@@ -70,7 +70,7 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
     <div className="rounded-lg bg-surface-container-low/60 border border-outline-variant/40 px-2 py-2 text-center">
       <div
         className="font-headline-md text-lg"
-        style={{ color: accent ? '#ff0050' : 'var(--color-on-surface)' }}
+        style={{ color: accent ? 'var(--color-secondary)' : 'var(--color-on-surface)' }}
       >
         {value}
       </div>

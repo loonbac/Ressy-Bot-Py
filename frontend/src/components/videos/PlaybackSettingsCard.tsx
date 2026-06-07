@@ -24,7 +24,7 @@ export default function PlaybackSettingsCard({ config, onChange }: Props) {
       <div className="flex items-center gap-2 flex-shrink-0">
         <span
           className="material-symbols-outlined text-[20px]"
-          style={{ color: '#ff0050', fontVariationSettings: "'FILL' 1" }}
+          style={{ color: 'var(--color-secondary)', fontVariationSettings: "'FILL' 1" }}
         >
           tune
         </span>

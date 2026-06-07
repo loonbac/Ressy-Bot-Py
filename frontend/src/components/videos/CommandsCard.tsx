@@ -29,7 +29,7 @@ export default function CommandsCard({ config, onChange }: Props) {
         <div className="flex items-center gap-2">
           <span
             className="material-symbols-outlined text-[20px]"
-            style={{ color: '#ff0050', fontVariationSettings: "'FILL' 1" }}
+            style={{ color: 'var(--color-secondary)', fontVariationSettings: "'FILL' 1" }}
           >
             toggle_on
           </span>

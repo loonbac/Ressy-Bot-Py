@@ -171,7 +171,7 @@ export default function VideosConfig({ onNavigate }: Props) {
     return (
       <section className="fixed top-20 bottom-0 left-64 right-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <span className="material-symbols-outlined text-4xl animate-videos-spin" style={{ color: '#ff0050' }}>
+          <span className="material-symbols-outlined text-4xl animate-videos-spin" style={{ color: 'var(--color-secondary)' }}>
             progress_activity
           </span>
           <p className="text-on-surface-variant font-body-md">Cargando reproductor de videos…</p>

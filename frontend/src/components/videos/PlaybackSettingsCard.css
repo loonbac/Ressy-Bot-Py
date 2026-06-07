@@ -12,13 +12,13 @@
   background: var(--color-surface-container);
 }
 .videos-res-option--active {
-  background: rgba(255, 0, 80, 0.12);
-  border-color: #ff0050;
-  color: #ff0050;
-  box-shadow: 0 6px 16px rgba(255, 0, 80, 0.18);
+  background: rgba(218, 50, 63, 0.12);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  box-shadow: 0 6px 16px rgba(218, 50, 63, 0.18);
 }
 html.dark .videos-res-option { background: var(--color-surface-container); }
 html.dark .videos-res-option--active {
-  background: rgba(255, 0, 80, 0.16);
-  color: #ff5c8a;
+  background: rgba(218, 50, 63, 0.16);
+  color: var(--color-secondary);
 }

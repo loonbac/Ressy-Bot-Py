@@ -153,7 +153,17 @@ export class Worker {
 
   _login() {
     return new Promise((resolve, reject) => {
-      const client = new Client();
+      // discord.js-selfbot-v13@3.7.1 (deprecada) trae `capabilities: 0` y un
+      // client_build_number viejo en el IDENTIFY; el gateway de Discord lo
+      // rechaza con close 4013 ("Invalid intent..."). Pasamos un capabilities
+      // moderno y un build number reciente (overridables por env) para que el
+      // handshake de cuenta de usuario sea aceptado.
+      const capabilities = parseInt(process.env.DISCORD_WS_CAPABILITIES || "16381", 10);
+      const ws = { capabilities };
+      if (process.env.DISCORD_WS_BUILD_NUMBER) {
+        ws.properties = { client_build_number: parseInt(process.env.DISCORD_WS_BUILD_NUMBER, 10) };
+      }
+      const client = new Client({ ws });
       this.streamer = new Streamer(client);
       let settled = false;
 
@@ -181,6 +191,9 @@ export class Worker {
         resolve();
       });
       client.on("error", (e) => log(this.index, "client error", e?.message || e));
+      client.on("shardDisconnect", (ev) =>
+        log(this.index, "gateway closed", ev?.code, ev?.reason || "")
+      );
 
       client.login(this.token).catch(fail);
     });
