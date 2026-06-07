@@ -55,6 +55,7 @@ const DEFAULT_QUALITY = {
   fps: parseInt(process.env.FPS || "30", 10),
   bitrate: parseInt(process.env.BITRATE_KBPS || "3000", 10),
   bitrateMax: parseInt(process.env.BITRATE_MAX_KBPS || "4500", 10),
+  audioOffset: parseFloat(process.env.VIDEO_AUDIO_OFFSET || "0.3"),
 };
 
 const log = (...a) => console.log("[manager]", ...a);
@@ -354,6 +355,10 @@ function sanitizeQuality(b) {
   if (b.fps != null) out.fps = num(b.fps, 10, 60, quality.fps);
   if (b.bitrate != null) out.bitrate = num(b.bitrate, 500, 8000, quality.bitrate);
   if (b.bitrateMax != null) out.bitrateMax = num(b.bitrateMax, 500, 12000, quality.bitrateMax);
+  if (b.audioOffset != null) {
+    const f = parseFloat(b.audioOffset);
+    out.audioOffset = Number.isFinite(f) ? Math.max(0, Math.min(3, f)) : quality.audioOffset;
+  }
   return out;
 }
 

@@ -94,6 +94,30 @@ export default function PlaybackSettingsCard({ config, onChange }: Props) {
         />
       </div>
 
+      {/* Audio offset (A/V sync) */}
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <label className="text-xs uppercase tracking-wide text-on-surface-variant">
+            Desfase de audio
+          </label>
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-secondary)' }}>
+            {config.audio_offset.toFixed(2)}s
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={1.5}
+          step={0.05}
+          value={config.audio_offset}
+          onChange={(e) => onChange('audio_offset', parseFloat(e.target.value))}
+          className="videos-range w-full mt-1"
+        />
+        <p className="text-[0.65rem] text-on-surface-variant mt-0.5">
+          Retrasa el audio para sincronizarlo con el video. Súbelo si el audio va adelantado.
+        </p>
+      </div>
+
       {/* Manager URL */}
       <div className="flex-shrink-0 mt-auto">
         <label className="text-xs uppercase tracking-wide text-on-surface-variant">

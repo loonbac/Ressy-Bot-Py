@@ -310,6 +310,14 @@ export class Worker {
   _startCapture() {
     this._killFfmpeg();
     const { width, height, fps, bitrate, bitrateMax } = this.quality;
+    // Desfase de audio: el pipeline de video (Firefox -> x11grab -> libx264)
+    // tiene más latencia que el audio (pulse, casi instantáneo), así que el
+    // audio se adelanta. `-itsoffset` retrasa la entrada de audio para
+    // sincronizarlos. Positivo = retrasa audio. Tunable en vivo desde el panel.
+    const audioOffset = Number(this.quality.audioOffset) || 0;
+    const audioInput = [];
+    if (audioOffset > 0) audioInput.push("-itsoffset", String(audioOffset));
+    audioInput.push("-thread_queue_size", "512", "-f", "pulse", "-i", `${this.sink}.monitor`);
     const args = [
       "-hide_banner",
       "-loglevel",
@@ -326,12 +334,7 @@ export class Worker {
       `${width}x${height}`,
       "-i",
       `${this.display}.0`,
-      "-thread_queue_size",
-      "512",
-      "-f",
-      "pulse",
-      "-i",
-      `${this.sink}.monitor`,
+      ...audioInput,
       "-c:v",
       "libx264",
       "-preset",
