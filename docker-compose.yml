@@ -104,6 +104,10 @@ services:
       # Default: servicio Piston en la misma red Docker.
       # Override desde .env si Piston corre en otro host/puerto.
       PISTON_URL: "${PISTON_URL:-http://piston:2000/api/v2}"
+      # Worker-manager de videos (servicio video-worker en la misma red).
+      VIDEO_MANAGER_URL: "${VIDEO_MANAGER_URL:-http://video-worker:8081}"
+      # Secreto compartido bot <-> worker-manager (bearer). Definir en .env.
+      VIDEO_MANAGER_SECRET: "${VIDEO_MANAGER_SECRET:-}"
     volumes:
       - bot_data:/app/data
     # Publicar al host en 65534 (Tailscale Serve frontea ese puerto).
@@ -115,6 +119,45 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 40s
+      retries: 3
+    networks:
+      - ressy
+
+  # ── Video Worker-Manager: pool de selfbots que hacen Go Live ─
+  # Aísla Firefox + Xvfb + ffmpeg + selfbots (riesgo ToS) en su
+  # propio contenedor. El bot lo controla por HTTP (bearer). No
+  # guarda tokens: el bot los registra en runtime desde el panel.
+  # shm_size grande: Firefox crashea renderizando con /dev/shm chico.
+  video-worker:
+    build:
+      context: ./video-worker
+      dockerfile: Dockerfile
+    container_name: ressy_video_worker
+    restart: unless-stopped
+    shm_size: "1gb"
+    environment:
+      MANAGER_PORT: "8081"
+      HTTP_PORT: "8080"
+      MANAGER_SECRET: "${VIDEO_MANAGER_SECRET:-}"
+      # Vacío = auto (se calcula por RAM del host). Fija un número para forzarlo.
+      MAX_WORKERS: "${VIDEO_MAX_WORKERS:-}"
+      VIDEO_RAM_PER_WORKER_MB: "${VIDEO_RAM_PER_WORKER_MB:-1500}"
+      VIDEO_RAM_RESERVE_MB: "${VIDEO_RAM_RESERVE_MB:-3000}"
+      WIDTH: "${VIDEO_WIDTH:-1280}"
+      HEIGHT: "${VIDEO_HEIGHT:-720}"
+      FPS: "${VIDEO_FPS:-30}"
+      BITRATE_KBPS: "${VIDEO_BITRATE_KBPS:-3000}"
+      BITRATE_MAX_KBPS: "${VIDEO_BITRATE_MAX_KBPS:-4500}"
+    healthcheck:
+      # Sin auth en /health: node hace GET y valida 200.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "require('http').get('http://localhost:8081/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
       retries: 3
     networks:
       - ressy

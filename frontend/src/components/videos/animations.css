@@ -1,0 +1,61 @@
+/* ── Videos (RessyTube) plugin animations ─────────────────────── */
+
+@keyframes videos-card-enter {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes videos-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 80, 0.5); }
+  100% { box-shadow: 0 0 0 12px rgba(255, 0, 80, 0); }
+}
+
+@keyframes videos-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes videos-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+@keyframes videos-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes videos-row-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes videos-toast-slide {
+  0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes videos-live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Utility classes */
+.animate-videos-card-enter { animation: videos-card-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-videos-stagger-1 { animation-delay: 0.04s; }
+.animate-videos-stagger-2 { animation-delay: 0.12s; }
+.animate-videos-stagger-3 { animation-delay: 0.20s; }
+.animate-videos-stagger-4 { animation-delay: 0.28s; }
+.animate-videos-pulse-ring { animation: videos-pulse-ring 1.4s ease-out infinite; }
+.animate-videos-spin { animation: videos-spin 1s linear infinite; }
+.animate-videos-pop { animation: videos-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.animate-videos-shake { animation: videos-shake 0.4s ease-in-out; }
+.animate-videos-row-in { animation: videos-row-in 0.3s ease-out both; }
+.animate-videos-toast-slide { animation: videos-toast-slide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-videos-live-blink { animation: videos-live-blink 1.1s ease-in-out infinite; }

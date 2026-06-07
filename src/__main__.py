@@ -89,6 +89,10 @@ async def main_async() -> None:
     from src.bot.plugins.code_runner import setup as setup_code_runner
     await setup_code_runner(bot, cm, app)
 
+    # Cargar plugin de reproducción de videos (RessyTube — worker-manager Node)
+    from src.bot.plugins.video_player import setup as setup_video_player
+    await setup_video_player(bot, cm, app)
+
     # Mount SPA static files *after* all API routes are registered
     mount_static_files(app)
 
