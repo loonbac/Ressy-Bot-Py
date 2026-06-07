@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RessyTube Player</title>
+  <style>
+    :root {
+      --r1: #ff0050;
+      --r2: #ff7b00;
+      --p1: #7b2ff7;
+      --p2: #f107a3;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      background: #05060a; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    #player { position: absolute; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
+    iframe { border: 0; }
+
+    /* ---------------- SPLASH ---------------- */
+    #splash {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(circle at 50% 40%, #1a0b2e 0%, #0a0612 55%, #05060a 100%);
+      overflow: hidden;
+      transition: opacity 0.9s ease, visibility 0.9s ease;
+    }
+    #splash.hidden { opacity: 0; visibility: hidden; }
+
+    .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55; mix-blend-mode: screen; }
+    .blob.b1 { width: 520px; height: 520px; background: var(--r1);  top: -120px; left: -100px; animation: drift1 9s ease-in-out infinite; }
+    .blob.b2 { width: 480px; height: 480px; background: var(--p1);  bottom: -140px; right: -90px; animation: drift2 11s ease-in-out infinite; }
+    .blob.b3 { width: 380px; height: 380px; background: var(--p2);  top: 40%; left: 60%; animation: drift3 13s ease-in-out infinite; }
+    .blob.b4 { width: 300px; height: 300px; background: var(--r2);  bottom: 20%; left: 10%; animation: drift1 10s ease-in-out infinite reverse; }
+    @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(80px,60px) scale(1.2)} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-70px,-50px) scale(1.15)} }
+    @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-90px,40px) scale(0.85)} }
+
+    .particles { position: absolute; inset: 0; z-index: 1; }
+    .particles i {
+      position: absolute; bottom: -20px; width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.8); box-shadow: 0 0 12px 2px rgba(255,80,160,0.8);
+      animation: rise linear infinite;
+    }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(0.6); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+    }
+
+    .center { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; }
+
+    .logo { position: relative; width: 190px; height: 190px; margin-bottom: 42px; }
+    .ring { position: absolute; inset: 0; border-radius: 50%; border: 4px solid transparent; }
+    .ring.r-out { border-top-color: var(--r1); border-right-color: var(--p2); animation: spin 2.6s linear infinite; box-shadow: 0 0 40px rgba(255,0,80,0.45); }
+    .ring.r-mid { inset: 22px; border-bottom-color: var(--p1); border-left-color: var(--r2); animation: spin 1.9s linear infinite reverse; }
+    .ring.r-in { inset: 44px; border-top-color: #fff; border-right-color: var(--p2); animation: spin 1.3s linear infinite; opacity: 0.8; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .play-badge {
+      position: absolute; inset: 58px;
+      background: linear-gradient(135deg, var(--r1), var(--r2));
+      border-radius: 28px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 50px rgba(255,40,90,0.7), inset 0 0 18px rgba(255,255,255,0.25);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 40px rgba(255,40,90,0.6); } 50% { transform: scale(1.08); box-shadow: 0 0 70px rgba(255,80,160,0.9); } }
+    .play-badge::after {
+      content: ""; width: 0; height: 0; border-style: solid; border-width: 22px 0 22px 36px;
+      border-color: transparent transparent transparent #fff; margin-left: 8px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    }
+
+    .title {
+      font-size: 72px; font-weight: 900; letter-spacing: 2px; line-height: 1;
+      background: linear-gradient(90deg, var(--r1), var(--r2), var(--p2), var(--p1), var(--r1));
+      background-size: 300% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: shimmer 4s linear infinite; text-shadow: 0 0 40px rgba(255,40,90,0.25);
+    }
+    .title .tube { -webkit-text-fill-color: #fff; color: #fff; }
+    @keyframes shimmer { to { background-position: 300% center; } }
+    .subtitle {
+      margin-top: 14px; font-size: 24px; font-weight: 600; letter-spacing: 8px;
+      color: rgba(255,255,255,0.85); text-transform: uppercase; animation: fadepulse 2.4s ease-in-out infinite;
+    }
+    @keyframes fadepulse { 0%,100%{opacity:0.55} 50%{opacity:1} }
+
+    .bar { margin-top: 40px; width: 360px; height: 8px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; position: relative; }
+    .bar::before {
+      content: ""; position: absolute; top: 0; left: -40%; height: 100%; width: 40%; border-radius: 99px;
+      background: linear-gradient(90deg, transparent, var(--r1), var(--p2), transparent); animation: slide 1.4s ease-in-out infinite;
+    }
+    @keyframes slide { 0%{left:-40%} 100%{left:100%} }
+    .loading-text { margin-top: 18px; font-size: 16px; letter-spacing: 3px; color: rgba(255,255,255,0.5); }
+    .dots span { animation: blink 1.4s infinite; }
+    .dots span:nth-child(2){ animation-delay: .2s }
+    .dots span:nth-child(3){ animation-delay: .4s }
+    @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+
+  <div id="splash">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="center">
+      <div class="logo">
+        <div class="ring r-out"></div>
+        <div class="ring r-mid"></div>
+        <div class="ring r-in"></div>
+        <div class="play-badge"></div>
+      </div>
+      <div class="title"><span class="ressy">Ressy</span><span class="tube">Tube</span></div>
+      <div class="subtitle">Player</div>
+      <div class="bar"></div>
+      <div class="loading-text">cargando video<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const wrap = document.getElementById("particles");
+      const COLORS = ["#ff0050", "#ff7b00", "#f107a3", "#7b2ff7", "#ffffff"];
+      for (let i = 0; i < 28; i++) {
+        const p = document.createElement("i");
+        const size = 4 + Math.floor((i * 37) % 10);
+        p.style.left = ((i * 53) % 100) + "%";
+        p.style.width = p.style.height = size + "px";
+        const c = COLORS[i % COLORS.length];
+        p.style.background = c;
+        p.style.boxShadow = "0 0 12px 2px " + c;
+        p.style.animationDuration = (6 + ((i * 7) % 8)) + "s";
+        p.style.animationDelay = (-((i * 11) % 9)) + "s";
+        wrap.appendChild(p);
+      }
+    })();
+
+    const params = new URLSearchParams(location.search);
+    const videoId = params.get("v");
+    const workerId = params.get("w");
+    const wq = workerId != null ? "?w=" + encodeURIComponent(workerId) : "";
+    const splash = document.getElementById("splash");
+    let player, endedSent = false, hidden = false;
+
+    function hideSplash() {
+      if (hidden) return;
+      hidden = true;
+      splash.classList.add("hidden");
+    }
+    function notifyEnded() {
+      if (endedSent) return;
+      endedSent = true;
+      hidden = false; splash.classList.remove("hidden");
+      fetch("/ended" + wq).catch(() => {});
+    }
+
+    function onYouTubeIframeAPIReady() {
+      if (!videoId) { fetch("/error" + (wq ? wq + "&" : "?") + "reason=no-video-id").catch(() => {}); return; }
+      player = new YT.Player("player", {
+        videoId: videoId,
+        width: "100%", height: "100%",
+        playerVars: { autoplay: 1, controls: 0, rel: 0, modestbranding: 1, fs: 1, playsinline: 1, iv_load_policy: 3 },
+        events: {
+          onReady: (e) => {
+            try { e.target.setVolume(100); } catch (_) {}
+            try { e.target.unMute(); } catch (_) {}
+            try { e.target.playVideo(); } catch (_) {}
+            fetch("/ready" + wq).catch(() => {});
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) hideSplash();
+            if (e.data === YT.PlayerState.ENDED) notifyEnded();
+          },
+          onError: (e) => { fetch("/error" + (wq ? wq + "&" : "?") + "reason=yt-" + (e && e.data)).catch(() => {}); },
+        },
+      });
+    }
+  </script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>

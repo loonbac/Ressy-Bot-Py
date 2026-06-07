@@ -1,0 +1,20 @@
+{
+  "name": "ressy-video-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ressy video worker-manager: pool of Discord selfbot accounts that stream YouTube videos (Go Live) into voice channels, controlled over HTTP by the Ressy bot.",
+  "scripts": {
+    "start": "node manager.js"
+  },
+  "dependencies": {
+    "@dank074/discord-video-stream": "latest",
+    "discord.js-selfbot-v13": "latest"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "node-av",
+      "node-datachannel"
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+/* Glass card base para el plugin de videos (RessyTube). Light + dark. */
+.videos-card {
+  background: rgba(250, 249, 246, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.85rem;
+  position: relative;
+  overflow: hidden;
+}
+
+html.dark .videos-card {
+  background: rgba(34, 36, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.videos-card__accent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #ff0050, #ff7b00);
+  opacity: 0.9;
+}
+
+/* status dot colors */
+.videos-dot { width: 0.6rem; height: 0.6rem; border-radius: 9999px; flex-shrink: 0; }
+.videos-dot--idle { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
+.videos-dot--playing { background: #ff0050; box-shadow: 0 0 8px rgba(255, 0, 80, 0.7); }
+.videos-dot--offline { background: #9ca3af; }
+.videos-dot--error { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+.videos-dot--unknown { background: #9ca3af; }
+
+.videos-live-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.1rem 0.5rem; border-radius: 9999px;
+  background: rgba(255, 0, 80, 0.12); color: #ff0050;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+}
+html.dark .videos-live-pill { background: rgba(255, 0, 80, 0.18); color: #ff5c8a; }
+
+.videos-input {
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface);
+  border-radius: 0.6rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.videos-input:focus {
+  outline: none;
+  border-color: #ff0050;
+  box-shadow: 0 0 0 3px rgba(255, 0, 80, 0.15);
+}
+html.dark .videos-input { background: var(--color-surface-container); }
+
+.videos-btn-primary {
+  background: linear-gradient(135deg, #ff0050, #ff7b00);
+  color: #fff;
+  border-radius: 0.6rem;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.videos-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(255, 0, 80, 0.28);
+}
+.videos-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.videos-btn-ghost {
+  border: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  border-radius: 0.6rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.videos-btn-ghost:hover { border-color: #ff0050; color: #ff0050; }

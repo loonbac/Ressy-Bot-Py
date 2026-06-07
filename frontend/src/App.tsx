@@ -12,6 +12,7 @@ import MusicConfig from '@/components/MusicConfig';
 import LinuxConfig from '@/components/LinuxConfig';
 import OpenRouterConfig from '@/components/OpenRouterConfig';
 import CodeRunnerConfig from '@/components/CodeRunnerConfig';
+import VideosConfig from '@/components/VideosConfig';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import SakuraPetals from '@/components/SakuraPetals';
 import { fetchConfig, updateConfig, fetchStatus } from '@/api/config';
@@ -29,6 +30,7 @@ const sectionTitles: Record<string, string> = {
   linux: 'Linux Updates',
   openrouter: 'OpenRouter · Precios',
   'code-runner': 'Code Runner',
+  videos: 'RessyTube · Videos',
 };
 
 export default function App() {
@@ -148,6 +150,9 @@ export default function App() {
         )}
         {activeSection === 'code-runner' && (
           <CodeRunnerConfig onNavigate={setActiveSection} />
+        )}
+        {activeSection === 'videos' && (
+          <VideosConfig onNavigate={setActiveSection} />
         )}
       </DashboardLayout>
     </WebSocketProvider>

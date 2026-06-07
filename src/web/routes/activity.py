@@ -25,6 +25,7 @@ ALLOWED_KINDS = {
     "code_runner",
     "openrouter",
     "ai_chat",
+    "videos",
 }
 
 

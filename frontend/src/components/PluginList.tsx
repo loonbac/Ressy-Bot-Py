@@ -102,6 +102,15 @@ export const PLUGIN_REGISTRY: PluginRegistryEntry[] = [
     order: 45,
     cogAliases: ['coderunnercog', 'code_runner', 'coderunner'],
   },
+  {
+    key: 'videos',
+    title: 'RessyTube · Videos',
+    icon: 'smart_display',
+    description: 'Reproduce videos de YouTube como Go Live en canales de voz con /ver. Pool de workers selfbot.',
+    section: 'videos',
+    order: 50,
+    cogAliases: ['videocog', 'video_player', 'videoplayer', 'videos'],
+  },
 ];
 
 /**
