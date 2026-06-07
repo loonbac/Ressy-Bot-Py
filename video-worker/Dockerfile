@@ -29,7 +29,9 @@ RUN useradd -m -u 1001 app
 WORKDIR /app
 
 # Install deps first (cache layer). Native deps fetch prebuilt binaries here.
-COPY package.json ./
+# pnpm-workspace.yaml declara onlyBuiltDependencies (pnpm 11 ya no lee el campo
+# pnpm de package.json) para que no aborte con ERR_PNPM_IGNORED_BUILDS.
+COPY package.json pnpm-workspace.yaml ./
 RUN pnpm install
 
 # App source
