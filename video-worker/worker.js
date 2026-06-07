@@ -36,6 +36,49 @@ function sh(cmd, args) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// discord.js-selfbot-v13@3.7.1 está deprecada y hardcodea un client_build_number
+// viejo; el gateway de Discord rechaza ese IDENTIFY (close 4013). Scrapeamos el
+// build number actual desde los assets de discord.com una sola vez (cacheado).
+// Override por env DISCORD_WS_BUILD_NUMBER. Si falla el scrape, null => la lib
+// usa su default.
+let _cachedBuild = null;
+let _buildFetched = false;
+async function resolveBuildNumber() {
+  if (process.env.DISCORD_WS_BUILD_NUMBER) {
+    return parseInt(process.env.DISCORD_WS_BUILD_NUMBER, 10);
+  }
+  if (_buildFetched) return _cachedBuild;
+  _buildFetched = true;
+  const ua =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.9210 Chrome/134.0.0.0 Electron/35.3.0 Safari/537.36";
+  try {
+    const html = await fetch("https://discord.com/app", {
+      headers: { "user-agent": ua, accept: "text/html" },
+    }).then((r) => r.text());
+    const files = [...html.matchAll(/assets\/[^"']+?\.js/g)].map((m) => m[0]);
+    // Los últimos scripts suelen contener el build number.
+    for (const file of files.reverse().slice(0, 10)) {
+      const js = await fetch("https://discord.com/" + file, {
+        headers: { "user-agent": ua },
+      })
+        .then((r) => r.text())
+        .catch(() => "");
+      const m =
+        js.match(/build_number["']?\s*[:=]\s*["']?(\d{5,8})/i) ||
+        js.match(/buildNumber["']?\s*[:=]\s*["']?(\d{5,8})/i);
+      if (m) {
+        _cachedBuild = parseInt(m[1], 10);
+        console.log("[manager] build number Discord:", _cachedBuild);
+        return _cachedBuild;
+      }
+    }
+    console.log("[manager] no se pudo extraer build number; usando default de la lib");
+  } catch (e) {
+    console.log("[manager] fetch build number falló:", e?.message || e);
+  }
+  return null;
+}
+
 export class Worker {
   /**
    * @param {object} opts
@@ -108,6 +151,7 @@ export class Worker {
   async start() {
     await this._startXvfb();
     await this._ensureSink();
+    this._buildNumber = await resolveBuildNumber();
     await this._login();
     this.status = "idle";
     log(this.index, `ready as ${this.tag} (${this.userId}) on ${this.display}`);
@@ -153,19 +197,18 @@ export class Worker {
 
   _login() {
     return new Promise((resolve, reject) => {
-      // discord.js-selfbot-v13@3.7.1 (deprecada) trae `capabilities: 0` y un
-      // client_build_number viejo en el IDENTIFY; el gateway de Discord lo
-      // rechaza con close 4013 ("Invalid intent..."). Pasamos un capabilities
-      // moderno y un build number reciente (overridables por env) para que el
-      // handshake de cuenta de usuario sea aceptado.
+      // El IDENTIFY de la lib deprecada se rechaza si el client_build_number es
+      // viejo. Pasamos el build actual (scrapeado en start()) y un capabilities
+      // moderno. Si Discord cierra igual, capturamos el close code para diagnosis.
       const capabilities = parseInt(process.env.DISCORD_WS_CAPABILITIES || "16381", 10);
       const ws = { capabilities };
-      if (process.env.DISCORD_WS_BUILD_NUMBER) {
-        ws.properties = { client_build_number: parseInt(process.env.DISCORD_WS_BUILD_NUMBER, 10) };
+      if (this._buildNumber) {
+        ws.properties = { client_build_number: this._buildNumber };
       }
       const client = new Client({ ws });
       this.streamer = new Streamer(client);
       let settled = false;
+      let lastClose = null;
 
       const fail = (e) => {
         if (settled) return;
@@ -174,10 +217,17 @@ export class Worker {
         try {
           client.destroy();
         } catch {}
-        reject(e instanceof Error ? e : new Error(String(e)));
+        let msg = e?.message || String(e);
+        if (lastClose != null) {
+          msg += ` (gateway close ${lastClose})`;
+          if (lastClose === 4004) msg += " — token inválido o expirado";
+          else if (lastClose === 4013 || lastClose === 4014)
+            msg += " — handshake rechazado: confirma que sea un token de USUARIO (no de bot) y reintenta";
+        }
+        reject(new Error(msg));
       };
 
-      const timer = setTimeout(() => fail(new Error("login timeout")), 30000);
+      const timer = setTimeout(() => fail(new Error("login timeout")), 45000);
 
       client.on("ready", () => {
         if (settled) return;
@@ -191,9 +241,10 @@ export class Worker {
         resolve();
       });
       client.on("error", (e) => log(this.index, "client error", e?.message || e));
-      client.on("shardDisconnect", (ev) =>
-        log(this.index, "gateway closed", ev?.code, ev?.reason || "")
-      );
+      client.on("shardDisconnect", (ev) => {
+        lastClose = ev?.code ?? null;
+        log(this.index, "gateway closed", ev?.code, ev?.reason || "");
+      });
 
       client.login(this.token).catch(fail);
     });
