@@ -10,11 +10,5 @@
   "dependencies": {
     "@dank074/discord-video-stream": "latest",
     "discord.js-selfbot-v13": "latest"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "node-av",
-      "node-datachannel"
-    ]
   }
 }

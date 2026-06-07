@@ -1,0 +1,10 @@
+# Raíz de workspace pnpm propia (desacopla de ~/). pnpm 11 ya no lee el campo
+# `pnpm` de package.json: las native deps que necesitan compilar sus build
+# scripts se autorizan aquí con `allowBuilds`. Sin esto pnpm las IGNORA y, en
+# CI (Coolify pone CI=true), aborta con ERR_PNPM_IGNORED_BUILDS (exit 1).
+allowBuilds:
+  '@lng2004/node-datachannel': true
+  node-av: true
+  node-datachannel: true
+  sharp: true
+  zeromq: true
