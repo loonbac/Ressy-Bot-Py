@@ -33,6 +33,7 @@ DEFAULTS = {
     "fps": "30",
     "bitrate": "3000",
     "bitrate_max": "4500",
+    "audio_offset": "0.3",
     "enabled_commands": json.dumps(ALL_COMMANDS),
 }
 

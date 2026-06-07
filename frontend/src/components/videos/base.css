@@ -72,3 +72,32 @@ html.dark .videos-input { background: var(--color-surface-container); }
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .videos-btn-ghost:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+
+.videos-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-surface-container-high);
+  outline: none;
+}
+.videos-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.videos-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.videos-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  cursor: pointer;
+}

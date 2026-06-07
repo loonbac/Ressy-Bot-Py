@@ -24,12 +24,14 @@ ALLOWED_KEYS = {
     "fps",
     "bitrate",
     "bitrate_max",
+    "audio_offset",
     "enabled_commands",
 }
 BOOL_KEYS = {"enabled"}
 INT_KEYS = {"width", "height", "fps", "bitrate", "bitrate_max"}
+FLOAT_KEYS = {"audio_offset"}
 LIST_KEYS = {"enabled_commands"}
-QUALITY_KEYS = {"width", "height", "fps", "bitrate", "bitrate_max"}
+QUALITY_KEYS = {"width", "height", "fps", "bitrate", "bitrate_max", "audio_offset"}
 ALL_COMMANDS = ["ver", "parar"]
 
 
@@ -58,6 +60,11 @@ def _serialize_config(rows: list[tuple[str, str]]) -> dict[str, Any]:
                 out[key] = int(val)
             except (TypeError, ValueError):
                 out[key] = 0
+        elif key in FLOAT_KEYS:
+            try:
+                out[key] = float(val)
+            except (TypeError, ValueError):
+                out[key] = 0.0
         elif key in LIST_KEYS:
             try:
                 parsed = json.loads(val)
@@ -96,6 +103,13 @@ async def update_config(request: Request, body: dict[str, Any]) -> dict[str, Any
                 continue
             quality_changed = quality_changed or key in QUALITY_KEYS
             stored = str(value)
+        elif key in FLOAT_KEYS:
+            try:
+                value = max(0.0, min(3.0, float(value)))
+            except (TypeError, ValueError):
+                continue
+            quality_changed = True
+            stored = str(value)
         elif key in BOOL_KEYS:
             stored = "true" if value else "false"
         elif key in LIST_KEYS:
@@ -124,6 +138,7 @@ async def update_config(request: Request, body: dict[str, Any]) -> dict[str, Any
                 "fps": cfg.get("fps", 30),
                 "bitrate": cfg.get("bitrate", 3000),
                 "bitrateMax": cfg.get("bitrate_max", 4500),
+                "audioOffset": cfg.get("audio_offset", 0.3),
             })
         except ManagerError:
             pass

@@ -10,6 +10,7 @@ export interface VideoConfig {
   fps: number;
   bitrate: number;
   bitrate_max: number;
+  audio_offset: number;
   enabled_commands: string[];
 }
 
@@ -42,6 +43,7 @@ const DEFAULTS: VideoConfig = {
   fps: 30,
   bitrate: 3000,
   bitrate_max: 4500,
+  audio_offset: 0.3,
   enabled_commands: [...ALL_COMMANDS],
 };
 
@@ -50,7 +52,7 @@ function normalize(raw: Partial<VideoConfig> | null | undefined): VideoConfig {
   if (!Array.isArray(merged.enabled_commands)) {
     merged.enabled_commands = [...ALL_COMMANDS];
   }
-  for (const k of ['width', 'height', 'fps', 'bitrate', 'bitrate_max'] as const) {
+  for (const k of ['width', 'height', 'fps', 'bitrate', 'bitrate_max', 'audio_offset'] as const) {
     if (typeof merged[k] !== 'number' || Number.isNaN(merged[k])) {
       merged[k] = DEFAULTS[k];
     }

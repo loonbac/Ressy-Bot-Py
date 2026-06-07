@@ -17,6 +17,7 @@ class VideoConfig(BaseModel):
     fps: int = 30
     bitrate: int = 3000
     bitrate_max: int = 4500
+    audio_offset: float = 0.3
 
 
 class WorkerInfo(BaseModel):
