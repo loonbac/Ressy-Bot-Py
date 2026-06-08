@@ -13,10 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       xz-utils \
       fonts-dejavu-core \
- && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+ && curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --retry-connrefused \
+      https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
       -o /usr/local/bin/yt-dlp \
  && chmod a+rx /usr/local/bin/yt-dlp \
- && curl -fsSL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz \
+ && curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --retry-connrefused \
+      https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz \
       -o /tmp/ffmpeg.tar.xz \
  && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp \
  && mv /tmp/ffmpeg-*-linux64-gpl/bin/ffmpeg /tmp/ffmpeg-*-linux64-gpl/bin/ffprobe /usr/local/bin/ \
