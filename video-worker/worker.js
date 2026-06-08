@@ -9,11 +9,41 @@
 // fin de video es nativa (ffmpeg termina cuando el stream se acaba).
 // ----------------------------------------------------------------------------
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 
 import { Client } from "discord.js-selfbot-v13";
 import { Streamer, playStream } from "@dank074/discord-video-stream";
 
 const log = (id, ...a) => console.log(`[worker ${id}]`, ...a);
+
+// Splash de carga: mientras el video llega, transmitimos una animación branded
+// generada por ffmpeg (lavfi) y la CONCATENAMOS antes del video en el mismo
+// stream (sin corte de Go Live). VIDEO_SPLASH_SECONDS=0 lo desactiva.
+const SPLASH_SECONDS = Math.max(0, parseFloat(process.env.VIDEO_SPLASH_SECONDS || "4"));
+const SPLASH_FONT =
+  process.env.VIDEO_SPLASH_FONT || "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf";
+const SPLASH_TITLE = process.env.VIDEO_SPLASH_TITLE || "RessyTube";
+const SPLASH_TEXT = process.env.VIDEO_SPLASH_TEXT || "cargando...";
+const FONT_OK = (() => {
+  try {
+    return fs.existsSync(SPLASH_FONT);
+  } catch {
+    return false;
+  }
+})();
+if (SPLASH_SECONDS > 0 && !FONT_OK) {
+  console.log(`[manager] splash desactivado: fuente no encontrada (${SPLASH_FONT})`);
+}
+
+// Construye un filtro drawtext centrado horizontalmente. Escapa el texto para
+// que caracteres especiales no rompan el filtergraph.
+function drawtext(font, text, size, yexpr, color, extra = "") {
+  const safe = String(text)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/:/g, "\\:");
+  return `drawtext=fontfile=${font}:text='${safe}':fontcolor=${color}:fontsize=${size}:x=(w-text_w)/2:y=${yexpr}${extra}`;
+}
 
 const YTDLP_BIN = process.env.YTDLP_BIN || "yt-dlp";
 // Preferimos avc1 (H264) + mp4a (AAC) por compatibilidad de decodificación;
@@ -238,68 +268,73 @@ export class Worker {
     return urls;
   }
 
+  // Filtro que dibuja el splash y lo concatena delante del video real. Los
+  // índices de input asumen: 0=gradients, 1=silencio, 2=video real,
+  // 3=audio real (si es separado; si es progresivo, audio = input 2).
+  _buildSplashFilter(hasAudio) {
+    const { width: W, height: H, fps: F } = this.quality;
+    const aIdx = hasAudio ? "3" : "2";
+    const font = SPLASH_FONT;
+    const title = drawtext(font, SPLASH_TITLE, Math.round(H / 7.5), `(h-text_h)/2-${Math.round(H / 12)}`, "white", `:borderw=3:bordercolor=0xff0050aa`);
+    const sub = drawtext(font, SPLASH_TEXT, Math.round(H / 17), `(h/2)+${Math.round(H / 10)}`, "0xffb3c8", `:alpha='0.4+0.4*sin(2*PI*t)'`);
+    return [
+      `[0:v]${title},${sub},fps=${F},scale=${W}:${H},setsar=1,format=yuv420p[s0]`,
+      `[2:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${F},setsar=1,format=yuv420p[s1]`,
+      `[s0][s1]concat=n=2:v=1:a=0[outv]`,
+      `[1:a]aformat=sample_rates=48000:channel_layouts=stereo[a0]`,
+      `[${aIdx}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[a1]`,
+      `[a0][a1]concat=n=2:v=0:a=1[outa]`,
+    ].join(";");
+  }
+
+  _encodeFlags() {
+    const { bitrate, bitrateMax, fps } = this.quality;
+    return [
+      "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+      "-profile:v", "baseline", "-pix_fmt", "yuv420p",
+      "-b:v", `${bitrate}k`, "-maxrate", `${bitrateMax}k`, "-bufsize", `${bitrate}k`,
+      "-bf", "0", "-g", String(fps), "-force_key_frames", "expr:gte(t,n_forced*1)",
+      "-c:a", "libopus", "-b:a", "128k", "-ar", "48000", "-ac", "2",
+      "-f", "nut", "pipe:1",
+    ];
+  }
+
   _startCapture(urls) {
     this._killFfmpeg();
-    const { width, height, fps, bitrate, bitrateMax } = this.quality;
+    const { width: W, height: H, fps: F } = this.quality;
     // -re pacea la lectura a tiempo real (estamos sirviendo un VOD como live).
     // -reconnect tolera cortes de las URLs de googlevideo.
     const inputFlags = [
-      "-re",
-      "-user_agent",
-      UA,
-      "-reconnect",
-      "1",
-      "-reconnect_streamed",
-      "1",
-      "-reconnect_delay_max",
-      "5",
+      "-re", "-user_agent", UA,
+      "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
     ];
     const hasAudio = urls.length >= 2;
     const videoUrl = urls[0];
     const audioUrl = hasAudio ? urls[1] : null;
+    const splashOn = SPLASH_SECONDS > 0 && FONT_OK;
 
     const args = ["-hide_banner", "-loglevel", "warning"];
-    args.push(...inputFlags, "-i", videoUrl);
-    if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
-    args.push("-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0");
-    args.push(
-      "-vf",
-      `scale=-2:${height},fps=${fps}`,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-tune",
-      "zerolatency",
-      "-profile:v",
-      "baseline",
-      "-pix_fmt",
-      "yuv420p",
-      "-b:v",
-      `${bitrate}k`,
-      "-maxrate",
-      `${bitrateMax}k`,
-      "-bufsize",
-      `${bitrate}k`,
-      "-bf",
-      "0",
-      "-g",
-      String(fps),
-      "-force_key_frames",
-      "expr:gte(t,n_forced*1)",
-      "-c:a",
-      "libopus",
-      "-b:a",
-      "128k",
-      "-ar",
-      "48000",
-      "-ac",
-      "2",
-      "-f",
-      "nut",
-      "pipe:1"
+    if (splashOn) {
+      const dur = String(SPLASH_SECONDS);
+      // Inputs 0 y 1: splash de video animado (gradiente) + silencio.
+      args.push(
+        "-f", "lavfi", "-t", dur, "-i", `gradients=s=${W}x${H}:r=${F}:c0=0x1a0b2e:c1=0x05060a:speed=0.01`,
+        "-f", "lavfi", "-t", dur, "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+      );
+      // Inputs 2 (+3): stream(s) real(es).
+      args.push(...inputFlags, "-i", videoUrl);
+      if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
+      args.push("-filter_complex", this._buildSplashFilter(hasAudio), "-map", "[outv]", "-map", "[outa]");
+    } else {
+      args.push(...inputFlags, "-i", videoUrl);
+      if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
+      args.push("-vf", `scale=-2:${H},fps=${F}`, "-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0");
+    }
+    args.push(...this._encodeFlags());
+    log(
+      this.index, "starting ffmpeg", `${W}x${H}@${F}`,
+      hasAudio ? "(v+a)" : "(progresivo)", splashOn ? `+splash ${SPLASH_SECONDS}s` : "",
     );
-    log(this.index, "starting ffmpeg", `${width}x${height}@${fps}`, hasAudio ? "(v+a)" : "(progresivo)");
     this.ffmpegProc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "inherit"] });
     this.ffmpegProc.on("exit", (code) => {
       log(this.index, "ffmpeg exited", code);

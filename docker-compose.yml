@@ -146,6 +146,8 @@ services:
       FPS: "${VIDEO_FPS:-30}"
       BITRATE_KBPS: "${VIDEO_BITRATE_KBPS:-3000}"
       BITRATE_MAX_KBPS: "${VIDEO_BITRATE_MAX_KBPS:-4500}"
+      # Splash de carga (segundos) que se transmite antes del video. 0 = off.
+      VIDEO_SPLASH_SECONDS: "${VIDEO_SPLASH_SECONDS:-4}"
       # Handshake del gateway de usuario (selfbot). Si el login falla con
       # "Invalid intent" (close 4013), ajusta capabilities/build aquí.
       DISCORD_WS_CAPABILITIES: "${DISCORD_WS_CAPABILITIES:-16381}"
