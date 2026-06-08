@@ -20,29 +20,19 @@ const log = (id, ...a) => console.log(`[worker ${id}]`, ...a);
 // generada por ffmpeg (lavfi) y la CONCATENAMOS antes del video en el mismo
 // stream (sin corte de Go Live). VIDEO_SPLASH_SECONDS=0 lo desactiva.
 const SPLASH_SECONDS = Math.max(0, parseFloat(process.env.VIDEO_SPLASH_SECONDS || "4"));
-const SPLASH_FONT =
-  process.env.VIDEO_SPLASH_FONT || "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf";
-const SPLASH_TITLE = process.env.VIDEO_SPLASH_TITLE || "RessyTube";
-const SPLASH_TEXT = process.env.VIDEO_SPLASH_TEXT || "cargando...";
-const FONT_OK = (() => {
+// Asset de la animación de carga (pre-renderizado del HTML/CSS original con
+// blobs, partículas, anillos y el título "RessyTube"). Se reproduce en loop
+// hasta cubrir SPLASH_SECONDS. Ver scripts de render en el repo.
+const SPLASH_FILE = process.env.VIDEO_SPLASH_FILE || "/app/splash.mp4";
+const SPLASH_OK = (() => {
   try {
-    return fs.existsSync(SPLASH_FONT);
+    return fs.existsSync(SPLASH_FILE);
   } catch {
     return false;
   }
 })();
-if (SPLASH_SECONDS > 0 && !FONT_OK) {
-  console.log(`[manager] splash desactivado: fuente no encontrada (${SPLASH_FONT})`);
-}
-
-// Construye un filtro drawtext centrado horizontalmente. Escapa el texto para
-// que caracteres especiales no rompan el filtergraph.
-function drawtext(font, text, size, yexpr, color, extra = "") {
-  const safe = String(text)
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/:/g, "\\:");
-  return `drawtext=fontfile=${font}:text='${safe}':fontcolor=${color}:fontsize=${size}:x=(w-text_w)/2:y=${yexpr}${extra}`;
+if (SPLASH_SECONDS > 0 && !SPLASH_OK) {
+  console.log(`[manager] splash desactivado: asset no encontrado (${SPLASH_FILE})`);
 }
 
 const YTDLP_BIN = process.env.YTDLP_BIN || "yt-dlp";
@@ -270,16 +260,14 @@ export class Worker {
     return urls;
   }
 
-  // Filtro del splash: input 0 = gradiente animado, 1 = silencio, 2 = video
-  // real (NUT con v+a que vuelca el feeder por pipe:3). Concatena splash->video
-  // y silencio->audio, todo normalizado a WxH/F/48k para que concat no falle.
+  // Filtro del splash: input 0 = video del splash (asset), 1 = silencio, 2 =
+  // video real (NUT con v+a que vuelca el feeder por pipe:3). Concatena
+  // splash->video y silencio->audio, normalizado a WxH/F/48k para que concat
+  // no falle por diferencias de tamaño/sar/sample-rate.
   _buildSplashFilter() {
     const { width: W, height: H, fps: F } = this.quality;
-    const font = SPLASH_FONT;
-    const title = drawtext(font, SPLASH_TITLE, Math.round(H / 7.5), `(h-text_h)/2-${Math.round(H / 12)}`, "white", `:borderw=3:bordercolor=0xff0050aa`);
-    const sub = drawtext(font, SPLASH_TEXT, Math.round(H / 17), `(h/2)+${Math.round(H / 10)}`, "0xffb3c8", `:alpha='0.4+0.4*sin(2*PI*t)'`);
     return [
-      `[0:v]${title},${sub},fps=${F},scale=${W}:${H},setsar=1,format=yuv420p[s0]`,
+      `[0:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=0x05060a,fps=${F},setsar=1,format=yuv420p[s0]`,
       `[2:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${F},setsar=1,format=yuv420p[s1]`,
       `[s0][s1]concat=n=2:v=1:a=0[outv]`,
       `[1:a]aformat=sample_rates=48000:channel_layouts=stereo[a0]`,
@@ -310,8 +298,11 @@ export class Worker {
     const dur = String(SPLASH_SECONDS);
     const args = [
       "-hide_banner", "-loglevel", "warning",
-      "-re", "-f", "lavfi", "-t", dur, "-i", `gradients=s=${W}x${H}:r=${F}:c0=0x1a0b2e:c1=0x05060a:speed=0.01`,
+      // input 0: animación de carga en loop, recortada a SPLASH_SECONDS
+      "-re", "-stream_loop", "-1", "-t", dur, "-i", SPLASH_FILE,
+      // input 1: silencio que acompaña al splash
       "-re", "-f", "lavfi", "-t", dur, "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+      // input 2: video real (lo vuelca el feeder por pipe:3)
       "-re", "-f", "nut", "-i", "pipe:3",
       "-filter_complex", this._buildSplashFilter(),
       "-map", "[outv]", "-map", "[outa]",
@@ -427,7 +418,7 @@ export class Worker {
     this.status = "loading";
     this.current = { guildId, channelId, videoId };
 
-    const splashOn = SPLASH_SECONDS > 0 && FONT_OK;
+    const splashOn = SPLASH_SECONDS > 0 && SPLASH_OK;
 
     if (splashOn) {
       // Unirse + transmitir el splash YA. yt-dlp + descarga del video corren en

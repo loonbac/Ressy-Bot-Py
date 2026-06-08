@@ -5,14 +5,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Runtime deps. yt-dlp resuelve/baja los streams; ffmpeg transcodifica.
 # Usamos un ffmpeg ESTÁTICO reciente (BtbN) en vez del de Debian (viejo): el
 # splash instantáneo depende de que find_stream_info no bloquee en el input de
-# pipe vacío, comportamiento validado en ffmpeg >= 7. fonts-dejavu-core: drawtext.
+# pipe vacío, comportamiento validado en ffmpeg >= 7. La animación de carga es
+# un asset de video (splash.mp4), no drawtext, así que no hacen falta fuentes.
 # Sin navegador: ya no se necesita Firefox/Xvfb/PulseAudio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       procps \
       curl \
       ca-certificates \
       xz-utils \
-      fonts-dejavu-core \
  && curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --retry-connrefused \
       https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
       -o /usr/local/bin/yt-dlp \
@@ -39,8 +39,8 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml ./
 RUN pnpm install
 
-# App source
-COPY manager.js worker.js entrypoint.sh ./
+# App source + asset del splash de carga
+COPY manager.js worker.js entrypoint.sh splash.mp4 ./
 RUN chmod +x entrypoint.sh && chown -R app:app /app
 
 USER app
