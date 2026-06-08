@@ -2,28 +2,24 @@ FROM node:22-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Runtime deps. yt-dlp resuelve/baja los streams; ffmpeg transcodifica.
-# Usamos un ffmpeg ESTÁTICO reciente (BtbN) en vez del de Debian (viejo): el
-# splash instantáneo depende de que find_stream_info no bloquee en el input de
-# pipe vacío, comportamiento validado en ffmpeg >= 7. La animación de carga es
-# un asset de video (splash.mp4), no drawtext, así que no hacen falta fuentes.
+# ffmpeg/ffprobe estáticos (>=7) desde una imagen del registry de Docker, NO
+# desde el CDN de releases de GitHub (que devolvía 504 en el tar grande de
+# BtbN). El splash instantáneo depende de que find_stream_info no bloquee en el
+# input de pipe vacío, validado en ffmpeg >= 7.
+COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /ffprobe /usr/local/bin/
+
+# yt-dlp resuelve/baja los streams (single-binary, vía curl con reintentos).
+# La animación de carga es un asset de video (splash.mp4), no drawtext: sin fuentes.
 # Sin navegador: ya no se necesita Firefox/Xvfb/PulseAudio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       procps \
       curl \
       ca-certificates \
-      xz-utils \
- && curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --retry-connrefused \
+ && curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors --retry-connrefused \
       https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
       -o /usr/local/bin/yt-dlp \
- && chmod a+rx /usr/local/bin/yt-dlp \
- && curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --retry-connrefused \
-      https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz \
-      -o /tmp/ffmpeg.tar.xz \
- && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp \
- && mv /tmp/ffmpeg-*-linux64-gpl/bin/ffmpeg /tmp/ffmpeg-*-linux64-gpl/bin/ffprobe /usr/local/bin/ \
- && chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
- && rm -rf /tmp/ffmpeg* /var/lib/apt/lists/*
+ && chmod a+rx /usr/local/bin/yt-dlp /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
+ && rm -rf /var/lib/apt/lists/*
 
 # pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
