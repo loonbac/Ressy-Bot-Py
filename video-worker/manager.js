@@ -3,38 +3,31 @@
 //
 // Manages a pool of Discord selfbot "workers" (one user account each) that
 // stream YouTube videos into voice channels. The Ressy Python bot controls it
-// over an HTTP control API (bearer-authenticated). A second HTTP server serves
-// player.html to the per-worker Firefox instances and receives playback events.
+// over an HTTP control API (bearer-authenticated). Cada worker resuelve el
+// stream con yt-dlp y lo transcodifica con ffmpeg (sin navegador).
 //
 // Env (see .env.example):
 //   MANAGER_PORT     control API port (default 8081, bound 0.0.0.0)
-//   HTTP_PORT        player page port (default 8080, bound 127.0.0.1)
 //   MANAGER_SECRET   bearer token the bot must send (optional but recommended)
-//   MAX_WORKERS      hard cap on concurrent workers / displays (default 5)
+//   MAX_WORKERS      hard cap on concurrent workers (default auto by RAM)
 //   WIDTH HEIGHT FPS BITRATE_KBPS BITRATE_MAX_KBPS  default quality
-//   FIREFOX_BIN
+//   YTDLP_BIN YTDLP_FORMAT YTDLP_COOKIES
 // ----------------------------------------------------------------------------
 import http from "node:http";
-import fs from "node:fs";
 import os from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { Worker } from "./worker.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const MANAGER_PORT = parseInt(process.env.MANAGER_PORT || "8081", 10);
-const HTTP_PORT = parseInt(process.env.HTTP_PORT || "8080", 10);
 const MANAGER_SECRET = process.env.MANAGER_SECRET || "";
-const FIREFOX_BIN = process.env.FIREFOX_BIN || "firefox-esr";
 
 // Cap de workers concurrentes. Si MAX_WORKERS no se define, se calcula a partir
-// de la RAM disponible: cada worker (Firefox + Xvfb + ffmpeg) consume
+// de la RAM disponible: cada worker (ffmpeg transcode + cliente selfbot) consume
 // ~VIDEO_RAM_PER_WORKER_MB; se reserva VIDEO_RAM_RESERVE_MB para el SO + el
-// resto del stack. Tope duro de 24 (índices de display :99..:123).
-const PER_WORKER_MB = parseInt(process.env.VIDEO_RAM_PER_WORKER_MB || "1500", 10);
-const RESERVE_MB = parseInt(process.env.VIDEO_RAM_RESERVE_MB || "3000", 10);
+// resto del stack. Tope duro de 24. Nota: el transcode 1080p es CPU-bound, así
+// que en máquinas con mucha RAM y pocos núcleos conviene fijar MAX_WORKERS.
+const PER_WORKER_MB = parseInt(process.env.VIDEO_RAM_PER_WORKER_MB || "800", 10);
+const RESERVE_MB = parseInt(process.env.VIDEO_RAM_RESERVE_MB || "2000", 10);
 const HARD_CAP = parseInt(process.env.VIDEO_MAX_WORKERS_CAP || "24", 10);
 
 function autoMaxWorkers() {
@@ -126,8 +119,6 @@ async function addWorker(token) {
     index,
     token,
     quality,
-    httpPort: HTTP_PORT,
-    firefoxBin: FIREFOX_BIN,
     onPlaybackEnd: (worker, reason) => autoAdvance(worker, reason),
   });
   try {
@@ -321,43 +312,6 @@ async function nextFor({ ownerId, channelId }) {
 }
 
 // ----------------------------------------------------------------------------
-// Player HTTP server (Firefox-facing, 127.0.0.1 only)
-// ----------------------------------------------------------------------------
-const playerHtml = fs.readFileSync(path.join(__dirname, "player.html"), "utf-8");
-
-const playerServer = http.createServer((req, res) => {
-  const url = new URL(req.url, "http://localhost");
-  if (url.pathname === "/" || url.pathname === "/index.html") {
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(playerHtml);
-    return;
-  }
-  const wIdx = url.searchParams.get("w");
-  const worker =
-    wIdx != null ? [...workers.values()].find((w) => String(w.index) === String(wIdx)) : null;
-  if (url.pathname === "/ready") {
-    res.writeHead(204).end();
-    return;
-  }
-  if (url.pathname === "/playing") {
-    worker?.onPlaying();
-    res.writeHead(204).end();
-    return;
-  }
-  if (url.pathname === "/ended") {
-    worker?.onEnded();
-    res.writeHead(204).end();
-    return;
-  }
-  if (url.pathname === "/error") {
-    worker?.onError(url.searchParams.get("reason"));
-    res.writeHead(204).end();
-    return;
-  }
-  res.writeHead(404).end();
-});
-
-// ----------------------------------------------------------------------------
 // Control HTTP server (bot-facing, bearer-authenticated)
 // ----------------------------------------------------------------------------
 function send(res, status, obj) {
@@ -505,8 +459,6 @@ function sanitizeQuality(b) {
 // Boot
 // ----------------------------------------------------------------------------
 async function main() {
-  await new Promise((r) => playerServer.listen(HTTP_PORT, "127.0.0.1", r));
-  log(`player server on 127.0.0.1:${HTTP_PORT}`);
   await new Promise((r) => controlServer.listen(MANAGER_PORT, "0.0.0.0", r));
   log(`control API on 0.0.0.0:${MANAGER_PORT} (auth ${MANAGER_SECRET ? "on" : "OFF"})`);
   const totalGb = (os.totalmem() / (1024 ** 3)).toFixed(1);

@@ -124,25 +124,23 @@ services:
       - ressy
 
   # ── Video Worker-Manager: pool de selfbots que hacen Go Live ─
-  # Aísla Firefox + Xvfb + ffmpeg + selfbots (riesgo ToS) en su
-  # propio contenedor. El bot lo controla por HTTP (bearer). No
-  # guarda tokens: el bot los registra en runtime desde el panel.
-  # shm_size grande: Firefox crashea renderizando con /dev/shm chico.
+  # Aísla yt-dlp + ffmpeg + selfbots (riesgo ToS) en su propio
+  # contenedor. El bot lo controla por HTTP (bearer). No guarda
+  # tokens: el bot los registra en runtime desde el panel. Sin
+  # navegador: yt-dlp resuelve el stream y ffmpeg lo transcodifica.
   video-worker:
     build:
       context: ./video-worker
       dockerfile: Dockerfile
     container_name: ressy_video_worker
     restart: unless-stopped
-    shm_size: "1gb"
     environment:
       MANAGER_PORT: "8081"
-      HTTP_PORT: "8080"
       MANAGER_SECRET: "${VIDEO_MANAGER_SECRET:-}"
       # Vacío = auto (se calcula por RAM del host). Fija un número para forzarlo.
       MAX_WORKERS: "${VIDEO_MAX_WORKERS:-}"
-      VIDEO_RAM_PER_WORKER_MB: "${VIDEO_RAM_PER_WORKER_MB:-1500}"
-      VIDEO_RAM_RESERVE_MB: "${VIDEO_RAM_RESERVE_MB:-3000}"
+      VIDEO_RAM_PER_WORKER_MB: "${VIDEO_RAM_PER_WORKER_MB:-800}"
+      VIDEO_RAM_RESERVE_MB: "${VIDEO_RAM_RESERVE_MB:-2000}"
       WIDTH: "${VIDEO_WIDTH:-1280}"
       HEIGHT: "${VIDEO_HEIGHT:-720}"
       FPS: "${VIDEO_FPS:-30}"
