@@ -122,7 +122,14 @@ async function addWorker(token) {
     e.status = 409;
     throw e;
   }
-  const w = new Worker({ index, token, quality, httpPort: HTTP_PORT, firefoxBin: FIREFOX_BIN });
+  const w = new Worker({
+    index,
+    token,
+    quality,
+    httpPort: HTTP_PORT,
+    firefoxBin: FIREFOX_BIN,
+    onPlaybackEnd: (worker, reason) => autoAdvance(worker, reason),
+  });
   try {
     await w.start();
   } catch (err) {
@@ -165,15 +172,86 @@ function pickWorker(workerId) {
     }
     return w;
   }
+  // Solo workers libres y sin dueño (no robar el worker de otro usuario).
   for (const w of workers.values()) {
-    if (w.status === "idle") return w;
+    if (w.status === "idle" && !w.ownerId) return w;
   }
   const e = new Error("no hay workers disponibles (todos ocupados)");
   e.status = 409;
   throw e;
 }
 
-async function play({ guildId, channelId, video, workerId }) {
+function workerByOwner(ownerId) {
+  if (!ownerId) return null;
+  const id = String(ownerId);
+  for (const w of workers.values()) if (w.ownerId === id) return w;
+  return null;
+}
+
+function findOwnerWorker(ownerId, channelId) {
+  const mine = workerByOwner(ownerId);
+  if (mine) return mine;
+  if (channelId) {
+    const cid = String(channelId);
+    for (const w of workers.values()) {
+      if (w.busy && w.current?.channelId === cid) return w;
+    }
+  }
+  return null;
+}
+
+// Pasa al siguiente video de la cola del worker, saltando los que fallan.
+// Devuelve el toJSON del que quedó reproduciendo, o null si la cola se vació
+// (en ese caso detiene el worker y libera la propiedad).
+async function autoAdvance(worker, reason) {
+  if (!worker) return null;
+  if (worker._advancing) return null;
+  worker._advancing = true;
+  try {
+    while (worker.queue.length) {
+      const item = worker.queue.shift();
+      try {
+        const res = await worker.play(item.guildId, item.channelId, item.videoId);
+        return { ...res, video_id: item.videoId };
+      } catch (err) {
+        log("advance item falló:", err?.message || err);
+      }
+    }
+    await worker.stop(reason).catch(() => {});
+    worker.ownerId = null;
+    worker.ownerName = null;
+    return null;
+  } finally {
+    worker._advancing = false;
+  }
+}
+
+async function doPlay(w, guildId, channelId, videoId, ownerId, ownerName) {
+  if (ownerId) {
+    w.ownerId = String(ownerId);
+    if (ownerName) w.ownerName = ownerName;
+  }
+  try {
+    const res = await w.play(guildId, channelId, videoId);
+    return { ...res, video_id: videoId, queued: false };
+  } catch (err) {
+    // Video inválido (p.ej. embedding deshabilitado / yt-150). Si el usuario
+    // tiene cola, saltamos al siguiente; si no, soltamos el worker.
+    if (w.queue.length) {
+      const adv = await autoAdvance(w, "play falló");
+      if (adv) return { ...adv, skipped: videoId, queued: false };
+    }
+    await w.stop("play falló").catch(() => {});
+    w.ownerId = null;
+    w.ownerName = null;
+    w.queue = [];
+    const e = new Error("no se pudo reproducir: " + (err?.message || err));
+    e.status = 502;
+    throw e;
+  }
+}
+
+async function play({ guildId, channelId, video, workerId, ownerId, ownerName }) {
   if (workers.size === 0) {
     const e = new Error("no hay workers configurados");
     e.status = 409;
@@ -190,16 +268,56 @@ async function play({ guildId, channelId, video, workerId }) {
     e.status = 400;
     throw e;
   }
-  const w = pickWorker(workerId);
-  try {
-    const res = await w.play(guildId, channelId, videoId);
-    return { ...res, video_id: videoId };
-  } catch (err) {
-    await w.stop("play falló").catch(() => {});
-    const e = new Error("fallo al reproducir: " + (err?.message || err));
-    e.status = 502;
+  ownerId = ownerId != null ? String(ownerId) : null;
+
+  // Selección explícita de worker (reproducción de prueba desde el dashboard).
+  if (workerId) {
+    const w = pickWorker(workerId);
+    return doPlay(w, guildId, channelId, videoId, ownerId, ownerName);
+  }
+
+  // Reusar el worker que este usuario ya tiene asignado. Si está ocupado, va a
+  // su cola; si está libre (entre videos), reproduce de una.
+  if (ownerId) {
+    const mine = workerByOwner(ownerId);
+    if (mine) {
+      if (mine.busy) {
+        mine.queue.push({ guildId, channelId, videoId, requestedBy: ownerId });
+        if (ownerName) mine.ownerName = ownerName;
+        return {
+          queued: true,
+          position: mine.queue.length,
+          video_id: videoId,
+          tag: mine.tag,
+          username: mine.username,
+          avatar_url: mine.avatarUrl(),
+        };
+      }
+      return doPlay(mine, guildId, channelId, videoId, ownerId, ownerName);
+    }
+  }
+
+  // Tomar un worker libre.
+  const w = pickWorker(null);
+  return doPlay(w, guildId, channelId, videoId, ownerId, ownerName);
+}
+
+async function nextFor({ ownerId, channelId }) {
+  const w = findOwnerWorker(ownerId != null ? String(ownerId) : null, channelId);
+  if (!w) {
+    const e = new Error("no tienes ninguna reproducción activa");
+    e.status = 404;
     throw e;
   }
+  if (w.status === "loading") {
+    const e = new Error("el video todavía está cargando, espera un momento");
+    e.status = 409;
+    throw e;
+  }
+  const hadQueue = w.queue.length > 0;
+  const res = await autoAdvance(w, "siguiente");
+  if (res) return { ...res, queued: false };
+  return { stopped: true, had_queue: hadQueue };
 }
 
 // ----------------------------------------------------------------------------
@@ -218,6 +336,11 @@ const playerServer = http.createServer((req, res) => {
   const worker =
     wIdx != null ? [...workers.values()].find((w) => String(w.index) === String(wIdx)) : null;
   if (url.pathname === "/ready") {
+    res.writeHead(204).end();
+    return;
+  }
+  if (url.pathname === "/playing") {
+    worker?.onPlaying();
     res.writeHead(204).end();
     return;
   }
@@ -278,6 +401,7 @@ const controlServer = http.createServer(async (req, res) => {
         workers: list.length,
         idle: list.filter((w) => w.status === "idle").length,
         busy: list.filter((w) => w.busy).length,
+        queued: list.reduce((n, w) => n + w.queue.length, 0),
         quality,
       });
     }
@@ -316,17 +440,32 @@ const controlServer = http.createServer(async (req, res) => {
       return send(res, 200, r);
     }
 
-    // POST /stop {channelId?}  — stop all (or matching channel) workers
+    // POST /stop {channelId?, ownerId?}  — detiene workers (por dueño o canal)
     if (req.method === "POST" && url.pathname === "/stop") {
       const body = await readBody(req);
+      const ownerId = body.ownerId != null ? String(body.ownerId) : null;
       const stopped = [];
       for (const w of workers.values()) {
-        if (!w.busy) continue;
-        if (body.channelId && w.current?.channelId !== String(body.channelId)) continue;
+        if (ownerId) {
+          if (w.ownerId !== ownerId) continue;
+        } else {
+          if (!w.busy) continue;
+          if (body.channelId && w.current?.channelId !== String(body.channelId)) continue;
+        }
+        w.queue = [];
         await w.stop("stop API").catch(() => {});
+        w.ownerId = null;
+        w.ownerName = null;
         stopped.push(w.userId);
       }
       return send(res, 200, { stopped });
+    }
+
+    // POST /next {ownerId?, channelId?}  — salta al siguiente video de la cola
+    if (req.method === "POST" && url.pathname === "/next") {
+      const body = await readBody(req);
+      const r = await nextFor(body);
+      return send(res, 200, r);
     }
 
     // PUT /quality {width,height,fps,bitrate,bitrateMax}

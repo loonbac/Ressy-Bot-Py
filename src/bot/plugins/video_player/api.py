@@ -32,7 +32,7 @@ INT_KEYS = {"width", "height", "fps", "bitrate", "bitrate_max"}
 FLOAT_KEYS = {"audio_offset"}
 LIST_KEYS = {"enabled_commands"}
 QUALITY_KEYS = {"width", "height", "fps", "bitrate", "bitrate_max", "audio_offset"}
-ALL_COMMANDS = ["ver", "parar"]
+ALL_COMMANDS = ["ver", "parar", "siguiente"]
 
 
 def _get_db(request: Request):
