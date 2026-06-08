@@ -2,20 +2,26 @@ FROM node:22-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Runtime deps: ffmpeg (transcode) + yt-dlp (resuelve los streams de YouTube).
-# fonts-dejavu-core: drawtext del splash de carga. Sin navegador: ya no se
-# necesita Firefox/Xvfb/PulseAudio.
+# Runtime deps. yt-dlp resuelve/baja los streams; ffmpeg transcodifica.
+# Usamos un ffmpeg ESTÁTICO reciente (BtbN) en vez del de Debian (viejo): el
+# splash instantáneo depende de que find_stream_info no bloquee en el input de
+# pipe vacío, comportamiento validado en ffmpeg >= 7. fonts-dejavu-core: drawtext.
+# Sin navegador: ya no se necesita Firefox/Xvfb/PulseAudio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ffmpeg \
-      python3 \
       procps \
       curl \
       ca-certificates \
+      xz-utils \
       fonts-dejavu-core \
  && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
       -o /usr/local/bin/yt-dlp \
  && chmod a+rx /usr/local/bin/yt-dlp \
- && rm -rf /var/lib/apt/lists/*
+ && curl -fsSL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz \
+      -o /tmp/ffmpeg.tar.xz \
+ && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp \
+ && mv /tmp/ffmpeg-*-linux64-gpl/bin/ffmpeg /tmp/ffmpeg-*-linux64-gpl/bin/ffprobe /usr/local/bin/ \
+ && chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
+ && rm -rf /tmp/ffmpeg* /var/lib/apt/lists/*
 
 # pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate

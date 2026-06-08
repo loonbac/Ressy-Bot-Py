@@ -143,7 +143,9 @@ export class Worker {
     this._stopping = false; // true mientras hacemos teardown (ignora exit de ffmpeg)
 
     this.streamer = null;
-    this.ffmpegProc = null;
+    this.ffmpegProc = null; // ffmpeg principal (splash + transcode -> Go Live)
+    this.feederProc = null; // ffmpeg que baja el video de red y lo vuelca al principal
+    this._videoSink = null; // stdin (fd3) del principal donde escribe el feeder
     this.abort = null;
   }
 
@@ -268,12 +270,11 @@ export class Worker {
     return urls;
   }
 
-  // Filtro que dibuja el splash y lo concatena delante del video real. Los
-  // índices de input asumen: 0=gradients, 1=silencio, 2=video real,
-  // 3=audio real (si es separado; si es progresivo, audio = input 2).
-  _buildSplashFilter(hasAudio) {
+  // Filtro del splash: input 0 = gradiente animado, 1 = silencio, 2 = video
+  // real (NUT con v+a que vuelca el feeder por pipe:3). Concatena splash->video
+  // y silencio->audio, todo normalizado a WxH/F/48k para que concat no falle.
+  _buildSplashFilter() {
     const { width: W, height: H, fps: F } = this.quality;
-    const aIdx = hasAudio ? "3" : "2";
     const font = SPLASH_FONT;
     const title = drawtext(font, SPLASH_TITLE, Math.round(H / 7.5), `(h-text_h)/2-${Math.round(H / 12)}`, "white", `:borderw=3:bordercolor=0xff0050aa`);
     const sub = drawtext(font, SPLASH_TEXT, Math.round(H / 17), `(h/2)+${Math.round(H / 10)}`, "0xffb3c8", `:alpha='0.4+0.4*sin(2*PI*t)'`);
@@ -282,7 +283,7 @@ export class Worker {
       `[2:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${F},setsar=1,format=yuv420p[s1]`,
       `[s0][s1]concat=n=2:v=1:a=0[outv]`,
       `[1:a]aformat=sample_rates=48000:channel_layouts=stereo[a0]`,
-      `[${aIdx}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[a1]`,
+      `[2:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[a1]`,
       `[a0][a1]concat=n=2:v=0:a=1[outa]`,
     ].join(";");
   }
@@ -299,52 +300,107 @@ export class Worker {
     ];
   }
 
-  _startCapture(urls) {
+  // Principal CON splash: arranca al instante transmitiendo la animación. El
+  // video real llega luego por pipe:3 (fd3), alimentado por el feeder. `-re` en
+  // los tres inputs pacea a tiempo real; concat no toca el input 2 hasta que el
+  // splash termina, así que ffmpeg no se bloquea esperando datos del feeder.
+  _startMainSplash() {
     this._killFfmpeg();
     const { width: W, height: H, fps: F } = this.quality;
-    // -re pacea la lectura a tiempo real (estamos sirviendo un VOD como live).
-    // -reconnect tolera cortes de las URLs de googlevideo.
+    const dur = String(SPLASH_SECONDS);
+    const args = [
+      "-hide_banner", "-loglevel", "warning",
+      "-re", "-f", "lavfi", "-t", dur, "-i", `gradients=s=${W}x${H}:r=${F}:c0=0x1a0b2e:c1=0x05060a:speed=0.01`,
+      "-re", "-f", "lavfi", "-t", dur, "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+      "-re", "-f", "nut", "-i", "pipe:3",
+      "-filter_complex", this._buildSplashFilter(),
+      "-map", "[outv]", "-map", "[outa]",
+      ...this._encodeFlags(),
+    ];
+    log(this.index, "starting ffmpeg (splash)", `${W}x${H}@${F}`, `splash ${SPLASH_SECONDS}s`);
+    this.ffmpegProc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "inherit", "pipe"] });
+    this._videoSink = this.ffmpegProc.stdio[3];
+    this._videoSink.on("error", () => {});
+    this.ffmpegProc.on("exit", (code) => this._onMainExit(code));
+    return this.ffmpegProc.stdout;
+  }
+
+  // Principal SIN splash (fallback): lee la red directo. Espera a tener URLs.
+  _startDirect(urls) {
+    this._killFfmpeg();
+    const { width: W, height: H, fps: F } = this.quality;
     const inputFlags = [
       "-re", "-user_agent", UA,
       "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
     ];
     const hasAudio = urls.length >= 2;
-    const videoUrl = urls[0];
-    const audioUrl = hasAudio ? urls[1] : null;
-    const splashOn = SPLASH_SECONDS > 0 && FONT_OK;
-
     const args = ["-hide_banner", "-loglevel", "warning"];
-    if (splashOn) {
-      const dur = String(SPLASH_SECONDS);
-      // Inputs 0 y 1: splash de video animado (gradiente) + silencio.
-      args.push(
-        "-f", "lavfi", "-t", dur, "-i", `gradients=s=${W}x${H}:r=${F}:c0=0x1a0b2e:c1=0x05060a:speed=0.01`,
-        "-f", "lavfi", "-t", dur, "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-      );
-      // Inputs 2 (+3): stream(s) real(es).
-      args.push(...inputFlags, "-i", videoUrl);
-      if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
-      args.push("-filter_complex", this._buildSplashFilter(hasAudio), "-map", "[outv]", "-map", "[outa]");
-    } else {
-      args.push(...inputFlags, "-i", videoUrl);
-      if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
-      args.push("-vf", `scale=-2:${H},fps=${F}`, "-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0");
-    }
+    args.push(...inputFlags, "-i", urls[0]);
+    if (hasAudio) args.push(...inputFlags, "-i", urls[1]);
+    args.push("-vf", `scale=-2:${H},fps=${F}`, "-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0");
     args.push(...this._encodeFlags());
-    log(
-      this.index, "starting ffmpeg", `${W}x${H}@${F}`,
-      hasAudio ? "(v+a)" : "(progresivo)", splashOn ? `+splash ${SPLASH_SECONDS}s` : "",
-    );
+    log(this.index, "starting ffmpeg (directo)", `${W}x${H}@${F}`, hasAudio ? "(v+a)" : "(progresivo)");
     this.ffmpegProc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "inherit"] });
-    this.ffmpegProc.on("exit", (code) => {
-      log(this.index, "ffmpeg exited", code);
-      if (this._stopping) return;
-      if (this.status !== "playing") return;
-      // Fin natural del video (o se cortó el stream): avanzar la cola.
-      if (this._onPlaybackEnd) this._onPlaybackEnd(this, "stream ended");
-      else this.stop("stream ended").catch(() => {});
-    });
+    this.ffmpegProc.on("exit", (code) => this._onMainExit(code));
     return this.ffmpegProc.stdout;
+  }
+
+  // Resuelve con yt-dlp (en background) y alimenta el video al principal por
+  // pipe:3 con `-c copy` (sin transcodificar; el principal transcodifica una vez).
+  async _startFeeder(videoId) {
+    const urls = await this._resolveStreams(videoId);
+    if (this._stopping || this.status !== "playing") return;
+    const hasAudio = urls.length >= 2;
+    const inputFlags = [
+      "-user_agent", UA,
+      "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
+    ];
+    const args = ["-hide_banner", "-loglevel", "error"];
+    args.push(...inputFlags, "-i", urls[0]);
+    if (hasAudio) args.push(...inputFlags, "-i", urls[1]);
+    args.push("-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0?", "-c", "copy", "-f", "nut", "pipe:1");
+    log(this.index, "feeder listo, alimentando video", hasAudio ? "(v+a)" : "(progresivo)");
+    const feeder = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "inherit"] });
+    this.feederProc = feeder;
+    let gotData = false;
+    feeder.stdout.on("data", () => (gotData = true));
+    feeder.stdout.on("error", () => {});
+    if (this._videoSink) feeder.stdout.pipe(this._videoSink, { end: true });
+    feeder.on("error", (e) => this._failPlayback("feeder: " + (e?.message || e)));
+    feeder.on("exit", (code) => {
+      log(this.index, "feeder exited", code);
+      // code 0 = volcó todo el video (fin natural; el principal hará EOF).
+      // code !=0 sin haber entregado datos = fallo de red/extracción.
+      if (!this._stopping && this.status === "playing" && code !== 0 && !gotData) {
+        this._failPlayback("feeder code " + code);
+      }
+    });
+  }
+
+  _onMainExit(code) {
+    log(this.index, "ffmpeg(main) exited", code);
+    this._killFeeder();
+    if (this._stopping) return;
+    if (this.status !== "playing") return;
+    // Fin natural del video (o se cortó el stream): avanzar la cola.
+    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "stream ended");
+    else this.stop("stream ended").catch(() => {});
+  }
+
+  _failPlayback(reason) {
+    if (this._stopping) return;
+    log(this.index, "playback falló:", reason);
+    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "fallo: " + reason);
+    else this.stop("fallo: " + reason).catch(() => {});
+  }
+
+  _killFeeder() {
+    if (this.feederProc) {
+      try {
+        this.feederProc.kill("SIGKILL");
+      } catch {}
+      this.feederProc = null;
+    }
   }
 
   _killFfmpeg() {
@@ -354,6 +410,7 @@ export class Worker {
       } catch {}
       this.ffmpegProc = null;
     }
+    this._videoSink = null;
   }
 
   // --------------------------------------------------------------------------
@@ -370,17 +427,36 @@ export class Worker {
     this.status = "loading";
     this.current = { guildId, channelId, videoId };
 
-    // Resolver streams ANTES de unirse al canal: si el video no existe / es
-    // privado / geo-bloqueado, fallamos limpio sin entrar a la voz.
-    const urls = await this._resolveStreams(videoId);
+    const splashOn = SPLASH_SECONDS > 0 && FONT_OK;
 
+    if (splashOn) {
+      // Unirse + transmitir el splash YA. yt-dlp + descarga del video corren en
+      // background y se vuelcan al principal; el Go Live nunca se reinicia.
+      log(this.index, `joining voice ${guildId}/${channelId}`);
+      await this.streamer.joinVoice(guildId, channelId);
+      this._stopping = false;
+      const input = this._startMainSplash();
+      this.status = "playing";
+      this.abort = new AbortController();
+      this._goLive(input);
+      // No await: el splash ya está en el aire mientras esto resuelve.
+      this._startFeeder(videoId).catch((e) => this._failPlayback(e?.message || String(e)));
+      return this.toJSON();
+    }
+
+    // Sin splash: resolver primero y reproducir directo (puede tardar más).
+    const urls = await this._resolveStreams(videoId);
     log(this.index, `joining voice ${guildId}/${channelId}`);
     await this.streamer.joinVoice(guildId, channelId);
-
     this._stopping = false;
-    const input = this._startCapture(urls);
+    const input = this._startDirect(urls);
     this.status = "playing";
     this.abort = new AbortController();
+    this._goLive(input);
+    return this.toJSON();
+  }
+
+  _goLive(input) {
     log(this.index, "going live...");
     playStream(
       input,
@@ -390,8 +466,6 @@ export class Worker {
     )
       .then(() => log(this.index, "playStream finished"))
       .catch((e) => log(this.index, "playStream error:", e?.message || e));
-
-    return this.toJSON();
   }
 
   async _teardownPlayback(reason) {
@@ -403,6 +477,7 @@ export class Worker {
       } catch {}
       this.abort = null;
     }
+    this._killFeeder();
     this._killFfmpeg();
     try {
       this.streamer.stopStream();
