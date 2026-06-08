@@ -94,6 +94,8 @@ export class Worker {
     this.quality = opts.quality;
     this.httpPort = opts.httpPort;
     this.firefoxBin = opts.firefoxBin || "firefox-esr";
+    // Notified by the manager when playback ends or errors (drives the queue).
+    this._onPlaybackEnd = opts.onPlaybackEnd || null;
 
     this.display = `:${99 + opts.index}`;
     this.sink = `vsink${opts.index}`;
@@ -105,8 +107,15 @@ export class Worker {
     this.username = null;
     this.avatar = null;
 
-    this.status = "starting"; // starting | idle | playing | error | stopped
-    this.current = null; // {guildId, channelId, videoId} while playing
+    this.status = "starting"; // starting | idle | loading | playing | error | stopped
+    this.current = null; // {guildId, channelId, videoId} while playing/loading
+
+    // Ownership + per-user queue. Managed by the manager, surfaced in toJSON.
+    this.ownerId = null;
+    this.ownerName = null;
+    this.queue = []; // [{guildId, channelId, videoId, requestedBy}]
+    this._startWaiter = null; // resolver while waiting for the page to start
+    this._advancing = false; // guards against concurrent queue advances
 
     this.streamer = null;
     this.xvfbProc = null;
@@ -117,7 +126,7 @@ export class Worker {
   }
 
   get busy() {
-    return this.status === "playing";
+    return this.status === "playing" || this.status === "loading";
   }
 
   avatarUrl() {
@@ -142,6 +151,10 @@ export class Worker {
       status: this.status,
       busy: this.busy,
       current: this.current,
+      owner_id: this.ownerId,
+      owner_name: this.ownerName,
+      queue_length: this.queue.length,
+      queue: this.queue.map((q) => ({ video_id: q.videoId, channel_id: q.channelId })),
     };
   }
 
@@ -391,19 +404,37 @@ export class Worker {
   // Playback control
   // --------------------------------------------------------------------------
   async play(guildId, channelId, videoId) {
-    if (this.status !== "idle" && this.status !== "playing") {
+    if (!["idle", "playing", "loading"].includes(this.status)) {
       throw new Error(`worker no disponible (estado: ${this.status})`);
     }
-    if (this.busy) await this._teardownPlayback("nuevo play");
+    if (this.status === "playing" || this.status === "loading") {
+      await this._teardownPlayback("nuevo play");
+    }
+
+    this.status = "loading";
+    this.current = { guildId, channelId, videoId };
 
     log(this.index, `joining voice ${guildId}/${channelId}`);
     await this.streamer.joinVoice(guildId, channelId);
 
     this._launchFirefox(videoId);
-    const input = this._startCapture();
 
+    // Esperar a que la página realmente empiece a reproducir (frames reales en
+    // pantalla) antes de capturar. Si arrancamos ffmpeg/x11grab sobre un display
+    // en blanco, x11grab no junta frames ("not enough frames to estimate rate")
+    // y el pipe NUT sale vacío -> el consumidor falla con "No main startcode
+    // found" / "Invalid data found". Gatear en la señal PLAYING elimina la carrera.
+    const outcome = await this._waitForStart();
+    if (outcome.type === "error") {
+      throw new Error("la página reportó un error: " + outcome.reason);
+    }
+    if (outcome.type === "playing") {
+      // dejar que el splash se desvanezca y pinten los primeros frames
+      await sleep(800);
+    }
+
+    const input = this._startCapture();
     this.status = "playing";
-    this.current = { guildId, channelId, videoId };
     this.abort = new AbortController();
     log(this.index, "going live...");
     playStream(
@@ -418,21 +449,60 @@ export class Worker {
     return this.toJSON();
   }
 
+  // Promesa que resuelve cuando la página señala PLAYING (o /error, o timeout).
+  _waitForStart(timeoutMs = 25000) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        this._startWaiter = null;
+        resolve(v);
+      };
+      const timer = setTimeout(() => {
+        log(this.index, "start signal timeout; capturando igual");
+        finish({ type: "timeout" });
+      }, timeoutMs);
+      this._startWaiter = {
+        playing: () => finish({ type: "playing" }),
+        error: (reason) => finish({ type: "error", reason }),
+      };
+    });
+  }
+
+  // Called by the manager HTTP server when player.html reports playback started.
+  onPlaying() {
+    log(this.index, "player started");
+    if (this._startWaiter) this._startWaiter.playing();
+  }
+
   // Called by the manager HTTP server when player.html reports the video ended.
   onEnded() {
+    if (this._startWaiter) return; // aún no estaba reproduciendo
     if (this.status !== "playing") return;
     log(this.index, "video ended");
-    this.stop("video ended").catch(() => {});
+    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "video ended");
+    else this.stop("video ended").catch(() => {});
   }
 
   onError(reason) {
-    if (this.status !== "playing") return;
     log(this.index, "player error", reason);
-    this.stop("player error " + reason).catch(() => {});
+    if (this._startWaiter) {
+      // Falló durante la carga: que play() rechace y el manager pase al siguiente.
+      this._startWaiter.error(reason);
+      return;
+    }
+    if (this.status !== "playing") return;
+    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "player error " + reason);
+    else this.stop("player error " + reason).catch(() => {});
   }
 
   async _teardownPlayback(reason) {
     log(this.index, "teardown playback:", reason);
+    // Si había un play() esperando la señal PLAYING, abortarlo para que no siga
+    // adelante (evita dos playStream solapados al reemplazar/saltar).
+    if (this._startWaiter) this._startWaiter.error("reemplazado");
     if (this.abort) {
       try {
         this.abort.abort();
@@ -448,11 +518,12 @@ export class Worker {
   }
 
   async stop(reason = "manual") {
+    if (this._startWaiter) this._startWaiter.error("detenido");
     await this._teardownPlayback(reason);
     try {
       this.streamer.leaveVoice();
     } catch {}
-    if (this.status === "playing") this.status = "idle";
+    if (this.status === "playing" || this.status === "loading") this.status = "idle";
     return this.toJSON();
   }
 

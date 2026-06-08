@@ -114,7 +114,7 @@ async def test_config_defaults_types(video_client: AsyncClient):
     assert body["enabled"] is True
     assert isinstance(body["width"], int) and body["width"] == 1280
     assert isinstance(body["enabled_commands"], list)
-    assert body["enabled_commands"] == ["ver", "parar"]
+    assert body["enabled_commands"] == ["ver", "parar", "siguiente"]
 
 
 async def test_config_update_quality_propagates(video_client: AsyncClient):

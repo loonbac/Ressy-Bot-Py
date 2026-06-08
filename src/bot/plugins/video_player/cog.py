@@ -90,6 +90,8 @@ class VideoCog(commands.Cog):
                 guild_id=str(interaction.guild_id),
                 channel_id=str(channel.id),
                 video=url,
+                owner_id=str(interaction.user.id),
+                owner_name=interaction.user.display_name,
             )
         except ManagerError as exc:
             await message.edit(embed=discord.Embed(
@@ -99,11 +101,44 @@ class VideoCog(commands.Cog):
             ))
             return
 
-        worker_tag = result.get("tag") or result.get("username") or "worker"
         video_id = result.get("video_id", "")
+
+        # El usuario ya tenía un video reproduciéndose: este va a su cola.
+        if result.get("queued"):
+            position = result.get("position", "?")
+            embed = discord.Embed(
+                title="Agregado a tu cola",
+                description=(
+                    f"[{video_id}](https://youtu.be/{video_id}) — posición **{position}** en tu cola.\n"
+                    "Usa `/siguiente` para saltar al próximo."
+                ),
+                color=EMBED_COLOR,
+            )
+            avatar = result.get("avatar_url")
+            if avatar:
+                embed.set_thumbnail(url=avatar)
+            embed.set_footer(text=f"Solicitado por {interaction.user.display_name}")
+            await message.edit(embed=embed)
+            self._push_activity(
+                f"Video agregado a la cola (posición {position})",
+                detail=f"video {video_id}",
+                meta={
+                    "guild_id": str(interaction.guild_id),
+                    "channel_id": str(channel.id),
+                    "user_id": str(interaction.user.id),
+                    "video_id": video_id,
+                },
+            )
+            return
+
+        worker_tag = result.get("tag") or result.get("username") or "worker"
+        description = f"[{video_id}](https://youtu.be/{video_id}) en **{channel.name}**"
+        skipped = result.get("skipped")
+        if skipped:
+            description += f"\n_Se omitió `{skipped}` (no se pudo reproducir)._"
         embed = discord.Embed(
             title="Reproduciendo en vivo",
-            description=f"[{video_id}](https://youtu.be/{video_id}) en **{channel.name}**",
+            description=description,
             color=EMBED_COLOR,
         )
         avatar = result.get("avatar_url")
@@ -141,7 +176,9 @@ class VideoCog(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         try:
-            result = await self.manager.stop(channel_id=str(channel.id))
+            result = await self.manager.stop(
+                channel_id=str(channel.id), owner_id=str(interaction.user.id)
+            )
         except ManagerError as exc:
             await interaction.followup.send(exc.detail, ephemeral=True)
             return
@@ -159,3 +196,61 @@ class VideoCog(commands.Cog):
             await interaction.followup.send(
                 "No había ningún video reproduciéndose en este canal.", ephemeral=True
             )
+
+    # -- /siguiente -----------------------------------------------------------
+    @app_commands.command(name="siguiente", description="Salta al siguiente video de tu cola")
+    @app_commands.guild_only()
+    async def siguiente(self, interaction: discord.Interaction) -> None:
+        if not await self._command_enabled("siguiente"):
+            await interaction.response.send_message(
+                "El comando está desactivado.", ephemeral=True
+            )
+            return
+
+        channel = self._user_voice_channel(interaction)
+        await interaction.response.defer()
+        try:
+            result = await self.manager.next(
+                owner_id=str(interaction.user.id),
+                channel_id=str(channel.id) if channel else None,
+            )
+        except ManagerError as exc:
+            await interaction.followup.send(embed=discord.Embed(
+                title="No se pudo avanzar",
+                description=exc.detail,
+                color=0xC0392B,
+            ))
+            return
+
+        if result.get("stopped"):
+            await interaction.followup.send(embed=discord.Embed(
+                title="Cola vacía",
+                description="No hay más videos en tu cola. Reproducción detenida.",
+                color=EMBED_COLOR,
+            ))
+            self._push_activity(
+                "Cola de videos terminada",
+                meta={"user_id": str(interaction.user.id)},
+            )
+            return
+
+        video_id = result.get("video_id", "")
+        remaining = result.get("queue_length")
+        embed = discord.Embed(
+            title="Reproduciendo siguiente",
+            description=f"[{video_id}](https://youtu.be/{video_id})",
+            color=EMBED_COLOR,
+        )
+        avatar = result.get("avatar_url")
+        if avatar:
+            embed.set_thumbnail(url=avatar)
+        footer = f"solicitado por {interaction.user.display_name}"
+        if remaining is not None:
+            footer = f"{remaining} en cola · " + footer
+        embed.set_footer(text=footer)
+        await interaction.followup.send(embed=embed)
+        self._push_activity(
+            "Siguiente video en la cola",
+            detail=f"video {video_id}",
+            meta={"user_id": str(interaction.user.id), "video_id": video_id},
+        )

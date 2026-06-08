@@ -84,7 +84,14 @@ class ManagerClient:
         return await self._request("POST", f"/workers/{worker_id}/stop", timeout=20.0)
 
     async def play(
-        self, *, guild_id: str, channel_id: str, video: str, worker_id: str | None = None
+        self,
+        *,
+        guild_id: str,
+        channel_id: str,
+        video: str,
+        worker_id: str | None = None,
+        owner_id: str | None = None,
+        owner_name: str | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "guildId": str(guild_id),
@@ -93,12 +100,30 @@ class ManagerClient:
         }
         if worker_id:
             body["workerId"] = str(worker_id)
+        if owner_id:
+            body["ownerId"] = str(owner_id)
+        if owner_name:
+            body["ownerName"] = owner_name
         return await self._request("POST", "/play", json=body, timeout=60.0)
 
-    async def stop(self, channel_id: str | None = None) -> dict[str, Any]:
+    async def next(
+        self, *, owner_id: str | None = None, channel_id: str | None = None
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {}
+        if owner_id:
+            body["ownerId"] = str(owner_id)
+        if channel_id:
+            body["channelId"] = str(channel_id)
+        return await self._request("POST", "/next", json=body, timeout=60.0)
+
+    async def stop(
+        self, channel_id: str | None = None, owner_id: str | None = None
+    ) -> dict[str, Any]:
         body: dict[str, Any] = {}
         if channel_id:
             body["channelId"] = str(channel_id)
+        if owner_id:
+            body["ownerId"] = str(owner_id)
         return await self._request("POST", "/stop", json=body, timeout=20.0)
 
     async def set_quality(self, quality: dict[str, int]) -> dict[str, Any]:

@@ -23,7 +23,7 @@ import os
 from src.bot.core.bot import Bot
 from src.bot.core.config import ConfigManager
 
-ALL_COMMANDS = ["ver", "parar"]
+ALL_COMMANDS = ["ver", "parar", "siguiente"]
 
 DEFAULTS = {
     "enabled": "true",
@@ -88,6 +88,12 @@ async def setup(bot: Bot, config_manager: ConfigManager, app):
         await db.execute(
             "INSERT OR IGNORE INTO video_config (key, value) VALUES (?, ?)", (key, value)
         )
+    # Migración idempotente: agregar "siguiente" a installs viejos cuyo
+    # enabled_commands seguía siendo el default anterior ["ver", "parar"].
+    await db.execute(
+        "UPDATE video_config SET value = ? WHERE key = 'enabled_commands' AND value = ?",
+        (json.dumps(ALL_COMMANDS), json.dumps(["ver", "parar"])),
+    )
     await db.commit()
 
     # URL editable desde config; secret solo por entorno (sensible).

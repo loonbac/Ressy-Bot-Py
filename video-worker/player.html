@@ -147,12 +147,17 @@
     const workerId = params.get("w");
     const wq = workerId != null ? "?w=" + encodeURIComponent(workerId) : "";
     const splash = document.getElementById("splash");
-    let player, endedSent = false, hidden = false;
+    let player, endedSent = false, playingSent = false, hidden = false;
 
     function hideSplash() {
       if (hidden) return;
       hidden = true;
       splash.classList.add("hidden");
+    }
+    function notifyPlaying() {
+      if (playingSent) return;
+      playingSent = true;
+      fetch("/playing" + wq).catch(() => {});
     }
     function notifyEnded() {
       if (endedSent) return;
@@ -175,7 +180,7 @@
             fetch("/ready" + wq).catch(() => {});
           },
           onStateChange: (e) => {
-            if (e.data === YT.PlayerState.PLAYING) hideSplash();
+            if (e.data === YT.PlayerState.PLAYING) { hideSplash(); notifyPlaying(); }
             if (e.data === YT.PlayerState.ENDED) notifyEnded();
           },
           onError: (e) => { fetch("/error" + (wq ? wq + "&" : "?") + "reason=yt-" + (e && e.data)).catch(() => {}); },
