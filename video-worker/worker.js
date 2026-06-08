@@ -1,25 +1,29 @@
 // ----------------------------------------------------------------------------
-// Worker: a single Discord selfbot account that can stream one YouTube video
+// Worker: a single Discord selfbot account that streams one YouTube video
 // (Go Live screen share) into a voice channel at a time.
 //
-// Each worker is fully isolated so several can stream different videos at once:
-//   - its own Xvfb virtual display   (:99 + index)
-//   - its own PulseAudio null sink   (vsink<index>)  -> ffmpeg captures the
-//     sink monitor; Firefox is pinned to it via PULSE_SINK
-//   - its own Firefox profile dir
-//   - its own ffmpeg x11grab + pulse capture
-//   - its own discord-video-stream Streamer/Client
-//
-// The shared PulseAudio daemon + dbus are started once by entrypoint.sh; each
-// worker only loads/unloads its own null-sink module.
+// Pipeline (sin navegador): yt-dlp resuelve las URLs directas del stream de
+// YouTube y ffmpeg las transcodifica a H264/Opus en un contenedor NUT que se
+// envía como Go Live. No hay Firefox/Xvfb/PulseAudio: bypasea restricciones de
+// embed (yt-150), anuncios y el overhead de capturar pantalla. La detección de
+// fin de video es nativa (ffmpeg termina cuando el stream se acaba).
 // ----------------------------------------------------------------------------
 import { spawn } from "node:child_process";
-import fs from "node:fs";
 
 import { Client } from "discord.js-selfbot-v13";
 import { Streamer, playStream } from "@dank074/discord-video-stream";
 
 const log = (id, ...a) => console.log(`[worker ${id}]`, ...a);
+
+const YTDLP_BIN = process.env.YTDLP_BIN || "yt-dlp";
+// Preferimos avc1 (H264) + mp4a (AAC) por compatibilidad de decodificación;
+// si no existen, caemos a lo mejor disponible hasta 1080p (tope de Go Live).
+const YTDLP_FORMAT =
+  process.env.YTDLP_FORMAT ||
+  "bestvideo[height<=?1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/" +
+    "bestvideo[height<=?1080]+bestaudio/best[height<=?1080]/best";
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
 
 function sh(cmd, args) {
   // Run a short command, resolve with {code, stdout, stderr}. Never rejects.
@@ -29,12 +33,10 @@ function sh(cmd, args) {
     let err = "";
     p.stdout.on("data", (d) => (out += d));
     p.stderr.on("data", (d) => (err += d));
-    p.on("error", () => resolve({ code: -1, stdout: out, stderr: err }));
+    p.on("error", (e) => resolve({ code: -1, stdout: out, stderr: String(e?.message || e) }));
     p.on("exit", (code) => resolve({ code, stdout: out, stderr: err }));
   });
 }
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // discord.js-selfbot-v13@3.7.1 está deprecada y hardcodea un client_build_number
 // viejo; el gateway de Discord rechaza ese IDENTIFY (close 4013). Scrapeamos el
@@ -82,24 +84,17 @@ async function resolveBuildNumber() {
 export class Worker {
   /**
    * @param {object} opts
-   * @param {number} opts.index   slot index (allocates display + sink + port)
+   * @param {number} opts.index   slot index (solo identifica al worker en logs)
    * @param {string} opts.token   Discord USER token
    * @param {object} opts.quality {width,height,fps,bitrate,bitrateMax}
-   * @param {number} opts.httpPort shared player HTTP server port
-   * @param {string} opts.firefoxBin
+   * @param {function} [opts.onPlaybackEnd]  (worker, reason) cuando el video termina/falla
    */
   constructor(opts) {
     this.index = opts.index;
     this.token = opts.token;
     this.quality = opts.quality;
-    this.httpPort = opts.httpPort;
-    this.firefoxBin = opts.firefoxBin || "firefox-esr";
     // Notified by the manager when playback ends or errors (drives the queue).
     this._onPlaybackEnd = opts.onPlaybackEnd || null;
-
-    this.display = `:${99 + opts.index}`;
-    this.sink = `vsink${opts.index}`;
-    this.profileDir = `/tmp/ff-profile-${opts.index}`;
 
     // identity (filled after login)
     this.userId = null;
@@ -114,15 +109,12 @@ export class Worker {
     this.ownerId = null;
     this.ownerName = null;
     this.queue = []; // [{guildId, channelId, videoId, requestedBy}]
-    this._startWaiter = null; // resolver while waiting for the page to start
     this._advancing = false; // guards against concurrent queue advances
+    this._stopping = false; // true mientras hacemos teardown (ignora exit de ffmpeg)
 
     this.streamer = null;
-    this.xvfbProc = null;
-    this.firefoxProc = null;
     this.ffmpegProc = null;
     this.abort = null;
-    this._sinkModule = null;
   }
 
   get busy() {
@@ -162,50 +154,11 @@ export class Worker {
   // Lifecycle
   // --------------------------------------------------------------------------
   async start() {
-    await this._startXvfb();
-    await this._ensureSink();
     this._buildNumber = await resolveBuildNumber();
     await this._login();
     this.status = "idle";
-    log(this.index, `ready as ${this.tag} (${this.userId}) on ${this.display}`);
+    log(this.index, `ready as ${this.tag} (${this.userId})`);
     return this.toJSON();
-  }
-
-  async _startXvfb() {
-    const { width, height } = this.quality;
-    const screen = `${width}x${height}x24`;
-    log(this.index, `starting Xvfb ${this.display} (${screen})`);
-    this.xvfbProc = spawn(
-      "Xvfb",
-      [this.display, "-screen", "0", screen, "-ac", "-nolisten", "tcp"],
-      { stdio: "ignore" }
-    );
-    this.xvfbProc.on("exit", (code) =>
-      log(this.index, `Xvfb exited ${code}`)
-    );
-    // wait until the display answers
-    for (let i = 0; i < 50; i++) {
-      const r = await sh("xdpyinfo", ["-display", this.display]);
-      if (r.code === 0) return;
-      await sleep(100);
-    }
-    log(this.index, "WARN: Xvfb did not become ready in time");
-  }
-
-  async _ensureSink() {
-    // Idempotent: load a dedicated null sink for this worker.
-    const r = await sh("pactl", [
-      "load-module",
-      "module-null-sink",
-      `sink_name=${this.sink}`,
-      `sink_properties=device.description=${this.sink}`,
-    ]);
-    if (r.code === 0) {
-      this._sinkModule = r.stdout.trim();
-      log(this.index, `pulse sink ${this.sink} loaded (module ${this._sinkModule})`);
-    } else {
-      log(this.index, `pulse sink load failed: ${r.stderr.trim()}`);
-    }
   }
 
   _login() {
@@ -264,90 +217,54 @@ export class Worker {
   }
 
   // --------------------------------------------------------------------------
-  // Capture pipeline
+  // Capture pipeline (yt-dlp -> ffmpeg -> NUT)
   // --------------------------------------------------------------------------
-  _launchFirefox(videoId) {
-    this._killFirefox();
-    const { width, height } = this.quality;
-    const target = `http://127.0.0.1:${this.httpPort}/?w=${this.index}&v=${encodeURIComponent(
-      videoId
-    )}`;
-    log(this.index, "launching firefox ->", target);
-    fs.mkdirSync(this.profileDir, { recursive: true });
-    fs.writeFileSync(
-      `${this.profileDir}/user.js`,
-      [
-        'user_pref("media.autoplay.default", 0);',
-        'user_pref("media.autoplay.blocking_policy", 0);',
-        'user_pref("media.block-autoplay-until-in-foreground", false);',
-        'user_pref("browser.shell.checkDefaultBrowser", false);',
-        'user_pref("browser.aboutwelcome.enabled", false);',
-        'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
-        'user_pref("toolkit.telemetry.enabled", false);',
-        'user_pref("full-screen-api.warning.timeout", 0);',
-        'user_pref("browser.tabs.warnOnClose", false);',
-        'user_pref("browser.sessionstore.resume_from_crash", false);',
-      ].join("\n")
-    );
-    this.firefoxProc = spawn(
-      this.firefoxBin,
-      [
-        "--kiosk",
-        "--width",
-        String(width),
-        "--height",
-        String(height),
-        "--profile",
-        this.profileDir,
-        target,
-      ],
-      {
-        env: { ...process.env, DISPLAY: this.display, PULSE_SINK: this.sink },
-        stdio: "ignore",
-      }
-    );
-    this.firefoxProc.on("exit", (code) =>
-      log(this.index, "firefox exited", code)
-    );
-  }
-
-  _killFirefox() {
-    if (this.firefoxProc) {
-      try {
-        this.firefoxProc.kill("SIGKILL");
-      } catch {}
-      this.firefoxProc = null;
+  async _resolveStreams(videoId) {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const args = ["-q", "--no-warnings", "--no-playlist", "-f", YTDLP_FORMAT, "-g", url];
+    if (process.env.YTDLP_COOKIES) args.unshift("--cookies", process.env.YTDLP_COOKIES);
+    log(this.index, "resolviendo streams con yt-dlp...");
+    const r = await sh(YTDLP_BIN, args);
+    if (r.code !== 0) {
+      const why = (r.stderr || "").trim().split("\n").pop() || `code ${r.code}`;
+      throw new Error("yt-dlp: " + why.slice(0, 300));
     }
+    const urls = r.stdout
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!urls.length) throw new Error("yt-dlp no devolvió streams");
+    // [video, audio] si son streams separados, o [progresivo] (video+audio).
+    return urls;
   }
 
-  _startCapture() {
+  _startCapture(urls) {
     this._killFfmpeg();
     const { width, height, fps, bitrate, bitrateMax } = this.quality;
-    // Desfase de audio: el pipeline de video (Firefox -> x11grab -> libx264)
-    // tiene más latencia que el audio (pulse, casi instantáneo), así que el
-    // audio se adelanta. `-itsoffset` retrasa la entrada de audio para
-    // sincronizarlos. Positivo = retrasa audio. Tunable en vivo desde el panel.
-    const audioOffset = Number(this.quality.audioOffset) || 0;
-    const audioInput = [];
-    if (audioOffset > 0) audioInput.push("-itsoffset", String(audioOffset));
-    audioInput.push("-thread_queue_size", "512", "-f", "pulse", "-i", `${this.sink}.monitor`);
-    const args = [
-      "-hide_banner",
-      "-loglevel",
-      "warning",
-      "-thread_queue_size",
-      "512",
-      "-f",
-      "x11grab",
-      "-draw_mouse",
-      "0",
-      "-framerate",
-      String(fps),
-      "-video_size",
-      `${width}x${height}`,
-      "-i",
-      `${this.display}.0`,
-      ...audioInput,
+    // -re pacea la lectura a tiempo real (estamos sirviendo un VOD como live).
+    // -reconnect tolera cortes de las URLs de googlevideo.
+    const inputFlags = [
+      "-re",
+      "-user_agent",
+      UA,
+      "-reconnect",
+      "1",
+      "-reconnect_streamed",
+      "1",
+      "-reconnect_delay_max",
+      "5",
+    ];
+    const hasAudio = urls.length >= 2;
+    const videoUrl = urls[0];
+    const audioUrl = hasAudio ? urls[1] : null;
+
+    const args = ["-hide_banner", "-loglevel", "warning"];
+    args.push(...inputFlags, "-i", videoUrl);
+    if (hasAudio) args.push(...inputFlags, "-i", audioUrl);
+    args.push("-map", "0:v:0", "-map", hasAudio ? "1:a:0" : "0:a:0");
+    args.push(
+      "-vf",
+      `scale=-2:${height},fps=${fps}`,
       "-c:v",
       "libx264",
       "-preset",
@@ -380,14 +297,18 @@ export class Worker {
       "2",
       "-f",
       "nut",
-      "pipe:1",
-    ];
-    log(this.index, "starting ffmpeg", `${width}x${height}@${fps}`);
-    this.ffmpegProc = spawn("ffmpeg", args, {
-      env: { ...process.env, DISPLAY: this.display },
-      stdio: ["ignore", "pipe", "inherit"],
+      "pipe:1"
+    );
+    log(this.index, "starting ffmpeg", `${width}x${height}@${fps}`, hasAudio ? "(v+a)" : "(progresivo)");
+    this.ffmpegProc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "inherit"] });
+    this.ffmpegProc.on("exit", (code) => {
+      log(this.index, "ffmpeg exited", code);
+      if (this._stopping) return;
+      if (this.status !== "playing") return;
+      // Fin natural del video (o se cortó el stream): avanzar la cola.
+      if (this._onPlaybackEnd) this._onPlaybackEnd(this, "stream ended");
+      else this.stop("stream ended").catch(() => {});
     });
-    this.ffmpegProc.on("exit", (code) => log(this.index, "ffmpeg exited", code));
     return this.ffmpegProc.stdout;
   }
 
@@ -414,26 +335,15 @@ export class Worker {
     this.status = "loading";
     this.current = { guildId, channelId, videoId };
 
+    // Resolver streams ANTES de unirse al canal: si el video no existe / es
+    // privado / geo-bloqueado, fallamos limpio sin entrar a la voz.
+    const urls = await this._resolveStreams(videoId);
+
     log(this.index, `joining voice ${guildId}/${channelId}`);
     await this.streamer.joinVoice(guildId, channelId);
 
-    this._launchFirefox(videoId);
-
-    // Esperar a que la página realmente empiece a reproducir (frames reales en
-    // pantalla) antes de capturar. Si arrancamos ffmpeg/x11grab sobre un display
-    // en blanco, x11grab no junta frames ("not enough frames to estimate rate")
-    // y el pipe NUT sale vacío -> el consumidor falla con "No main startcode
-    // found" / "Invalid data found". Gatear en la señal PLAYING elimina la carrera.
-    const outcome = await this._waitForStart();
-    if (outcome.type === "error") {
-      throw new Error("la página reportó un error: " + outcome.reason);
-    }
-    if (outcome.type === "playing") {
-      // dejar que el splash se desvanezca y pinten los primeros frames
-      await sleep(800);
-    }
-
-    const input = this._startCapture();
+    this._stopping = false;
+    const input = this._startCapture(urls);
     this.status = "playing";
     this.abort = new AbortController();
     log(this.index, "going live...");
@@ -449,67 +359,15 @@ export class Worker {
     return this.toJSON();
   }
 
-  // Promesa que resuelve cuando la página señala PLAYING (o /error, o timeout).
-  _waitForStart(timeoutMs = 25000) {
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (v) => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        this._startWaiter = null;
-        resolve(v);
-      };
-      const timer = setTimeout(() => {
-        log(this.index, "start signal timeout; capturando igual");
-        finish({ type: "timeout" });
-      }, timeoutMs);
-      this._startWaiter = {
-        playing: () => finish({ type: "playing" }),
-        error: (reason) => finish({ type: "error", reason }),
-      };
-    });
-  }
-
-  // Called by the manager HTTP server when player.html reports playback started.
-  onPlaying() {
-    log(this.index, "player started");
-    if (this._startWaiter) this._startWaiter.playing();
-  }
-
-  // Called by the manager HTTP server when player.html reports the video ended.
-  onEnded() {
-    if (this._startWaiter) return; // aún no estaba reproduciendo
-    if (this.status !== "playing") return;
-    log(this.index, "video ended");
-    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "video ended");
-    else this.stop("video ended").catch(() => {});
-  }
-
-  onError(reason) {
-    log(this.index, "player error", reason);
-    if (this._startWaiter) {
-      // Falló durante la carga: que play() rechace y el manager pase al siguiente.
-      this._startWaiter.error(reason);
-      return;
-    }
-    if (this.status !== "playing") return;
-    if (this._onPlaybackEnd) this._onPlaybackEnd(this, "player error " + reason);
-    else this.stop("player error " + reason).catch(() => {});
-  }
-
   async _teardownPlayback(reason) {
     log(this.index, "teardown playback:", reason);
-    // Si había un play() esperando la señal PLAYING, abortarlo para que no siga
-    // adelante (evita dos playStream solapados al reemplazar/saltar).
-    if (this._startWaiter) this._startWaiter.error("reemplazado");
+    this._stopping = true;
     if (this.abort) {
       try {
         this.abort.abort();
       } catch {}
       this.abort = null;
     }
-    this._killFirefox();
     this._killFfmpeg();
     try {
       this.streamer.stopStream();
@@ -518,7 +376,6 @@ export class Worker {
   }
 
   async stop(reason = "manual") {
-    if (this._startWaiter) this._startWaiter.error("detenido");
     await this._teardownPlayback(reason);
     try {
       this.streamer.leaveVoice();
@@ -532,19 +389,6 @@ export class Worker {
     this.status = "stopped";
     try {
       this.streamer?.client?.destroy();
-    } catch {}
-    if (this._sinkModule) {
-      await sh("pactl", ["unload-module", this._sinkModule]);
-      this._sinkModule = null;
-    }
-    if (this.xvfbProc) {
-      try {
-        this.xvfbProc.kill("SIGKILL");
-      } catch {}
-      this.xvfbProc = null;
-    }
-    try {
-      fs.rmSync(this.profileDir, { recursive: true, force: true });
     } catch {}
   }
 }

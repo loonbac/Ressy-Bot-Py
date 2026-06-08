@@ -2,28 +2,23 @@ FROM node:22-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Runtime deps: Firefox, ffmpeg (x11grab+pulse), virtual display, audio, fonts.
+# Runtime deps: ffmpeg (transcode) + yt-dlp (resuelve los streams de YouTube).
+# Sin navegador: ya no se necesita Firefox/Xvfb/PulseAudio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      firefox-esr \
       ffmpeg \
-      xvfb \
-      x11-utils \
-      x11-xserver-utils \
-      pulseaudio \
-      pulseaudio-utils \
-      dbus-x11 \
+      python3 \
       procps \
       curl \
       ca-certificates \
-      fonts-liberation \
-      fonts-noto-color-emoji \
-      fonts-noto-cjk \
+ && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+      -o /usr/local/bin/yt-dlp \
+ && chmod a+rx /usr/local/bin/yt-dlp \
  && rm -rf /var/lib/apt/lists/*
 
 # pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Non-root user (Firefox + PulseAudio dislike running as root)
+# Non-root user
 RUN useradd -m -u 1001 app
 
 WORKDIR /app
@@ -35,7 +30,7 @@ COPY package.json pnpm-workspace.yaml ./
 RUN pnpm install
 
 # App source
-COPY manager.js worker.js player.html entrypoint.sh ./
+COPY manager.js worker.js entrypoint.sh ./
 RUN chmod +x entrypoint.sh && chown -R app:app /app
 
 USER app
@@ -43,9 +38,7 @@ ENV HOME=/home/app \
     WIDTH=1280 \
     HEIGHT=720 \
     FPS=30 \
-    FIREFOX_BIN=firefox-esr \
     MANAGER_PORT=8081 \
-    HTTP_PORT=8080 \
     MAX_WORKERS=5
 
 EXPOSE 8081
