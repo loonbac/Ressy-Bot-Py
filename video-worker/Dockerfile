@@ -3,13 +3,15 @@ FROM node:22-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Runtime deps: ffmpeg (transcode) + yt-dlp (resuelve los streams de YouTube).
-# Sin navegador: ya no se necesita Firefox/Xvfb/PulseAudio.
+# fonts-dejavu-core: drawtext del splash de carga. Sin navegador: ya no se
+# necesita Firefox/Xvfb/PulseAudio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg \
       python3 \
       procps \
       curl \
       ca-certificates \
+      fonts-dejavu-core \
  && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
       -o /usr/local/bin/yt-dlp \
  && chmod a+rx /usr/local/bin/yt-dlp \
