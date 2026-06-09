@@ -30,6 +30,11 @@ async def ai_cog(ai_db):
     bot.user = SimpleNamespace(id=99, mention="<@99>")
     client = MagicMock(spec=AIChatClient)
     client.chat = AsyncMock(return_value="Respuesta de prueba")
+    # Con web_enabled por defecto, el cog usa el tool-loop (chat_completion).
+    # El mensaje sin tool_calls hace que el loop devuelva content directo.
+    client.chat_completion = AsyncMock(
+        return_value={"role": "assistant", "content": "Respuesta de prueba"}
+    )
     client.analyze_code_execution = AsyncMock(return_value={"purpose": "Suma", "improvements": ["Validar entrada"]})
     return AIChatCog(bot, ai_db, client)
 
@@ -59,6 +64,27 @@ async def test_mention_handler(ai_cog):
 
     message.reply.assert_awaited_once()
     assert "Respuesta de prueba" in message.reply.await_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_mention_without_text_does_not_call_ai(ai_cog):
+    """@ sin texto (solo mención, o mención + imagen sin pregunta) no debe
+    invocar a la IA: responde pidiendo la petición y no gasta tokens."""
+    author = SimpleNamespace(id=123, bot=False)
+    channel = SimpleNamespace(id=456)
+    message = SimpleNamespace(
+        author=author,
+        channel=channel,
+        content="<@99>",
+        mentions=[ai_cog.bot.user],
+        reply=AsyncMock(),
+    )
+
+    await ai_cog.on_message(message)
+
+    ai_cog.client.chat.assert_not_awaited()
+    message.reply.assert_awaited_once()
+    assert "pregunta" in message.reply.await_args.args[0].lower()
 
 
 @pytest.mark.asyncio
@@ -348,12 +374,13 @@ async def test_memory_dedup_and_reset_clears_summary(ai_db):
 
 @pytest.mark.asyncio
 async def test_input_guard_truncates_long_message(ai_cog):
-    ai_cog.client.chat = AsyncMock(return_value="ok")
+    # Path real con web_enabled por defecto: el prompt llega vía chat_completion.
+    ai_cog.client.chat_completion = AsyncMock(return_value={"role": "assistant", "content": "ok"})
     await ai_cog.db.update_config({"max_input_chars": 50})
     huge = "x" * 5000
     await ai_cog.ask("u1", "c1", huge, persist=False)
 
-    sent = ai_cog.client.chat.await_args.args[0]
+    sent = ai_cog.client.chat_completion.await_args.args[0]
     user_msg = sent[-1]["content"]
     assert len(user_msg) == 50
 

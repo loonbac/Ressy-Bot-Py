@@ -14,6 +14,7 @@ from .client import AIChatClient, DEFAULT_ANALYSIS_MODEL, DEFAULT_CHAT_MODEL
 from .conversations import ConversationStore
 from .database import AIChatDatabase
 from .tools import DiscordTools, run_tool_loop
+from .web import WEB_TOOLS
 
 # Captura bloque <think>...</think> que algunos modelos MiniMax incluyen al
 # inicio de la respuesta. Lo extraemos para no contaminar el mensaje en
@@ -114,24 +115,45 @@ class AIChatCog(commands.Cog):
             summary_enabled=cfg.get("summary_enabled", "true") == "true",
         )
         model = cfg.get("chat_model", DEFAULT_CHAT_MODEL)
-        # Con tools activas y un servidor seleccionado, la IA puede leer el server
-        # (buscar mensajes, miembros, canales) vía function calling acotado al guild.
-        if cfg.get("tools_enabled", "true") == "true" and self.discord_tools is not None and self.discord_tools._guild() is not None:
+        # Tool-calling: la IA puede leer el server (acotado al guild) y/o navegar
+        # webs públicas. La tool web NO depende del guild, así que el loop corre
+        # aunque no haya servidor seleccionado.
+        tool_schemas: list[dict[str, Any]] = []
+        tool_hints: list[str] = []
+        tools_on = cfg.get("tools_enabled", "true") == "true"
+        web_on = cfg.get("web_enabled", "true") == "true"
+        has_guild = (
+            tools_on and self.discord_tools is not None and self.discord_tools._guild() is not None
+        )
+        if web_on:
+            tool_schemas.extend(WEB_TOOLS)
+            tool_hints.append(
+                "Tienes una herramienta para abrir una página web pública por su URL y leer su "
+                "contenido. Úsala cuando el usuario comparta un enlace o pida revisar, resumir o "
+                "explicar una página, noticia o documento de internet. Cita el título y resume con "
+                "fidelidad; si la página no se puede abrir, dilo con claridad."
+            )
+        if has_guild:
             scan = max(50, min(2000, int(cfg.get("tools_search_scan_limit", "300"))))
             self.discord_tools.scan_limit = scan
-            messages.insert(
-                1,
-                {
-                    "role": "system",
-                    "content": (
-                        "Tienes herramientas para leer este servidor de Discord (buscar mensajes, miembros, "
-                        "canales, info del server). Úsalas cuando el usuario pregunte por algo que ocurrió en el "
-                        "servidor. Al mostrar mensajes encontrados, formatea bonito: autor, canal, fecha y el "
-                        "enlace directo (jump_url) cuando exista. Si no encuentras nada, dilo con claridad."
-                    ),
-                },
+            tool_schemas.extend(TOOLS)
+            tool_hints.append(
+                "Tienes herramientas para leer este servidor de Discord (buscar mensajes, miembros, "
+                "canales, info del server). Úsalas cuando el usuario pregunte por algo que ocurrió en el "
+                "servidor. Al mostrar mensajes encontrados, formatea bonito: autor, canal, fecha y el "
+                "enlace directo (jump_url) cuando exista. Si no encuentras nada, dilo con claridad."
             )
-            raw = await run_tool_loop(self.client, messages, model, self.discord_tools)
+        if tool_schemas:
+            messages.insert(1, {"role": "system", "content": "\n".join(tool_hints)})
+            web_timeout = max(5.0, min(60.0, float(cfg.get("web_timeout_seconds", "20"))))
+            raw = await run_tool_loop(
+                self.client,
+                messages,
+                model,
+                self.discord_tools if has_guild else None,
+                tools=tool_schemas,
+                web_timeout=web_timeout,
+            )
         else:
             raw = await self.client.chat(messages, model)
         thinking, reply = split_thinking(raw)
@@ -175,13 +197,21 @@ class AIChatCog(commands.Cog):
         mentions = getattr(message, "mentions", []) or []
         if self.bot.user not in mentions:
             return
+        content = self._strip_bot_mention(message.content, self.bot.user.id)
+        # Mención sin texto (solo @, o @ + imagen/adjunto sin pregunta): no
+        # inventamos una consulta ni gastamos tokens. Pedimos la petición y
+        # salimos. La IA solo responde con "@ + texto" o con el comando /ia.
+        if not content:
+            await message.reply(
+                "Mencióname junto con tu pregunta para que pueda responderte "
+                "(por ejemplo: «@Ressy ¿qué es Python?»), o usa el comando `/ia`.",
+                mention_author=False,
+            )
+            return
         ok, wait = await self._check_rate_limit(int(message.author.id))
         if not ok:
             await message.reply(f"Espera {wait}s antes de volver a mencionarme.", mention_author=False)
             return
-        content = self._strip_bot_mention(message.content, self.bot.user.id)
-        if not content:
-            content = "Hola, ¿en qué puedes ayudarme?"
         user_name = getattr(message.author, "display_name", None) or getattr(message.author, "name", None)
         try:
             reply = await self.ask(

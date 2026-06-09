@@ -33,6 +33,13 @@ DEFAULTS = {
     "tools_enabled": "true",
     # Mensajes recientes que escanea por canal al buscar.
     "tools_search_scan_limit": "300",
+    # Navegación web: la IA puede abrir una URL pública y leer su contenido.
+    # No depende del server; funciona aunque no haya guild seleccionado.
+    "web_enabled": "true",
+    # Tope de caracteres de texto que la tool web devuelve al modelo.
+    "web_max_chars": "8000",
+    # Timeout (segundos) por intento de descarga/render.
+    "web_timeout_seconds": "20",
 }
 
 

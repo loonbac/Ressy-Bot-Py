@@ -32,6 +32,9 @@ def _typed_config(raw: dict[str, str]) -> dict[str, Any]:
         "max_input_chars": int(raw.get("max_input_chars", "8000")),
         "tools_enabled": raw.get("tools_enabled", "true") == "true",
         "tools_search_scan_limit": int(raw.get("tools_search_scan_limit", "300")),
+        "web_enabled": raw.get("web_enabled", "true") == "true",
+        "web_max_chars": int(raw.get("web_max_chars", "8000")),
+        "web_timeout_seconds": int(raw.get("web_timeout_seconds", "20")),
     }
 
 
@@ -56,6 +59,10 @@ async def update_config(request: Request, payload: ConfigPayload) -> dict[str, A
         data["max_input_chars"] = max(100, min(100_000, int(data["max_input_chars"])))
     if "tools_search_scan_limit" in data:
         data["tools_search_scan_limit"] = max(50, min(2000, int(data["tools_search_scan_limit"])))
+    if "web_max_chars" in data:
+        data["web_max_chars"] = max(1000, min(20000, int(data["web_max_chars"])))
+    if "web_timeout_seconds" in data:
+        data["web_timeout_seconds"] = max(5, min(60, int(data["web_timeout_seconds"])))
     return _typed_config(await _get_cog(request).db.update_config(data))
 
 

@@ -43,6 +43,9 @@ class ConfigPayload(BaseModel):
     max_input_chars: int | None = None
     tools_enabled: bool | None = None
     tools_search_scan_limit: int | None = None
+    web_enabled: bool | None = None
+    web_max_chars: int | None = None
+    web_timeout_seconds: int | None = None
 
 
 class MemoryCreate(BaseModel):

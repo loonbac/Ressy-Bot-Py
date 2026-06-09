@@ -339,12 +339,19 @@ async def run_tool_loop(
     client: Any,
     messages: list[dict[str, Any]],
     model: str,
-    executor: DiscordTools,
+    executor: DiscordTools | None,
     *,
     tools: list[dict[str, Any]] | None = None,
     max_iters: int = 5,
+    web_timeout: float = 20.0,
 ) -> str:
-    """Ejecuta el ciclo de tool-calling hasta obtener una respuesta final de texto."""
+    """Ejecuta el ciclo de tool-calling hasta obtener una respuesta final de texto.
+
+    Rutea cada llamada por nombre: las tools web (fetch_webpage) no dependen del
+    guild y se despachan aparte; el resto va al executor de Discord (si existe).
+    """
+    from .web import WEB_TOOL_NAMES, dispatch_web_tool
+
     tools = tools if tools is not None else TOOLS
     convo: list[dict[str, Any]] = list(messages)
     for _ in range(max_iters):
@@ -360,7 +367,12 @@ async def run_tool_loop(
                 call_args = json.loads(fn.get("arguments") or "{}")
             except (ValueError, TypeError):
                 call_args = {}
-            result = await executor.dispatch(name, call_args)
+            if name in WEB_TOOL_NAMES:
+                result = await dispatch_web_tool(name, call_args, timeout=web_timeout)
+            elif executor is not None:
+                result = await executor.dispatch(name, call_args)
+            else:
+                result = {"error": f"Tool no disponible: {name}"}
             convo.append(
                 {
                     "role": "tool",
