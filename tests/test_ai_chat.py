@@ -569,6 +569,30 @@ def _aiter_list(items):
 
 
 @pytest.mark.asyncio
+async def test_ask_with_guild_combines_discord_and_web_tools(ai_db):
+    """Regresión: con guild seleccionado, ask() arma TOOLS + WEB_TOOLS y corre el
+    tool-loop sin NameError. Antes fallaba con name 'TOOLS' is not defined."""
+    _guild, bot, cm = _guild_bot_cm()
+    bot.user = SimpleNamespace(id=99, mention="<@99>")
+    client = MagicMock(spec=AIChatClient)
+    captured = {}
+
+    async def fake_completion(messages, model, **kw):
+        captured["tools"] = kw.get("tools")
+        return {"role": "assistant", "content": "ok"}
+
+    client.chat_completion = AsyncMock(side_effect=fake_completion)
+    cog = AIChatCog(bot, ai_db, client, config_manager=cm)
+
+    reply = await cog.ask("u1", "c1", "¿qué es esta página? https://ipv8.es", persist=False)
+
+    assert reply == "ok"
+    names = {t["function"]["name"] for t in captured["tools"]}
+    assert "fetch_webpage" in names  # tool web
+    assert "search_messages" in names  # tool de Discord (rama del guild)
+
+
+@pytest.mark.asyncio
 async def test_tools_dispatch_errors_when_no_guild_selected():
     cm = SimpleNamespace(get=lambda k, default=None: "")  # sin guild
     tools = DiscordTools(SimpleNamespace(get_guild=lambda gid: None, guilds=[]), cm)

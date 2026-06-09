@@ -13,7 +13,7 @@ from src.web.routes.activity import push_event
 from .client import AIChatClient, DEFAULT_ANALYSIS_MODEL, DEFAULT_CHAT_MODEL
 from .conversations import ConversationStore
 from .database import AIChatDatabase
-from .tools import DiscordTools, run_tool_loop
+from .tools import TOOLS, DiscordTools, run_tool_loop
 from .web import WEB_TOOLS
 
 # Captura bloque <think>...</think> que algunos modelos MiniMax incluyen al
