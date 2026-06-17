@@ -138,6 +138,17 @@ class AIChatCog(commands.Cog):
             memory_enabled=cfg.get("memory_enabled", "true") == "true",
             summary_enabled=cfg.get("summary_enabled", "true") == "true",
         )
+        # Siempre recordar el límite de Discord (2000 chars) para que la IA
+        # genere respuestas que quepan completas sin truncar.
+        messages.append({
+            "role": "system",
+            "content": (
+                "Tus respuestas en Discord NO pueden exceder 1900 caracteres. "
+                "Sé conciso: prioriza lo más importante y omite detalles menores. "
+                "Si la respuesta es muy larga, divide la información en varios mensajes "
+                "o da un resumen ejecutivo primero."
+            ),
+        })
         model = cfg.get("chat_model", DEFAULT_CHAT_MODEL)
         # Tool-calling: la IA puede leer el server (acotado al guild) y/o navegar
         # webs públicas. La tool web NO depende del guild, así que el loop corre
