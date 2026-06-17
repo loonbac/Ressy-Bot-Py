@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!--
+Fixture hermético para _parse_ddg_lite. NO capturar de DuckDuckGo:
+los tests deben poder correr offline y sin red. La estructura refleja la
+SERP de lite.duckduckgo.com que el parser necesita entender:
+
+  * Una fila "result" tiene un <a class="result-link" href="..."> con el
+    título y un <a class="result-snippet"> o <td> con la descripción.
+  * Los enlaces de DuckDuckGo envuelven el destino real en
+    `https://duckduckgo.com/l/?uddg=<URL-ENCODED>&rut=<token>` o la forma
+    relativa `/l/?uddg=...`.
+  * También aparecen enlaces directos http(s):// cuando DDG no envuelve.
+  * Hay un sidebar de anuncios y links internos que el parser debe ignorar.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>linux kernel 6.8 at DuckDuckGo</title>
+  </head>
+  <body>
+    <form id="search-form" action="?q=linux+kernel+6.8">
+      <input type="text" name="q" value="linux kernel 6.8" />
+      <input type="submit" value="Search" />
+    </form>
+
+    <nav class="nav-menu">
+      <a href="/html/">Web</a>
+      <a href="/images/">Images</a>
+      <a href="/video/">Video</a>
+    </nav>
+
+    <table class="result">
+      <tr>
+        <td class="result-link">
+          <a
+            rel="nofollow"
+            href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fkernel.org%2F&rut=abc123"
+            class="result-link"
+          >Linux Kernel 6.8 released — what's new</a>
+        </td>
+      </tr>
+      <tr>
+        <td class="result-snippet">
+          Resumen del anuncio oficial de la versión 6.8 del kernel de Linux,
+          con los cambios más importantes en scheduler, drivers y arquitectura.
+        </td>
+      </tr>
+    </table>
+
+    <table class="result">
+      <tr>
+        <td class="result-link">
+          <a
+            rel="nofollow"
+            href="/l/?uddg=https%3A%2F%2Fwww.phoronix.com%2F&rut=def456"
+            class="result-link"
+          >Phoronix: Linux 6.8 features overview</a>
+        </td>
+      </tr>
+      <tr>
+        <td class="result-snippet">
+          Recorrido detallado por las novedades de Linux 6.8, benchmarks y
+          soporte de hardware nuevo.
+        </td>
+      </tr>
+    </table>
+
+    <table class="result">
+      <tr>
+        <td class="result-link">
+          <a
+            rel="nofollow"
+            href="https://lwn.net/Articles/950000/"
+            class="result-link"
+          >LWN.net coverage of 6.8 merge window</a>
+        </td>
+      </tr>
+      <tr>
+        <td class="result-snippet">
+          Análisis del merge window de Linux 6.8 con foco en los subsistemas
+          más activos del ciclo.
+        </td>
+      </tr>
+    </table>
+
+    <table class="result sponsored">
+      <tr>
+        <td class="result-link">
+          <a href="/about-our-ads">Ad</a>
+          <a href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fads.example%2F&rut=zzz">Buy a laptop</a>
+        </td>
+      </tr>
+    </table>
+
+    <footer>
+      <a href="/about">About</a>
+      <a href="/settings">Settings</a>
+    </footer>
+  </body>
+</html>

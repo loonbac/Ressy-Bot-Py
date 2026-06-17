@@ -35,6 +35,11 @@ def _typed_config(raw: dict[str, str]) -> dict[str, Any]:
         "web_enabled": raw.get("web_enabled", "true") == "true",
         "web_max_chars": int(raw.get("web_max_chars", "8000")),
         "web_timeout_seconds": int(raw.get("web_timeout_seconds", "20")),
+        # Búsqueda web (DuckDuckGo Lite) — REQ-SEARCH-10.
+        # Tipos nativos para que el dashboard no tenga que castear strings.
+        "search_enabled": raw.get("search_enabled", "true") == "true",
+        "search_safe": raw.get("search_safe", "true") == "true",
+        "search_max_per_hour": int(raw.get("search_max_per_hour", "10")),
     }
 
 
@@ -63,6 +68,17 @@ async def update_config(request: Request, payload: ConfigPayload) -> dict[str, A
         data["web_max_chars"] = max(1000, min(20000, int(data["web_max_chars"])))
     if "web_timeout_seconds" in data:
         data["web_timeout_seconds"] = max(5, min(60, int(data["web_timeout_seconds"])))
+    # REQ-SEARCH-10: la búsqueda web rechaza valores fuera de 1..100.
+    # Se valida ANTES de cualquier clamp: el dashboard debe saber que el valor
+    # es inválido en vez de recibir un silencio.
+    if "search_max_per_hour" in data:
+        value = int(data["search_max_per_hour"])
+        if value < 1 or value > 100:
+            raise HTTPException(
+                status_code=422,
+                detail="search_max_per_hour debe estar entre 1 y 100.",
+            )
+        data["search_max_per_hour"] = value
     return _typed_config(await _get_cog(request).db.update_config(data))
 
 

@@ -841,8 +841,10 @@ class TestYouTubePluginIntegration:
         app = create_app(config_manager=cm, bot=MagicMock())
 
         from src.bot.plugins.youtube_notifier import setup as setup_youtube
-        await setup_youtube(MagicMock(), cm, app)
-        return app
+        monitor = await setup_youtube(MagicMock(), cm, app)
+        yield app
+        await monitor.stop()
+        await monitor.close_db()
 
     async def test_subscriptions_returns_200(self, app_with_plugin):
         from httpx import ASGITransport, AsyncClient
@@ -1203,3 +1205,4 @@ class TestInit:
         assert monitor._task is not None
         assert not monitor._task.done()
         await monitor.stop()
+        await monitor.close_db()

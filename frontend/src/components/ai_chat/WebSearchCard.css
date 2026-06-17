@@ -1,0 +1,39 @@
+/* ── WebSearchCard — luz + dark ────────────────────────────── */
+
+.ai-chat-web-search-card {
+  padding-bottom: 1.5rem;
+}
+
+.ai-chat-web-search-card--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: saturate(0.6);
+  transition: opacity 0.22s ease, filter 0.22s ease;
+}
+
+.ai-chat-web-search-card__footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  background: rgba(247, 207, 216, 0.28);
+  border-radius: 0.65rem;
+  border: 1px dashed rgba(218, 50, 63, 0.18);
+  margin-top: 0.5rem;
+}
+
+.ai-chat-web-search-card__footnote-icon {
+  font-size: 16px;
+  color: var(--ai-chat-secondary, #b71329);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+html.dark .ai-chat-web-search-card__footnote {
+  background: rgba(247, 207, 216, 0.08);
+  border-color: rgba(255, 192, 203, 0.2);
+}
+
+html.dark .ai-chat-web-search-card__footnote-icon {
+  color: rgb(255, 192, 203);
+}

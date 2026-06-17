@@ -40,6 +40,14 @@ DEFAULTS = {
     "web_max_chars": "8000",
     # Timeout (segundos) por intento de descarga/render.
     "web_timeout_seconds": "20",
+    # Búsqueda web (PR 1 de `ai-web-search`): la IA puede descubrir páginas
+    # públicas con `web_search` (DuckDuckGo Lite keyless) antes de `fetch_webpage`.
+    # Master kill switch de la capacidad.
+    "search_enabled": "true",
+    # Safe search admin-only; el schema de la tool no expone override.
+    "search_safe": "true",
+    # Cuota rolling-hour por usuario; el rechazo es fail-closed pre-red.
+    "search_max_per_hour": "10",
 }
 
 

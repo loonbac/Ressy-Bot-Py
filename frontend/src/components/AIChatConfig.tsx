@@ -6,6 +6,7 @@ import StatusCard from './ai_chat/StatusCard';
 import BehaviorCard from './ai_chat/BehaviorCard';
 import PlaygroundCard from './ai_chat/PlaygroundCard';
 import MemoryToolsCard from './ai_chat/MemoryToolsCard';
+import WebSearchCard from './ai_chat/WebSearchCard';
 import AnimatedSaveButton from './ai_chat/AnimatedSaveButton';
 import {
   fetchAIChatConfig,
@@ -43,6 +44,10 @@ const DEFAULT_CONFIG: AIChatConfigType = {
   max_input_chars: 8000,
   tools_enabled: true,
   tools_search_scan_limit: 300,
+  // Búsqueda web (DuckDuckGo Lite) — REQ-SEARCH-10.
+  search_enabled: true,
+  search_safe: true,
+  search_max_per_hour: 10,
 };
 
 export default function AIChatConfig({ onNavigate }: Props) {
@@ -129,6 +134,10 @@ export default function AIChatConfig({ onNavigate }: Props) {
         memory_enabled: draft.memory_enabled,
         tools_enabled: draft.tools_enabled,
         tools_search_scan_limit: draft.tools_search_scan_limit,
+        // Búsqueda web (DuckDuckGo Lite) — REQ-SEARCH-10.
+        search_enabled: draft.search_enabled,
+        search_safe: draft.search_safe,
+        search_max_per_hour: draft.search_max_per_hour,
       });
       setConfig(updated);
       setDraft(updated);
@@ -209,11 +218,17 @@ export default function AIChatConfig({ onNavigate }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-4 pb-6">
+        <div className="grid grid-cols-12 gap-4 items-stretch">
           <div className="col-span-12 lg:col-span-7 flex">
             <PlaygroundCard config={draft} showToast={showToast} />
           </div>
           <div className="col-span-12 lg:col-span-5 flex">
+            <WebSearchCard config={draft} onPatch={handlePatchDraft} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-4 pb-6">
+          <div className="col-span-12 lg:col-span-12 flex">
             <MemoryToolsCard showToast={showToast} />
           </div>
         </div>
