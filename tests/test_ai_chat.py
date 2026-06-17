@@ -381,7 +381,7 @@ async def test_input_guard_truncates_long_message(ai_cog):
     await ai_cog.ask("u1", "c1", huge, persist=False)
 
     sent = ai_cog.client.chat_completion.await_args.args[0]
-    user_msg = sent[-1]["content"]
+    user_msg = next(m["content"] for m in reversed(sent) if m["role"] == "user")
     assert len(user_msg) == 50
 
 
