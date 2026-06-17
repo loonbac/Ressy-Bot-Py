@@ -4,9 +4,12 @@ import asyncio
 import ipaddress
 import re
 import socket
+import time
+from collections import defaultdict, deque
 from html.parser import HTMLParser
-from typing import Any
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from math import ceil
+from typing import Any, Callable
+from urllib.parse import parse_qs, unquote, urljoin, urlsplit, urlunsplit
 
 import httpx
 
@@ -83,10 +86,38 @@ WEB_TOOLS: list[dict[str, Any]] = [
                 "required": ["url"],
             },
         },
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": (
+                "Busca páginas web públicas por una consulta en lenguaje natural y devuelve "
+                "una lista corta con título, URL y snippet de cada resultado. Úsala cuando el "
+                "usuario pida información de internet sin proporcionar un enlace, o cuando "
+                "necesites descubrir fuentes antes de abrirlas con `fetch_webpage`. No devuelve "
+                "HTML crudo. Si la búsqueda falla, dilo con claridad en vez de inventar resultados."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Texto a buscar, en lenguaje natural.",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Máximo de resultados a devolver (1-10).",
+                        "default": 5,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
-WEB_TOOL_NAMES = {"fetch_webpage"}
+WEB_TOOL_NAMES = {"fetch_webpage", "web_search"}
 
 # Códigos que suelen ser bloqueo anti-bot o caída transitoria: vale reintentar
 # con navegador real. El resto de 4xx/5xx se tratan como fallo definitivo.
@@ -189,6 +220,296 @@ def html_to_text(html: str) -> tuple[str, str, str | None]:
         stripped = re.sub(r"(?s)<[^>]+>", " ", stripped)
         return "", _collapse_inline(stripped), None
     return parser.title, parser.text, parser.meta_description
+
+
+# ---------------------------------------------------------------------------
+# Cuota de búsqueda (in-memory, rolling-hour)
+# ---------------------------------------------------------------------------
+
+
+class WebSearchQuota:
+    """Cuota rolling-hour por usuario, en memoria.
+
+    Estructura: `dict[user_id, deque[float]]` con timestamps en segundos de un
+    reloj inyectable (default `time.monotonic`). Se poda la cola izquierda en
+    cada `check_and_consume` para mantener la operación O(1) amortizada.
+
+    Convenciones de retorno:
+      - `(True, remaining_after_consume)` cuando se permite la búsqueda.
+      - `(False, retry_after_seconds)` cuando se deniega; el retry es
+        `ceil(events[0] + window_seconds - now)` y siempre `> 0` si la
+        denegación viene del cap (los timestamps viejos ya se podaron).
+    """
+
+    def __init__(
+        self,
+        *,
+        window_seconds: int = 3600,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.window_seconds = window_seconds
+        self._clock = clock
+        self._events: dict[str, deque[float]] = defaultdict(deque)
+
+    def check_and_consume(self, user_id: str, max_per_hour: int) -> tuple[bool, int]:
+        now = self._clock()
+        events = self._events[user_id]
+        cutoff = now - self.window_seconds
+        # Poda inclusiva en el borde: si events[0] <= cutoff, ya expiró.
+        while events and events[0] <= cutoff:
+            events.popleft()
+        if len(events) >= max_per_hour:
+            retry = int(ceil(events[0] + self.window_seconds - now))
+            return False, max(1, retry)
+        events.append(now)
+        return True, max(0, max_per_hour - len(events))
+
+
+# Instancia de módulo (una sola por proceso). Tests inyectan su propio `quota`.
+_SEARCH_QUOTA = WebSearchQuota()
+
+
+# ---------------------------------------------------------------------------
+# Parser de DuckDuckGo Lite
+# ---------------------------------------------------------------------------
+
+
+_SNIPPET_MAX_CHARS = 500
+
+
+def _decode_ddg_redirect(href: str | None) -> str | None:
+    """Decodifica el wrapper `https://duckduckgo.com/l/?uddg=<URL>&rut=...` o su
+    forma relativa `/l/?uddg=...` a la URL real. Devuelve `None` para hrefs
+    vacíos, schemes no soportados o wrappers malformados.
+    """
+    if not href:
+        return None
+    href = href.strip()
+    if not href:
+        return None
+    if href.startswith("//"):
+        href = "https:" + href
+    parsed = urlsplit(href)
+    if parsed.scheme in {"http", "https"}:
+        netloc = parsed.netloc.lower()
+        # Forma absoluta del wrapper de DDG.
+        if netloc.endswith("duckduckgo.com") and parsed.path == "/l/":
+            uddg = (parse_qs(parsed.query).get("uddg") or [None])[0]
+            return unquote(uddg) if uddg else None
+        # Enlace directo http(s) (DDG a veces lo emite así).
+        return href
+    # Forma relativa /l/?uddg=... (común en lite.duckduckgo.com).
+    if href.startswith("/l/") or href.startswith("l/?"):
+        path_q = "/" + href[2:] if href.startswith("l/") else href
+        uddg = (parse_qs(urlsplit(path_q).query).get("uddg") or [None])[0]
+        return unquote(uddg) if uddg else None
+    return None
+
+
+class _DDGLiteParser(HTMLParser):
+    """Parser streaming del SERP de `lite.duckduckgo.com`.
+
+    Estrategia: rastrear los enlaces con clase `result-link` y los snippets con
+    clase `result-snippet`. Esta aproximación es robusta a si los resultados
+    se anidan en tablas individuales (como en el fixture de tests) o si están
+    dentro de una única tabla mayor (como en la respuesta real actual).
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._title_open = False
+        self._title_href: str | None = None
+        self._title_parts: list[str] = []
+        self._snippet_open = False
+        self._snippet_parts: list[str] = []
+        self.results: list[dict[str, str]] = []
+        self._in_result_link_td = False
+
+    def _class_tokens(self, raw: str | None) -> set[str]:
+        return set((raw or "").lower().split())
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr = dict(attrs)
+        if tag == "td":
+            tokens = self._class_tokens(attr.get("class"))
+            if "result-link" in tokens:
+                self._in_result_link_td = True
+            elif "result-snippet" in tokens:
+                self._snippet_open = True
+                self._snippet_parts = []
+        elif tag == "a":
+            tokens = self._class_tokens(attr.get("class"))
+            if "result-link" in tokens or self._in_result_link_td:
+                # Si había un resultado pendiente sin snippet finalizado, lo cerramos.
+                self._finalize_current()
+                self._title_open = True
+                self._title_href = attr.get("href")
+                self._title_parts = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td":
+            self._in_result_link_td = False
+            if self._snippet_open:
+                self._snippet_open = False
+                self._finalize_current()
+        elif tag == "a" and self._title_open:
+            self._title_open = False
+
+    def handle_data(self, data: str) -> None:
+        if self._title_open:
+            self._title_parts.append(data)
+        elif self._snippet_open:
+            self._snippet_parts.append(data)
+
+    def _finalize_current(self) -> None:
+        if not self._title_href:
+            return
+        title = _collapse_inline("".join(self._title_parts))
+        if not title:
+            self._title_href = None
+            return
+        snippet = _collapse_inline("".join(self._snippet_parts))[:_SNIPPET_MAX_CHARS]
+        self.results.append(
+            {"title": title, "href": self._title_href, "snippet": snippet}
+        )
+        self._title_href = None
+        self._title_parts = []
+        self._snippet_parts = []
+
+
+def _parse_ddg_lite(html: str) -> list[dict[str, str]]:
+    """Extrae una lista de `{title, url, snippet}` del SERP de DDG Lite.
+
+    Decodifica automáticamente el wrapper `duckduckgo.com/l/?uddg=...` y la
+    forma relativa `/l/?uddg=...`. Ignora filas `sponsored` y enlaces internos
+    del propio buscador. Nunca propaga excepciones: cualquier fallo de parseo
+    se traduce en lista vacía.
+    """
+    if not html:
+        return []
+    parser = _DDGLiteParser()
+    try:
+        parser.feed(html)
+        parser.close()
+    except Exception:
+        return []
+    out: list[dict[str, str]] = []
+    for raw in parser.results:
+        url = _decode_ddg_redirect(raw.get("href"))
+        if not url:
+            continue
+        # Filtro final defensivo: nunca devolver wrappers ni schemes no http(s).
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            continue
+        if "duckduckgo.com" in parsed.netloc.lower():
+            continue
+        out.append({"title": raw["title"], "url": url, "snippet": raw.get("snippet", "")})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Búsqueda web (DuckDuckGo Lite keyless)
+# ---------------------------------------------------------------------------
+
+
+_DDG_LITE_URL = "https://lite.duckduckgo.com/lite/"
+
+
+async def web_search(
+    query: str,
+    *,
+    max_results: int = 5,
+    safe: bool = True,
+    timeout: float = 20.0,
+    user_id: str | None = None,
+    max_per_hour: int = 10,
+    quota: WebSearchQuota | None = None,
+    client: httpx.AsyncClient | None = None,
+    browser_fallback: bool = False,  # noqa: ARG001 — reservado, no usado en PR 1
+) -> dict[str, Any]:
+    """Busca en DuckDuckGo Lite (keyless) y devuelve resultados estructurados.
+
+    Nunca propaga excepciones: cualquier fallo (red, parseo, status, timeout,
+    cuota agotada, falta de `user_id`) se convierte en `{"error": "..."}` para
+    que el tool-loop pueda continuar. El parámetro `browser_fallback` queda
+    reservado para una iteración futura (Playwright contra DDG) y se ignora en
+    este slice.
+
+    Orden de los chequeos (importa para el contrato de cuota antes de red):
+      1. `query` vacío/whitespace → error.
+      2. `user_id` ausente → fail-closed, sin construir cliente HTTP.
+      3. Cuota rolling-hour → si agotada, error en español y sin request.
+      4. HTTP GET a DDG Lite con `q` + `kp` (admin-only) + headers de navegador.
+      5. Status `403/429/5xx` o timeouts → error dict.
+      6. Parseo vía `_parse_ddg_lite`; payload acotado a `max_results`.
+    """
+    query_clean = (query or "").strip()
+    if not query_clean:
+        return {"error": "Falta el texto a buscar (query)."}
+    if not user_id:
+        return {
+            "error": "No se pudo identificar al usuario para aplicar el límite de búsquedas."
+        }
+
+    quota_obj = quota or _SEARCH_QUOTA
+    allowed, _remaining = quota_obj.check_and_consume(str(user_id), int(max_per_hour))
+    if not allowed:
+        return {
+            "error": "Límite de búsquedas alcanzado. Intenta más tarde."
+        }
+
+    max_results = max(1, min(10, int(max_results or 5)))
+    owns_client = client is None
+    if owns_client:
+        client = httpx.AsyncClient(timeout=timeout)
+    try:
+        try:
+            response = await client.get(
+                _DDG_LITE_URL,
+                params={"q": query_clean, "kp": "1" if safe else "-1"},
+                headers=_BROWSER_HEADERS,
+            )
+        except httpx.TimeoutException:
+            return {"error": "La búsqueda tardó demasiado (timeout). Intenta de nuevo."}
+        except httpx.HTTPError as exc:
+            return {"error": f"Fallo de red al buscar: {type(exc).__name__}."}
+
+        status = response.status_code
+        if status in {403, 429} or status >= 500:
+            return {
+                "error": f"El servicio de búsqueda no está disponible (HTTP {status})."
+            }
+        if status >= 400:
+            return {"error": f"La búsqueda falló (HTTP {status})."}
+
+        try:
+            html = response.text
+        except Exception as exc:
+            return {"error": f"No se pudo leer la respuesta de búsqueda: {type(exc).__name__}."}
+
+        try:
+            parsed = _parse_ddg_lite(html)
+        except Exception as exc:
+            return {"error": f"No se pudo interpretar la respuesta de búsqueda: {type(exc).__name__}."}
+
+        bounded = parsed[:max_results]
+        return {
+            "query": query_clean,
+            "safe": bool(safe),
+            "results": bounded,
+            "count": len(bounded),
+            "source": "duckduckgo_lite",
+            "fetched_with": "http",
+        }
+    except Exception as exc:  # última red de seguridad: nunca tumbar el loop
+        return {"error": f"Fallo inesperado al buscar: {type(exc).__name__}: {exc}"}
+    finally:
+        if owns_client and client is not None:
+            try:
+                await client.aclose()
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -478,19 +799,47 @@ async def _fetch_with_browser(url: str, max_chars: int, timeout: float) -> dict[
                 await pw.stop()
 
 
-async def dispatch_web_tool(name: str, args: dict[str, Any], *, timeout: float = 20.0) -> dict[str, Any]:
+async def dispatch_web_tool(
+    name: str,
+    args: dict[str, Any],
+    *,
+    timeout: float = 20.0,
+    user_id: str | None = None,
+    search_enabled: bool = True,
+    search_safe: bool = True,
+    search_max_per_hour: int = 10,
+) -> dict[str, Any]:
     """Despacha una tool web por nombre. Aislada de las tools de Discord.
 
     Nunca propaga excepciones: como DiscordTools.dispatch, devuelve {"error": ...}
     para no tumbar el tool-loop ante un fallo inesperado.
+
+    `search_enabled` actúa como kill switch de defensa en profundidad: aunque el
+    schema de la tool quede visible, una llamada `web_search` con la búsqueda
+    deshabilitada se rechaza con error y nunca toca la red.
     """
-    if name != "fetch_webpage":
-        return {"error": f"Tool web desconocida: {name}"}
     try:
-        return await fetch_webpage(
-            str(args.get("url") or ""),
-            max_chars=int(args.get("max_chars") or 8000),
-            timeout=timeout,
-        )
+        if name == "fetch_webpage":
+            return await fetch_webpage(
+                str(args.get("url") or ""),
+                max_chars=int(args.get("max_chars") or 8000),
+                timeout=timeout,
+            )
+        if name == "web_search":
+            if not search_enabled:
+                return {"error": "La búsqueda web está deshabilitada por configuración."}
+            try:
+                max_results = int(args.get("max_results") or 5)
+            except (TypeError, ValueError):
+                max_results = 5
+            return await web_search(
+                str(args.get("query") or ""),
+                max_results=max_results,
+                safe=search_safe,
+                timeout=timeout,
+                user_id=user_id,
+                max_per_hour=search_max_per_hour,
+            )
+        return {"error": f"Tool web desconocida: {name}"}
     except Exception as exc:  # nunca tumbar el loop por una tool
         return {"error": f"Falló la tool web: {type(exc).__name__}: {exc}"}

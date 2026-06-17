@@ -16,6 +16,11 @@ export interface AIChatConfig {
   max_input_chars: number;
   tools_enabled: boolean;
   tools_search_scan_limit: number;
+  // Búsqueda web (DuckDuckGo Lite) — REQ-SEARCH-10.
+  // El backend las expone tipadas; el dashboard las persiste vía PUT /config.
+  search_enabled: boolean;
+  search_safe: boolean;
+  search_max_per_hour: number;
 }
 
 export type AIChatConfigPatch = Partial<AIChatConfig>;

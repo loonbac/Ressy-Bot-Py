@@ -25,7 +25,7 @@ describe('ConfigPanel', () => {
 
   it('shows empty state when no configs', () => {
     render(<ConfigPanel configs={[]} onUpdate={vi.fn()} />);
-    expect(screen.getByText('No configuration values yet')).toBeInTheDocument();
+    expect(screen.getByText('No hay valores de configuración aún')).toBeInTheDocument();
   });
 
   it('calls onUpdate when clicking save', async () => {
@@ -33,7 +33,7 @@ describe('ConfigPanel', () => {
     render(<ConfigPanel configs={mockConfigs} onUpdate={onUpdate} />);
     const input = screen.getByLabelText('version') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '2.0.0' } });
-    fireEvent.click(screen.getAllByText('Save')[0]);
+    fireEvent.click(screen.getAllByText('GUARDAR')[0]);
     await waitFor(() => {
       expect(onUpdate).toHaveBeenCalledWith('version', '2.0.0');
     });
@@ -42,7 +42,7 @@ describe('ConfigPanel', () => {
   it('shows error if onUpdate fails', async () => {
     const onUpdate = vi.fn().mockRejectedValue(new Error('Bad request'));
     render(<ConfigPanel configs={mockConfigs} onUpdate={onUpdate} />);
-    fireEvent.click(screen.getAllByText('Save')[0]);
+    fireEvent.click(screen.getAllByText('GUARDAR')[0]);
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Bad request');
     });
@@ -53,10 +53,10 @@ describe('ConfigPanel', () => {
       () => new Promise<void>((resolve) => setTimeout(resolve, 100))
     );
     render(<ConfigPanel configs={mockConfigs} onUpdate={onUpdate} />);
-    fireEvent.click(screen.getAllByText('Save')[0]);
-    expect(screen.getByText('Saving…')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText('GUARDAR')[0]);
+    expect(screen.getByText('GUARDANDO...')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.queryByText('Saving…')).not.toBeInTheDocument();
+      expect(screen.queryByText('GUARDANDO...')).not.toBeInTheDocument();
     });
   });
 });

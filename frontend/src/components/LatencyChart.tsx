@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { createChart, IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
 
 interface LatencyChartProps {
   latencyMs: number | null | undefined;
@@ -27,7 +27,7 @@ export default function LatencyChart({ latencyMs }: LatencyChartProps) {
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: 'solid', color: 'transparent' },
+        background: { type: ColorType.Solid, color: 'transparent' },
         textColor: 'rgba(117, 86, 94, 0.8)',
       },
       grid: {

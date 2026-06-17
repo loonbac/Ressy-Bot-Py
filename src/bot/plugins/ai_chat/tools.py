@@ -344,11 +344,18 @@ async def run_tool_loop(
     tools: list[dict[str, Any]] | None = None,
     max_iters: int = 5,
     web_timeout: float = 20.0,
+    user_id: str | None = None,
+    search_enabled: bool = True,
+    search_safe: bool = True,
+    search_max_per_hour: int = 10,
 ) -> str:
     """Ejecuta el ciclo de tool-calling hasta obtener una respuesta final de texto.
 
-    Rutea cada llamada por nombre: las tools web (fetch_webpage) no dependen del
-    guild y se despachan aparte; el resto va al executor de Discord (si existe).
+    Rutea cada llamada por nombre: las tools web (fetch_webpage, web_search) no
+    dependen del guild y se despachan aparte; el resto va al executor de
+    Discord (si existe). Los kwargs de búsqueda (`user_id`, `search_*`) se
+    reenvían solo al branch web para que la cuota pueda aplicarse por
+    usuario. Discord y el resto de branches no los ven.
     """
     from .web import WEB_TOOL_NAMES, dispatch_web_tool
 
@@ -368,7 +375,15 @@ async def run_tool_loop(
             except (ValueError, TypeError):
                 call_args = {}
             if name in WEB_TOOL_NAMES:
-                result = await dispatch_web_tool(name, call_args, timeout=web_timeout)
+                result = await dispatch_web_tool(
+                    name,
+                    call_args,
+                    timeout=web_timeout,
+                    user_id=user_id,
+                    search_enabled=search_enabled,
+                    search_safe=search_safe,
+                    search_max_per_hour=search_max_per_hour,
+                )
             elif executor is not None:
                 result = await executor.dispatch(name, call_args)
             else:

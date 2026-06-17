@@ -53,7 +53,6 @@ export default function AliasesDrawer({
   const warnCount = aliases.filter(
     (a) => (a.score ?? 1) >= threshold && (a.score ?? 1) < 0.9,
   ).length;
-  const badCount = aliases.filter((a) => (a.score ?? 1) < threshold).length;
 
   if (!open) return null;
 

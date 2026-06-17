@@ -126,13 +126,36 @@ class AIChatCog(commands.Cog):
             tools_on and self.discord_tools is not None and self.discord_tools._guild() is not None
         )
         if web_on:
-            tool_schemas.extend(WEB_TOOLS)
+            # Búsqueda: la exponemos solo si está habilitada (configurable por admin).
+            # Safe search es admin-only: el schema de la tool no expone override.
+            search_on = cfg.get("search_enabled", "true") == "true"
+            search_safe = cfg.get("search_safe", "true") == "true"
+            # Clamp defensivo 1..100 para el dispatch (la API rechaza fuera de rango,
+            # pero nunca confiamos solo en el front).
+            search_max_per_hour = max(1, min(100, int(cfg.get("search_max_per_hour", "10"))))
+            for schema in WEB_TOOLS:
+                name = schema.get("function", {}).get("name")
+                if name == "web_search" and not search_on:
+                    continue
+                tool_schemas.append(schema)
             tool_hints.append(
                 "Tienes una herramienta para abrir una página web pública por su URL y leer su "
                 "contenido. Úsala cuando el usuario comparta un enlace o pida revisar, resumir o "
                 "explicar una página, noticia o documento de internet. Cita el título y resume con "
                 "fidelidad; si la página no se puede abrir, dilo con claridad."
             )
+            if search_on:
+                tool_hints.append(
+                    "Si el usuario pide información de internet pero no proporciona un enlace, "
+                    "primero usa `web_search` para encontrar fuentes públicas relevantes. Luego "
+                    "abre con `fetch_webpage` solo los resultados necesarios y resume citando "
+                    "título o URL. No inventes resultados si la búsqueda falla."
+                )
+        else:
+            # Sin web: defaults inocuos para no contaminar el branch del tool loop.
+            search_on = False
+            search_safe = True
+            search_max_per_hour = 10
         if has_guild:
             scan = max(50, min(2000, int(cfg.get("tools_search_scan_limit", "300"))))
             self.discord_tools.scan_limit = scan
@@ -153,6 +176,10 @@ class AIChatCog(commands.Cog):
                 self.discord_tools if has_guild else None,
                 tools=tool_schemas,
                 web_timeout=web_timeout,
+                user_id=str(user_id),
+                search_enabled=bool(search_on),
+                search_safe=bool(search_safe),
+                search_max_per_hour=int(search_max_per_hour),
             )
         else:
             raw = await self.client.chat(messages, model)

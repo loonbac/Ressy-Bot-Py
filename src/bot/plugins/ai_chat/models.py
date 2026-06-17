@@ -46,6 +46,10 @@ class ConfigPayload(BaseModel):
     web_enabled: bool | None = None
     web_max_chars: int | None = None
     web_timeout_seconds: int | None = None
+    # Búsqueda web (DuckDuckGo Lite) — REQ-SEARCH-10. PUT valida bounds.
+    search_enabled: bool | None = None
+    search_safe: bool | None = None
+    search_max_per_hour: int | None = None
 
 
 class MemoryCreate(BaseModel):
