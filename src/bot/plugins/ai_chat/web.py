@@ -299,8 +299,9 @@ def _decode_ddg_redirect(href: str | None) -> str | None:
         # Enlace directo http(s) (DDG a veces lo emite así).
         return href
     # Forma relativa /l/?uddg=... (común en lite.duckduckgo.com).
-    if href.startswith("/l/") or href.startswith("l/?"):
-        path_q = "/" + href[2:] if href.startswith("l/") else href
+    # Unificamos ambos casos (/l/ y l/) para evitar urlsplit malformado (kilo review).
+    if href.startswith("/l/") or href.startswith("l/"):
+        path_q = href if href.startswith("/") else "/" + href
         uddg = (parse_qs(urlsplit(path_q).query).get("uddg") or [None])[0]
         return unquote(uddg) if uddg else None
     return None
@@ -324,6 +325,7 @@ class _DDGLiteParser(HTMLParser):
         self._snippet_parts: list[str] = []
         self.results: list[dict[str, str]] = []
         self._in_result_link_td = False
+        self._in_sponsored_table = False  # salta filas patrocinadas
 
     def _class_tokens(self, raw: str | None) -> set[str]:
         return set((raw or "").lower().split())
@@ -337,7 +339,15 @@ class _DDGLiteParser(HTMLParser):
             elif "result-snippet" in tokens:
                 self._snippet_open = True
                 self._snippet_parts = []
+        elif tag == "table":
+            tokens = self._class_tokens(attr.get("class"))
+            if "sponsored" in tokens:
+                self._in_sponsored_table = True
         elif tag == "a":
+            if self._in_sponsored_table:
+                self._title_open = False
+                self._title_href = None
+                return
             tokens = self._class_tokens(attr.get("class"))
             if "result-link" in tokens or self._in_result_link_td:
                 # Si había un resultado pendiente sin snippet finalizado, lo cerramos.
@@ -347,7 +357,9 @@ class _DDGLiteParser(HTMLParser):
                 self._title_parts = []
 
     def handle_endtag(self, tag: str) -> None:
-        if tag == "td":
+        if tag == "table":
+            self._in_sponsored_table = False
+        elif tag == "td":
             self._in_result_link_td = False
             if self._snippet_open:
                 self._snippet_open = False
@@ -391,6 +403,7 @@ def _parse_ddg_lite(html: str) -> list[dict[str, str]]:
     try:
         parser.feed(html)
         parser.close()
+        parser._finalize_current()  # kilo: flush último resultado pendiente sin snippet
     except Exception:
         return []
     out: list[dict[str, str]] = []
@@ -404,7 +417,17 @@ def _parse_ddg_lite(html: str) -> list[dict[str, str]]:
             continue
         if "duckduckgo.com" in parsed.netloc.lower():
             continue
-        out.append({"title": raw["title"], "url": url, "snippet": raw.get("snippet", "")})
+        title = raw["title"]
+        snippet = raw.get("snippet", "")
+        # Filtro explícito de sponsored (kilo review): evitar que resultados
+        # promocionados pasen como búsqueda orgánica.
+        title_lower = title.lower()
+        snippet_lower = snippet.lower()
+        if any(kw in title_lower for kw in ("sponsored", "patrocinado")):
+            continue
+        if any(kw in snippet_lower for kw in ("sponsored", "patrocinado")):
+            continue
+        out.append({"title": title, "url": url, "snippet": snippet})
     return out
 
 
