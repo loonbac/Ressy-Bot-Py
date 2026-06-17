@@ -34,6 +34,30 @@ def split_thinking(text: str) -> tuple[str | None, str]:
     return thinking, cleaned
 
 
+# Límite de Discord: 2000 chars por mensaje. Dejamos margen de 100.
+_DISCORD_MAX_CHARS = 1900
+
+
+def _discord_safe(text: str) -> str:
+    """Trunca texto al límite de Discord sin cortar palabras ni oraciones.
+
+    Si el texto excede `_DISCORD_MAX_CHARS`, busca el último punto, signo
+    de interrogación/exclamación o salto de línea antes del límite para
+    cortar limpiamente. Si no encuentra ninguno, corta en el límite nomás.
+    """
+    if len(text) <= _DISCORD_MAX_CHARS:
+        return text
+    safe = text[:_DISCORD_MAX_CHARS]
+    # Buscar el último separador de oración hacia atrás.
+    for sep in ("\n", ". ", "! ", "¿", "):", ".\""):
+        idx = safe.rfind(sep)
+        if idx > 0:
+            return text[: idx + len(sep)].rstrip()
+    # Fallback: cortar en el último espacio antes del límite.
+    idx = safe.rfind(" ")
+    return safe[:idx] if idx > 0 else safe
+
+
 class AIChatCog(commands.Cog):
     def __init__(
         self,
@@ -215,7 +239,7 @@ class AIChatCog(commands.Cog):
         except Exception as exc:
             await interaction.followup.send(f"No pude consultar la IA: {exc}", ephemeral=True)
             return
-        await interaction.followup.send(reply[:1900])
+        await interaction.followup.send(_discord_safe(reply))
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -247,4 +271,4 @@ class AIChatCog(commands.Cog):
         except Exception as exc:
             await message.reply(f"No pude consultar la IA: {exc}", mention_author=False)
             return
-        await message.reply(reply[:1900], mention_author=False)
+        await message.reply(_discord_safe(reply), mention_author=False)
